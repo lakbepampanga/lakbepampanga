@@ -6,5 +6,6 @@ Route::post('/generate-itinerary', [ItineraryController::class, 'generateItinera
 
 
 Route::post('/calculate-route', [ItineraryController::class, 'calculateRoute']);
+Route::post('/generate-itinerary', [ItineraryController::class, 'generateItinerary']);
 
 
