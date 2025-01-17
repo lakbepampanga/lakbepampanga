@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Destination;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use App\Models\JeepneyRoute;
 use App\Models\JeepneyStop;
 use App\Models\FareStructure;
@@ -16,18 +16,17 @@ class ItineraryController extends Controller
     public function generateItinerary(Request $request)
     {
         try {
-            // Validate inputs
             $validatedData = $request->validate([
                 'latitude' => 'required|numeric',
                 'longitude' => 'required|numeric',
                 'hours' => 'required|integer|min:1',
                 'selected_location' => 'nullable|string',
             ]);
-
+    
             $latitude = $validatedData['latitude'];
             $longitude = $validatedData['longitude'];
             $availableTime = $validatedData['hours'] * 60;
-
+    
             if ($validatedData['selected_location']) {
                 switch ($validatedData['selected_location']) {
                     case 'Angeles':
@@ -50,182 +49,210 @@ class ItineraryController extends Controller
                         break;
                 }
             }
-
-            // Fetch all destinations
+    
             $destinations = Destination::all();
-
             if ($destinations->isEmpty()) {
                 return response()->json(['error' => 'No destinations available.'], 400);
             }
-
+    
             $itinerary = [];
             $timeSpent = 0;
             $foodStopsAdded = 0;
             $landmarkCount = 0;
-            $maxLandmarksBeforeFoodStop = 3;
-
+            $maxLandmarksBeforeFoodStop = 3; // Maximum landmarks before adding a food stop
+            $maxFoodStops = floor($availableTime / 240); // Max food stops based on 4-hour intervals
+    
             while ($timeSpent < $availableTime && $destinations->isNotEmpty()) {
                 $cluster = $this->getClusterOfDestinations($latitude, $longitude, $destinations);
-
+    
                 if ($cluster->isEmpty()) {
                     break;
                 }
-
-                $shouldAddFoodStop = $foodStopsAdded < floor($availableTime / 240);
-                $filteredCluster = $cluster->filter(function ($destination) use ($shouldAddFoodStop, &$landmarkCount) {
-                    if ($shouldAddFoodStop && $destination->type === 'restaurant' && $landmarkCount >= 3) {
+    
+                $shouldAddFoodStop = $foodStopsAdded < $maxFoodStops && $landmarkCount >= $maxLandmarksBeforeFoodStop;
+                $filteredCluster = $cluster->filter(function ($destination) use ($shouldAddFoodStop) {
+                    if ($shouldAddFoodStop && $destination->type === 'restaurant') {
                         return true;
                     }
                     return $destination->type === 'landmark';
                 });
-
-                $nextDestination = $this->getClosestDestinationFromGoogle($latitude, $longitude, $filteredCluster);
-
+    
+                $nextDestination = $this->findClosestDestination($latitude, $longitude, $filteredCluster);
+    
                 if (!$nextDestination) {
                     break;
                 }
-
-                $travelTime = $nextDestination['duration'] / 60;
-                $visitTime = $nextDestination['destination']->type === 'restaurant' ? 40 : 20;
-
+    
+                $travelTime = $this->estimateTravelTime(
+                    $latitude,
+                    $longitude,
+                    $nextDestination->latitude,
+                    $nextDestination->longitude
+                );
+                $visitTime = $nextDestination->type === 'restaurant' ? 40 : 20;
+    
                 if ($timeSpent + $travelTime + $visitTime > $availableTime) {
                     break;
                 }
-
-                // Add the destination to the itinerary with commute instructions
-                $itinerary[] = $this->addToItineraryWithCommute($nextDestination['destination'], $travelTime, $visitTime, $latitude, $longitude);
-
+    
+                $itineraryItem = $this->addToItineraryWithCommute(
+                    $nextDestination,
+                    $travelTime,
+                    $visitTime,
+                    $latitude,
+                    $longitude
+                );
+    
+                // Add description explicitly to the itinerary response
+                $itineraryItem['description'] = $nextDestination->description ?? 'No description available for this destination.';
+                $itinerary[] = $itineraryItem;
+    
                 $timeSpent += $travelTime + $visitTime;
-                $latitude = $nextDestination['destination']->latitude;
-                $longitude = $nextDestination['destination']->longitude;
-
-                // Remove visited destination from all lists
-                $destinations = $destinations->reject(fn($d) => $d->id === $nextDestination['destination']->id)->values();
-
-                // Track added food stops
-                if ($nextDestination['destination']->type === 'restaurant') {
+    
+                $latitude = $nextDestination->latitude;
+                $longitude = $nextDestination->longitude;
+    
+                $destinations = $destinations->reject(fn($d) => $d->id === $nextDestination->id);
+    
+                // Track food stops and landmarks
+                if ($nextDestination->type === 'restaurant') {
                     $foodStopsAdded++;
-                    $landmarkCount = 0;
+                    $landmarkCount = 0; // Reset landmark count after a food stop
                 } else {
                     $landmarkCount++;
                 }
             }
-
+    
             return response()->json($itinerary);
-
+    
         } catch (\Exception $e) {
             \Log::error('Error Generating Itinerary:', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'An error occurred while generating the itinerary. Please try again later.'], 500);
+            return response()->json(['error' => 'An error occurred while generating the itinerary.'], 500);
         }
     }
+    
 
-    // Function to get human-readable address from coordinates using Google Geocoding API
-    private function getAddressFromCoordinates($latitude, $longitude)
+    private function findClosestDestination($lat, $lng, $destinations) 
     {
-        $apiKey = env('GOOGLE_MAPS_API_KEY');
-        $url = 'https://maps.googleapis.com/maps/api/geocode/json';
-
-        try {
-            $response = Http::get($url, [
-                'latlng' => "{$latitude},{$longitude}",
-                'key' => $apiKey,
-            ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                if (!empty($data['results'])) {
-                    // Return the formatted address
-                    return $data['results'][0]['formatted_address'];
-                }
-            }
-        } catch (\Exception $e) {
-            \Log::error('Error calling Google Geocoding API:', ['error' => $e->getMessage()]);
-        }
-
-        return null;  // Return null if the address cannot be fetched
-    }
-
-    // Function to get destinations within a certain distance from the user
-    private function getClusterOfDestinations($latitude, $longitude, $destinations, $maxDistance = 5.0)
-    {
-        return $destinations->filter(function ($destination) use ($latitude, $longitude, $maxDistance) {
-            $distance = $this->calculateDistance($latitude, $longitude, $destination->latitude, $destination->longitude);
-            return $distance <= $maxDistance;
-        })->values();
-    }
-
-    // Function to calculate travel time between the user's location and destination using Google Directions API
-    private function getClosestDestinationFromGoogle($latitude, $longitude, $destinations)
-    {
-        $apiKey = env('GOOGLE_MAPS_API_KEY');
-        $url = 'https://maps.googleapis.com/maps/api/directions/json';
-
-        $closestDestination = null;
-        $shortestDuration = PHP_INT_MAX;
+        $closest = null;
+        $minDistance = PHP_FLOAT_MAX;
 
         foreach ($destinations as $destination) {
-            try {
-                $response = Http::get($url, [
-                    'origin' => "{$latitude},{$longitude}",
-                    'destination' => "{$destination->latitude},{$destination->longitude}",
-                    'key' => $apiKey,
-                    'mode' => 'driving',  // You can change this to walking, bicycling, or transit if needed
-                ]);
-
-                if ($response->successful()) {
-                    $data = $response->json();
-
-                    if (!empty($data['routes'])) {
-                        $duration = $data['routes'][0]['legs'][0]['duration']['value'];  // Duration in seconds
-
-                        if ($duration < $shortestDuration) {
-                            $shortestDuration = $duration;
-                            $closestDestination = [
-                                'destination' => $destination,
-                                'duration' => $duration,
-                            ];
-                        }
-                    }
-                }
-            } catch (\Exception $e) {
-                \Log::error('Error calling Google Directions API:', ['error' => $e->getMessage()]);
+            $distance = $this->calculateDistance($lat, $lng, 
+                                               $destination->latitude, 
+                                               $destination->longitude);
+            if ($distance < $minDistance) {
+                $minDistance = $distance;
+                $closest = $destination;
             }
         }
 
-        return $closestDestination;
+        return $closest;
     }
 
-    // Function to add destination to itinerary along with commute instructions
-    private function addToItineraryWithCommute($destination, $travelTime, $visitTime, $latitude, $longitude)
+    private function estimateTravelTime($startLat, $startLng, $endLat, $endLng)
     {
-        $startAddress = $this->getAddressFromCoordinates($latitude, $longitude);
-        $endAddress = $this->getAddressFromCoordinates($destination->latitude, $destination->longitude);
+        $distance = $this->calculateDistance($startLat, $startLng, $endLat, $endLng);
+    
+        // Assume an average speed of 20 km/h in city traffic
+        $averageSpeed = 20; // in km/h
+        $travelTime = ($distance / $averageSpeed) * 60; // Convert hours to minutes
+    
+        return ceil($travelTime); // Round up to the nearest minute
+    }
+    
+    private function getJeepneyRoute($startLat, $startLng, $destinationLat, $destinationLng) 
+    {
+        $startStop = JeepneyStop::select(DB::raw('*, 
+            (6371 * acos(cos(radians(?)) * cos(radians(latitude)) 
+            * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance'))
+            ->having('distance', '<', 2)
+            ->orderBy('distance')
+            ->setBindings([$startLat, $startLng, $startLat])
+            ->first();
 
-        $routeName = "Route from {$startAddress} to {$endAddress}";
-        $startStop = 'Start Location'; // Adjust based on your destination's first stop
-        $endStop = $destination->name;  // Destination name
+        $endStop = JeepneyStop::select(DB::raw('*, 
+            (6371 * acos(cos(radians(?)) * cos(radians(latitude)) 
+            * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance'))
+            ->having('distance', '<', 2)
+            ->orderBy('distance')
+            ->setBindings([$destinationLat, $destinationLng, $destinationLat])
+            ->first();
+
+        if (!$startStop || !$endStop) {
+            return null;
+        }
+
+        $route = JeepneyRoute::find($startStop->jeepney_route_id);
+
+        if (!$route) {
+            return null;
+        }
+
+        $travelTime = RouteSegment::where('jeepney_route_id', $route->id)
+            ->where('start_stop_id', $startStop->id)
+            ->where('end_stop_id', $endStop->id)
+            ->sum('estimated_travel_time');
+
+        $fare = FareStructure::where('jeepney_route_id', $route->id)->first();
 
         return [
-            'name' => $destination->name,
-            'description' => $destination->description,
-            'city' => $destination->city,
-            'latitude' => $destination->latitude,
-            'longitude' => $destination->longitude,
-            'travel_time' => round($travelTime, 2),
-            'time_to_spend' => $visitTime,
-            'type' => $destination->type,
-            'route_name' => $routeName,
-            'start_stop' => $startStop,
-            'end_stop' => $endStop,
-            'estimated_travel_time' => $destination->travel_time,  // Assume this is available
-            'commute_instructions' => "Take jeepney route {$routeName} from {$startStop} to {$endStop}. Estimated travel time: {$destination->travel_time} minutes."
+            'route_name' => $route->route_name,
+            'route_color' => $route->route_color,
+            'start_stop' => $startStop->stop_name,
+            'end_stop' => $endStop->stop_name,
+            'base_fare' => $fare ? $fare->base_fare : 0,
+            'estimated_time' => $travelTime,
         ];
     }
 
-    // Function to calculate the distance between two points (in kilometers)
+  private function addToItineraryWithCommute($destination, $travelTime, $visitTime, $startLat, $startLng)
+{
+    $distance = $this->calculateDistance($startLat, $startLng, $destination->latitude, $destination->longitude);
+
+    if ($distance < 1) {
+        $walkingTime = ceil($distance * 15); // Estimate 15 minutes per km for walking
+        $commuteInstructions = sprintf(
+            "This destination is nearby. It's only %.2f km away. Consider walking (approximately %d minutes walk).",
+            $distance,
+            $walkingTime
+        );
+
+        // Set travel time to walking time
+        $travelTime = $walkingTime;
+    } else {
+        $jeepneyInfo = $this->getJeepneyRoute($startLat, $startLng, $destination->latitude, $destination->longitude);
+
+        if ($jeepneyInfo) {
+            $commuteInstructions = sprintf(
+                "Take a %s Jeep (%s jeep) from '%s' to '%s'. Fare: ₱%.2f.",
+                $jeepneyInfo['route_name'],
+                $jeepneyInfo['route_color'],
+                $jeepneyInfo['start_stop'],
+                $jeepneyInfo['end_stop'],
+                $jeepneyInfo['base_fare']
+            );
+
+            // Use the jeepney's estimated travel time
+            $travelTime = $jeepneyInfo['estimated_time'];
+        } else {
+            $commuteInstructions = "No direct jeepney route available. Consider taking a tricycle.";
+        }
+    }
+
+    return [
+        'name' => $destination->name,
+        'type' => $destination->type,
+        'travel_time' => $travelTime,
+        'visit_time' => $visitTime, // Include visit time here
+        'commute_instructions' => $commuteInstructions,
+    ];
+}
+
+    
     private function calculateDistance($lat1, $lng1, $lat2, $lng2)
     {
-        $earthRadius = 6371; // Earth's radius in kilometers
+        $earthRadius = 6371;
         $latDelta = deg2rad($lat2 - $lat1);
         $lngDelta = deg2rad($lng2 - $lng1);
 
@@ -233,6 +260,14 @@ class ItineraryController extends Controller
             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($lngDelta / 2) ** 2;
 
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-        return $earthRadius * $c; // Returns distance in kilometers
+        return $earthRadius * $c;
+    }
+
+    private function getClusterOfDestinations($latitude, $longitude, $destinations, $maxDistance = 5.0)
+    {
+        return $destinations->filter(function ($destination) use ($latitude, $longitude, $maxDistance) {
+            $distance = $this->calculateDistance($latitude, $longitude, $destination->latitude, $destination->longitude);
+            return $distance <= $maxDistance;
+        })->values();
     }
 }

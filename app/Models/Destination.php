@@ -25,4 +25,9 @@ class Destination extends Model
     {
         return $this->hasMany(JeepneyStop::class);
     }
+    public function getDescriptionAttribute($value)
+{
+    return $value ?? 'No description available for this destination.';
+}
+
 }

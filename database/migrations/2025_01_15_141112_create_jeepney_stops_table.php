@@ -13,8 +13,9 @@ class CreateJeepneyStopsTable extends Migration
             $table->id(); // Auto increments the primary key
             $table->unsignedBigInteger('jeepney_route_id');  // Ensure the foreign key column is unsignedBigInteger
             $table->string('stop_name');
-            $table->point('location'); // For geospatial indexing
-            $table->integer('order_in_route');
+            $table->decimal('latitude', 10, 7)->nullable(); // Latitude column
+            $table->decimal('longitude', 10, 7)->nullable(); // Longitude column
+            $table->integer('order_in_route')->default(0); // Order of stop in the route
             $table->timestamps();
 
             // Defining the foreign key relationship
