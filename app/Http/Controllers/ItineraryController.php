@@ -46,6 +46,10 @@ class ItineraryController extends Controller
                         $latitude = 15.1674883;
                         $longitude = 120.5801295;
                         break;
+                    case 'Auf':
+                        $latitude = 15.1453018;
+                        $longitude = 120.5948856;
+                            break;
                     default:
                         break;
                 }
@@ -156,7 +160,19 @@ class ItineraryController extends Controller
 
         return 0;
     }
-
+    private function findConnectingRoutes($startStop, $endStop)
+    {
+        // Query stops that are common between routes
+        $connectingStops = DB::table('jeepney_stops AS s1')
+            ->join('jeepney_stops AS s2', 's1.jeepney_route_id', '=', 's2.jeepney_route_id')
+            ->where('s1.stop_name', $startStop)
+            ->where('s2.stop_name', $endStop)
+            ->select('s1.jeepney_route_id')
+            ->get();
+    
+        return $connectingStops;
+    }
+    
     private function findClosestDestination($lat, $lng, $destinations) 
     {
         $closest = null;
@@ -195,6 +211,7 @@ class ItineraryController extends Controller
             return $distance <= $maxDistance;
         })->values();
     }
+    
 
     private function getJeepneyRoute($startLat, $startLng, $destinationLat, $destinationLng)
     {

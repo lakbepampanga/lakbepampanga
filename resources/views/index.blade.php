@@ -36,7 +36,7 @@
 
     <!-- Button to use current location -->
     <button id="use-location">Use Current Location</button><br><br>
-
+        
     <!-- Option to select from dropdown -->
     <label for="location">Or, select your starting location:</label>
     <select id="location">
@@ -45,6 +45,7 @@
         <option value="Mabalacat">Mabalacat</option>
         <option value="Magalang">Magalang</option>
         <option value="Clark">Clark Freeport Zone</option>
+        <option value="Auf">AUF</option>
     </select><br><br>
 
     <!-- Form for hours and generating itinerary -->
@@ -228,7 +229,8 @@
             Angeles: { lat: 15.1347621, lng: 120.5903796 },
             Mabalacat: { lat: 15.2443337, lng: 120.5642501 },
             Magalang: { lat: 15.2144206, lng: 120.6612414 },
-            Clark: { lat: 15.1674883, lng: 120.5801295 }
+            Clark: { lat: 15.1674883, lng: 120.5801295 }, 
+            Auf: { lat: 15.1453018, lng: 120.5948856 }
         };
 
         userLat = locations[selectedLocation].lat;
