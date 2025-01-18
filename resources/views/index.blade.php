@@ -58,112 +58,266 @@
     <div id="itinerary"></div>
 
     <script>
-        let map, userLat, userLng;
+    let map, userLat, userLng, markers = [], initialMarker = null, directionsService, directionsRenderer;
 
-        // Initialize Google Map
-        function initMap() {
-            map = new google.maps.Map(document.getElementById('map'), {
-                center: {lat: 15.1347621, lng: 120.5903796}, // Default center (Angeles City)
-                zoom: 14
+    // Initialize Google Map
+    function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: { lat: 15.1347621, lng: 120.5903796 }, // Default center (Angeles City)
+            zoom: 14
+        });
+
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer({
+            map: map,
+            suppressMarkers: true // Suppress default markers to use custom ones
+        });
+    }
+
+    // Add marker with label to the map
+    function addMarker(lat, lng, title, label) {
+        const marker = new google.maps.Marker({
+            position: { lat, lng },
+            map: map,
+            title: title,
+            label: {
+                text: label.toString(), // Convert label to string for the marker label
+                color: "white",
+                fontSize: "12px",
+                fontWeight: "bold"
+            },
+            icon: {
+                url: "http://maps.google.com/mapfiles/ms/icons/red.png", // Custom marker icon
+                labelOrigin: new google.maps.Point(15, 10) // Adjust label position
+            }
+        });
+        markers.push(marker);
+    }
+
+    // Clear all markers and route
+    function clearMap() {
+        // Clear markers
+        markers.forEach(marker => marker.setMap(null));
+        markers = [];
+
+        // Clear route
+        if (directionsRenderer) {
+            directionsRenderer.set('directions', null);
+        }
+    }
+
+    // Draw route using Google Directions Service
+    function drawRoute(pathCoordinates) {
+    if (pathCoordinates.length < 2) return; // No need to draw a route if fewer than 2 points
+
+    const walkingRendererOptions = {
+        map: map,
+        polylineOptions: {
+            strokeColor: '#00FF00', // Green for walking
+            strokeOpacity: 0.6,
+            strokeWeight: 4,
+            icons: [{
+                icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 3 }, // Dashed line
+                offset: '0',
+                repeat: '10px'
+            }]
+        },
+        suppressMarkers: true
+    };
+
+    const drivingRendererOptions = {
+        map: map,
+        polylineOptions: {
+            strokeColor: '#FF0000', // Red for driving
+            strokeOpacity: 0.8,
+            strokeWeight: 4
+        },
+        suppressMarkers: true
+    };
+
+    const routeQueue = [];
+
+    for (let i = 0; i < pathCoordinates.length - 1; i++) {
+        const start = new google.maps.LatLng(pathCoordinates[i].lat, pathCoordinates[i].lng);
+        const end = new google.maps.LatLng(pathCoordinates[i + 1].lat, pathCoordinates[i + 1].lng);
+
+        const distance = google.maps.geometry.spherical.computeDistanceBetween(start, end);
+        const travelMode = distance < 1000 ? google.maps.TravelMode.WALKING : google.maps.TravelMode.DRIVING;
+
+        routeQueue.push({
+            origin: start,
+            destination: end,
+            travelMode: travelMode,
+            rendererOptions: travelMode === google.maps.TravelMode.WALKING ? walkingRendererOptions : drivingRendererOptions
+        });
+    }
+
+    // Process the route queue sequentially
+    function processQueue(index) {
+        if (index >= routeQueue.length) return;
+
+        const { origin, destination, travelMode, rendererOptions } = routeQueue[index];
+
+        const renderer = new google.maps.DirectionsRenderer(rendererOptions);
+
+        directionsService.route(
+            {
+                origin: origin,
+                destination: destination,
+                travelMode: travelMode
+            },
+            (result, status) => {
+                if (status === google.maps.DirectionsStatus.OK) {
+                    renderer.setDirections(result);
+                    processQueue(index + 1); // Process the next route in the queue
+                } else {
+                    console.error('Error drawing route:', status);
+                    processQueue(index + 1); // Continue processing even if one fails
+                }
+            }
+        );
+    }
+
+    processQueue(0); // Start processing the queue
+}
+
+
+
+    // Adjust the map to fit all markers
+    function updateMapBounds() {
+        const bounds = new google.maps.LatLngBounds();
+        markers.forEach(marker => bounds.extend(marker.getPosition()));
+        map.fitBounds(bounds);
+    }
+
+    // Event listener for "Use Current Location" button
+    document.getElementById('use-location').addEventListener('click', () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                userLat = position.coords.latitude;
+                userLng = position.coords.longitude;
+
+                document.getElementById('itinerary-form').style.display = 'block';
+
+                map.setCenter(new google.maps.LatLng(userLat, userLng));
+                setInitialLocationMarker(userLat, userLng, "Your Current Location");
             });
+        } else {
+            alert("Geolocation is not supported by this browser.");
+        }
+    });
+
+    // Set or update the initial location marker
+    function setInitialLocationMarker(lat, lng, title) {
+        if (initialMarker) {
+            initialMarker.setMap(null); // Remove the previous initial marker
+        }
+        initialMarker = new google.maps.Marker({
+            position: { lat, lng },
+            map: map,
+            title: title,
+            icon: 'http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png' // Blue marker icon for initial location
+        });
+    }
+
+    // Event listener for location dropdown change
+    document.getElementById('location').addEventListener('change', (event) => {
+        const selectedLocation = event.target.value;
+
+        const locations = {
+            Angeles: { lat: 15.1347621, lng: 120.5903796 },
+            Mabalacat: { lat: 15.2443337, lng: 120.5642501 },
+            Magalang: { lat: 15.2144206, lng: 120.6612414 },
+            Clark: { lat: 15.1674883, lng: 120.5801295 }
+        };
+
+        userLat = locations[selectedLocation].lat;
+        userLng = locations[selectedLocation].lng;
+
+        document.getElementById('itinerary-form').style.display = 'block';
+
+        map.setCenter(new google.maps.LatLng(userLat, userLng));
+        setInitialLocationMarker(userLat, userLng, selectedLocation);
+    });
+
+    // Event listener for "Generate Itinerary" button
+    document.getElementById('generate-itinerary').addEventListener('click', () => {
+        const hours = document.getElementById('hours').value;
+
+        if (!hours || hours <= 0) {
+            alert("Please enter a valid number of hours.");
+            return;
         }
 
-        // Event listener for "Use Current Location" button
-        document.getElementById('use-location').addEventListener('click', () => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((position) => {
-                    userLat = position.coords.latitude;
-                    userLng = position.coords.longitude;
+        fetch('/api/generate-itinerary', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({
+                latitude: userLat,
+                longitude: userLng,
+                hours: hours,
+                selected_location: null,
+            }),
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                if (Array.isArray(data)) {
+                    let itineraryHTML = '<h2>Your Itinerary</h2><ul>';
+                    clearMap(); // Clear previous markers and route
 
-                    // Enable the itinerary form and hide the dropdown
-                    document.getElementById('itinerary-form').style.display = 'block';
-                    document.getElementById('location').style.display = 'none';
+                    const pathCoordinates = []; // Array to hold coordinates for the route
 
-                    // Initialize the map centered on the user's location
-                    map.setCenter(new google.maps.LatLng(userLat, userLng));
-                });
-            } else {
-                alert("Geolocation is not supported by this browser.");
-            }
-        });
+                    data.forEach((destination, index) => {
+                        itineraryHTML += `<li>
+                            <h3>${destination.name} (${destination.type})</h3>
+                            <p>${destination.description}</p>
+                            <p>Travel Time: ${destination.travel_time} minutes</p>
+                            <p>Time to Spend: ${destination.visit_time} minutes</p>
+                            <p><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+                        </li>`;
 
-        // Event listener for location dropdown change
-        document.getElementById('location').addEventListener('change', (event) => {
-            const selectedLocation = event.target.value;
+                        const lat = parseFloat(destination.latitude);
+                        const lng = parseFloat(destination.longitude);
 
-            if (selectedLocation === 'Angeles') {
-                userLat = 15.1347621;
-                userLng = 120.5903796;
-            } else if (selectedLocation === 'Mabalacat') {
-                userLat = 15.2443337;
-                userLng = 120.5642501;
-            } else if (selectedLocation === 'Magalang') {
-                userLat = 15.2144206;
-                userLng = 120.6612414;
-            } else if (selectedLocation === 'Clark') {
-                userLat = 15.1674883;
-                userLng = 120.5801295;
-            }
+                        if (!isNaN(lat) && !isNaN(lng)) {
+                            // Add marker with a label showing the location order
+                            addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
 
-            // Enable the itinerary form and hide the dropdown
-            document.getElementById('itinerary-form').style.display = 'block';
-            document.getElementById('location').style.display = 'none';
+                            // Add to route path coordinates
+                            pathCoordinates.push({ lat: lat, lng: lng });
+                        } else {
+                            console.error(`Invalid coordinates for destination: ${destination.name}`);
+                        }
+                    });
 
-            // Initialize the map centered on the selected location
-            map.setCenter(new google.maps.LatLng(userLat, userLng));
-        });
+                    itineraryHTML += '</ul>';
+                    document.getElementById('itinerary').innerHTML = itineraryHTML;
 
-        // Event listener for "Generate Itinerary" button
-        document.getElementById('generate-itinerary').addEventListener('click', () => {
-            const hours = document.getElementById('hours').value;
-
-            if (!hours || hours <= 0) {
-                alert("Please enter a valid number of hours.");
-                return;
-            }
-
-            fetch('/api/generate-itinerary', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                },
-                body: JSON.stringify({
-                    latitude: userLat,
-                    longitude: userLng,
-                    hours: hours,
-                    selected_location: null,
-                }),
-            })
-                .then((response) => response.json())
-                .then((data) => {
-                    if (Array.isArray(data)) {
-                        let itineraryHTML = '<h2>Your Itinerary</h2><ul>';
-
-                        data.forEach((destination) => {
-                            itineraryHTML += `<li>
-                                <h3>${destination.name} (${destination.type})</h3>
-                                <p>${destination.description}</p>
-                                <p>Travel Time: ${destination.travel_time} minutes</p>
-                                <p>Time to Spend: ${destination.visit_time} minutes</p>
-                                <p><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
-                            </li>`;
-                        });
-
-                        itineraryHTML += '</ul>';
-                        document.getElementById('itinerary').innerHTML = itineraryHTML;
-                    } else {
-                        alert("Error: Received data is not in the expected format.");
+                    // Draw the route using Google Directions Service
+                    if (pathCoordinates.length > 1) {
+                        drawRoute(pathCoordinates);
                     }
-                })
-                .catch((error) => {
-                    console.error("Error generating itinerary:", error);
-                    alert("An error occurred while generating the itinerary.");
-                });
-        });
 
-        // Initialize map when the page loads
-        window.onload = initMap;
-    </script>
+                    // Adjust map to fit all markers
+                    updateMapBounds();
+                } else {
+                    alert("Error: Received data is not in the expected format.");
+                }
+            })
+            .catch((error) => {
+                console.error("Error generating itinerary:", error);
+                alert("An error occurred while generating the itinerary.");
+            });
+    });
+
+    // Initialize map when the page loads
+    window.onload = initMap;
+</script>
+
+
+
 </body>
 </html>
