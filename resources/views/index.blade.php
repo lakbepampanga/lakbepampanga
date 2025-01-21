@@ -32,11 +32,16 @@
     </style>
 </head>
 <body>
+<form method="POST" action="{{ route('logout') }}">
+        @csrf
+        <button type="submit">Logout</button>
+    </form>
     <h1>Plan Your Pampanga Itinerary</h1>
 
     <!-- Button to use current location -->
     <button id="use-location">Use Current Location</button><br><br>
-        
+    <a href="/commuting-guide" style="text-decoration: none; color: white; background-color: #007BFF; padding: 10px 15px; border-radius: 5px;">
+    Go to Commuting Guide</a>   
     <!-- Option to select from dropdown -->
     <label for="location">Or, select your starting location:</label>
     <select id="location">
@@ -244,76 +249,77 @@
 
     // Event listener for "Generate Itinerary" button
     document.getElementById('generate-itinerary').addEventListener('click', () => {
-        const hours = document.getElementById('hours').value;
+    const hours = document.getElementById('hours').value;
 
-        if (!hours || hours <= 0) {
-            alert("Please enter a valid number of hours.");
-            return;
-        }
+    if (!hours || hours <= 0) {
+        alert("Please enter a valid number of hours.");
+        return;
+    }
 
-        fetch('/api/generate-itinerary', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            },
-            body: JSON.stringify({
-                latitude: userLat,
-                longitude: userLng,
-                hours: hours,
-                selected_location: null,
-            }),
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                if (Array.isArray(data)) {
-                    let itineraryHTML = '<h2>Your Itinerary</h2><ul>';
-                    clearMap(); // Clear previous markers and route
+    fetch('/api/generate-itinerary', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        },
+        body: JSON.stringify({
+            latitude: userLat,
+            longitude: userLng,
+            hours: hours,
+            selected_location: null,
+        }),
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            if (Array.isArray(data)) {
+                let itineraryHTML = '<h2>Your Itinerary</h2><ul>';
+                clearMap(); // Clear previous markers and route
 
-                    const pathCoordinates = []; // Array to hold coordinates for the route
+                const pathCoordinates = [{ lat: userLat, lng: userLng }]; // Add starting location as the first point
 
-                    data.forEach((destination, index) => {
-                        itineraryHTML += `<li>
-                            <h3>${destination.name} (${destination.type})</h3>
-                            <p>${destination.description}</p>
-                            <p>Travel Time: ${destination.travel_time} minutes</p>
-                            <p>Time to Spend: ${destination.visit_time} minutes</p>
-                            <p><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
-                        </li>`;
+                data.forEach((destination, index) => {
+                    itineraryHTML += `<li>
+                        <h3>${destination.name} (${destination.type})</h3>
+                        <p>${destination.description}</p>
+                        <p>Travel Time: ${destination.travel_time} minutes</p>
+                        <p>Time to Spend: ${destination.visit_time} minutes</p>
+                        <p><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+                    </li>`;
 
-                        const lat = parseFloat(destination.latitude);
-                        const lng = parseFloat(destination.longitude);
+                    const lat = parseFloat(destination.latitude);
+                    const lng = parseFloat(destination.longitude);
 
-                        if (!isNaN(lat) && !isNaN(lng)) {
-                            // Add marker with a label showing the location order
-                            addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        // Add marker with a label showing the location order
+                        addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
 
-                            // Add to route path coordinates
-                            pathCoordinates.push({ lat: lat, lng: lng });
-                        } else {
-                            console.error(`Invalid coordinates for destination: ${destination.name}`);
-                        }
-                    });
-
-                    itineraryHTML += '</ul>';
-                    document.getElementById('itinerary').innerHTML = itineraryHTML;
-
-                    // Draw the route using Google Directions Service
-                    if (pathCoordinates.length > 1) {
-                        drawRoute(pathCoordinates);
+                        // Add to route path coordinates
+                        pathCoordinates.push({ lat: lat, lng: lng });
+                    } else {
+                        console.error(`Invalid coordinates for destination: ${destination.name}`);
                     }
+                });
 
-                    // Adjust map to fit all markers
-                    updateMapBounds();
-                } else {
-                    alert("Error: Received data is not in the expected format.");
+                itineraryHTML += '</ul>';
+                document.getElementById('itinerary').innerHTML = itineraryHTML;
+
+                // Draw the route using Google Directions Service
+                if (pathCoordinates.length > 1) {
+                    drawRoute(pathCoordinates);
                 }
-            })
-            .catch((error) => {
-                console.error("Error generating itinerary:", error);
-                alert("An error occurred while generating the itinerary.");
-            });
-    });
+
+                // Adjust map to fit all markers
+                updateMapBounds();
+            } else {
+                alert("Error: Received data is not in the expected format.");
+            }
+        })
+        .catch((error) => {
+            console.error("Error fetching itinerary:", error);
+            alert("An error occurred while generating the itinerary.");
+        });
+});
+
 
     // Initialize map when the page loads
     window.onload = initMap;
