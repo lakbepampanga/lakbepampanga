@@ -34,9 +34,10 @@ Route::post('/password/email', [ForgotPasswordController::class, 'sendResetLinkE
 Route::get('/password/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('/password/reset', [ResetPasswordController::class, 'reset'])->name('password.update');
 
-// API Route for Point-to-Point Commute
-Route::post('/api/point-to-point', [ItineraryController::class, 'getPointToPointCommute'])->middleware('auth');
 
 Route::get('/commuting-guide', function () {
     return view('commuting-guide'); // Ensure 'commuting-guide.blade.php' exists in 'resources/views'
 })->name('commuting.guide')->middleware('auth');
+
+Route::view('/commuting-guide', 'commuting-guide');
+Route::post('/api/commute-guide', [App\Http\Controllers\ItineraryController::class, 'generateCommuteGuide']);

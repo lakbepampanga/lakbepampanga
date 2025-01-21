@@ -245,11 +245,6 @@ public function generateCommuteGuide(Request $request)
         $startCoords = $this->getCoordinatesFromAddress($validatedData['start']);
         $endCoords = $this->getCoordinatesFromAddress($validatedData['end']);
 
-        \Log::info('Coordinates fetched:', [
-            'start' => $startCoords,
-            'end' => $endCoords
-        ]);
-
         if (!$startCoords || !$endCoords) {
             return response()->json(['error' => 'Unable to locate one or both addresses.'], 400);
         }
@@ -279,20 +274,18 @@ public function generateCommuteGuide(Request $request)
                     ['latitude' => $endLat, 'longitude' => $endLng],
                 ],
             ];
-            \Log::info('Walking response:', $response);
             return response()->json($response);
         }
 
         // Find the best jeepney route
         $jeepneyInfo = $this->getJeepneyRoute($startLat, $startLng, $endLat, $endLng);
-        \Log::info('Jeepney route found:', ['jeepneyInfo' => $jeepneyInfo]);
 
         if ($jeepneyInfo) {
             $response = [
                 'start' => $validatedData['start'],
                 'end' => $validatedData['end'],
                 'distance' => $distance,
-                'travel_time' => $jeepneyInfo['estimated_time'],
+                'travel_time' => $this->getGoogleMapsTime($startLat, $startLng, $endLat, $endLng),
                 'commute_instructions' => sprintf(
                     "Take a %s Jeep (%s jeep) from '%s' to '%s'. Fare: ₱%.2f.",
                     $jeepneyInfo['route_name'],
@@ -301,26 +294,29 @@ public function generateCommuteGuide(Request $request)
                     $jeepneyInfo['end_stop'],
                     $jeepneyInfo['base_fare']
                 ),
-                'path' => $jeepneyInfo['path'],
+                'path' => [
+                    ['latitude' => $startLat, 'longitude' => $startLng],
+                    ['latitude' => $jeepneyInfo['start_stop_coords']['latitude'], 
+                     'longitude' => $jeepneyInfo['start_stop_coords']['longitude']],
+                    ['latitude' => $jeepneyInfo['end_stop_coords']['latitude'], 
+                     'longitude' => $jeepneyInfo['end_stop_coords']['longitude']],
+                    ['latitude' => $endLat, 'longitude' => $endLng],
+                ],
             ];
-            \Log::info('Final response:', $response);
             return response()->json($response);
         }
 
         return response()->json(['error' => 'No valid jeepney routes available.'], 400);
 
     } catch (\Exception $e) {
-        \Log::error('Error generating commute guide:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+        \Log::error('Error generating commute guide:', ['error' => $e->getMessage()]);
         return response()->json(['error' => 'An error occurred while generating the commute guide.'], 500);
     }
 }
+
 private function getJeepneyRoute($startLat, $startLng, $endLat, $endLng)
 {
-    \Log::info('Starting route search', [
-        'startCoords' => [$startLat, $startLng],
-        'endCoords' => [$endLat, $endLng]
-    ]);
-
+    // Find nearby stops with reduced logging
     $nearbyStartStops = JeepneyStop::select(DB::raw('*, 
         (6371 * acos(cos(radians(?)) * cos(radians(latitude)) 
         * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance'))
@@ -338,7 +334,6 @@ private function getJeepneyRoute($startLat, $startLng, $endLat, $endLng)
         ->get();
 
     if ($nearbyStartStops->isEmpty() || $nearbyEndStops->isEmpty()) {
-        \Log::warning('No valid stops found within threshold distance.');
         return null;
     }
 
@@ -346,19 +341,18 @@ private function getJeepneyRoute($startLat, $startLng, $endLat, $endLng)
     $endRouteIds = $nearbyEndStops->pluck('jeepney_route_id')->unique();
     $possibleRoutes = JeepneyRoute::whereIn('id', $startRouteIds->merge($endRouteIds))->get();
 
-    \Log::info('Checking all possible routes:', $possibleRoutes->pluck('route_name')->toArray());
-
     $validRoutes = [];
 
     foreach ($possibleRoutes as $route) {
-        // Get all stops for this route in order
         $routeStops = JeepneyStop::where('jeepney_route_id', $route->id)
             ->orderBy('order_in_route')
             ->get();
 
         foreach ($nearbyStartStops as $startStop) {
             foreach ($nearbyEndStops as $endStop) {
-                if ($startStop->jeepney_route_id != $route->id || $endStop->jeepney_route_id != $route->id) {
+                if ($startStop->jeepney_route_id != $route->id || 
+                    $endStop->jeepney_route_id != $route->id || 
+                    $startStop->id === $endStop->id) {
                     continue;
                 }
 
@@ -366,33 +360,17 @@ private function getJeepneyRoute($startLat, $startLng, $endLat, $endLng)
                 $endStopOnRoute = $routeStops->where('stop_name', $endStop->stop_name)->first();
 
                 if ($startStopOnRoute && $endStopOnRoute) {
-                    // Get all stops on the route, considering it's a loop
-                    $relevantStops = collect();
-                    $startOrder = $startStopOnRoute->order_in_route;
-                    $endOrder = $endStopOnRoute->order_in_route;
-                    $totalStops = $routeStops->count();
-
-                    // If start and end are the same, include complete route
-                    if ($startOrder === $endOrder) {
-                        $relevantStops = $routeStops;
-                    } else {
-                        // Add stops in order, considering the circular nature of the route
-                        $currentOrder = $startOrder;
-                        while ($currentOrder != $endOrder) {
-                            $relevantStops->push($routeStops->firstWhere('order_in_route', $currentOrder));
-                            $currentOrder = ($currentOrder + 1) % $totalStops;
-                            if ($currentOrder === 0) $currentOrder = 1; // Avoid zero
-                        }
-                        $relevantStops->push($endStopOnRoute);
-                    }
-
-                    $pathDistance = $this->calculatePathDistance($relevantStops);
+                    $pathDistance = $this->calculateDistance(
+                        $startStopOnRoute->latitude,
+                        $startStopOnRoute->longitude,
+                        $endStopOnRoute->latitude,
+                        $endStopOnRoute->longitude
+                    );
                     
                     $validRoutes[] = [
                         'route' => $route,
                         'startStop' => $startStop,
                         'endStop' => $endStop,
-                        'relevantStops' => $relevantStops,
                         'pathDistance' => $pathDistance
                     ];
                 }
@@ -409,34 +387,46 @@ private function getJeepneyRoute($startLat, $startLng, $endLat, $endLng)
         $fare = FareStructure::where('jeepney_route_id', $bestRoute['route']->id)
             ->value('base_fare') ?? 0;
 
-        \Log::info('Found best route:', [
-            'route_name' => $bestRoute['route']->route_name,
-            'start_stop' => $bestRoute['startStop']->stop_name,
-            'end_stop' => $bestRoute['endStop']->stop_name,
-            'path_distance' => $bestRoute['pathDistance']
-        ]);
-
         return [
             'route_name' => $bestRoute['route']->route_name,
             'route_color' => $bestRoute['route']->route_color,
             'start_stop' => $bestRoute['startStop']->stop_name,
             'end_stop' => $bestRoute['endStop']->stop_name,
-            'base_fare' => $fare,
-            'estimated_time' => $this->calculateEstimatedTime($bestRoute['relevantStops']),
-            'path' => $bestRoute['relevantStops']->map(function ($stop) {
-                return [
-                    'latitude' => $stop->latitude,
-                    'longitude' => $stop->longitude
-                ];
-            })->toArray()
+            'start_stop_coords' => [
+                'latitude' => $bestRoute['startStop']->latitude,
+                'longitude' => $bestRoute['startStop']->longitude
+            ],
+            'end_stop_coords' => [
+                'latitude' => $bestRoute['endStop']->latitude,
+                'longitude' => $bestRoute['endStop']->longitude
+            ],
+            'base_fare' => $fare
         ];
     }
 
-    \Log::warning('No valid routes found between stops');
     return null;
 }
 
-private function calculatePathDistance($stops)
+private function getGoogleMapsTime($startLat, $startLng, $endLat, $endLng)
+{
+    $response = Http::get("https://maps.googleapis.com/maps/api/directions/json", [
+        'origin' => "{$startLat},{$startLng}",
+        'destination' => "{$endLat},{$endLng}",
+        'mode' => 'driving',
+        'key' => env('GOOGLE_MAPS_API_KEY')
+    ]);
+
+    if ($response->successful()) {
+        $data = $response->json();
+        if (!empty($data['routes'][0]['legs'][0]['duration']['value'])) {
+            return ceil($data['routes'][0]['legs'][0]['duration']['value'] / 60);
+        }
+    }
+
+    // Fallback to a simple estimation if Google API fails
+    $distance = $this->calculateDistance($startLat, $startLng, $endLat, $endLng);
+    return ceil(($distance / 15) * 60); // Assuming 15 km/h average speed
+}private function calculatePathDistance($stops)
 {
     $totalDistance = 0;
     for ($i = 0; $i < $stops->count() - 1; $i++) {
@@ -454,18 +444,5 @@ private function calculatePathDistance($stops)
         $totalDistance += $distance;
     }
     return $totalDistance;
-}
-private function calculateEstimatedTime($stops)
-{
-    $averageSpeed = 15; // km/h
-    $totalDistance = $this->calculatePathDistance($stops);
-    
-    // Base time in minutes = (distance / speed) * 60
-    $baseTime = ceil(($totalDistance / $averageSpeed) * 60);
-    
-    // Add 30 seconds per stop for boarding/alighting
-    $stopBuffer = ($stops->count() - 1) * 0.5;
-    
-    return $baseTime + $stopBuffer;
 }
 }

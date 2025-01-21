@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pampanga Commuting Guide</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACtmc6ZSEVHBJLkk9wtiRj5ssvW1RDh4s&libraries=places,geometry"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACtmc6ZSEVHBJLkk9wtiRj5ssvW1RDh4s&libraries=places,geometry,directions"></script>
 
     <style>
         body {
@@ -31,9 +30,6 @@
     </style>
 </head>
 <body>
-<form method="POST" action="{{ route('logout') }}">
-        @csrf
-        <button type="submit">Logout</button>
     <h1>Pampanga Commuting Guide</h1>
 
     <label for="start">Enter your location:</label>
@@ -50,12 +46,23 @@
     <div id="commute-guide"></div>
 
     <script>
-        let map, markers = [], polylines = [];
+        let map, markers = [], directionsRenderer;
 
         function initMap() {
             map = new google.maps.Map(document.getElementById('map'), {
                 center: { lat: 15.1347621, lng: 120.5903796 },
                 zoom: 14
+            });
+
+            // Initialize the DirectionsRenderer
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                map: map,
+                suppressMarkers: true, // We'll add our own custom markers
+                polylineOptions: {
+                    strokeColor: '#FF0000',
+                    strokeOpacity: 0.8,
+                    strokeWeight: 4
+                }
             });
         }
 
@@ -70,31 +77,63 @@
             markers.push(marker);
         }
 
-        function drawPolyline(path, color) {
-            const polyline = new google.maps.Polyline({
-                path: path,
-                geodesic: true,
-                strokeColor: color || '#FF0000',
-                strokeOpacity: 0.8,
-                strokeWeight: 4,
-            });
-            polyline.setMap(map);
-            polylines.push(polyline);
-        }
-
         function clearMap() {
             markers.forEach(marker => marker.setMap(null));
             markers = [];
-            polylines.forEach(polyline => polyline.setMap(null));
-            polylines = [];
+            if (directionsRenderer) {
+                directionsRenderer.setDirections({routes: []});
+            }
+        }
+
+        function drawRoute(origin, destination) {
+            const directionsService = new google.maps.DirectionsService();
+
+            const request = {
+                origin: origin,
+                destination: destination,
+                travelMode: google.maps.TravelMode.DRIVING
+            };
+
+            directionsService.route(request, (result, status) => {
+                if (status === google.maps.DirectionsStatus.OK) {
+                    directionsRenderer.setDirections(result);
+
+                    // Add custom markers for start and end points
+                    const route = result.routes[0].legs[0];
+                    addMarker(
+                        route.start_location.lat(),
+                        route.start_location.lng(),
+                        'Start',
+                        'S',
+                        'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                    );
+                    addMarker(
+                        route.end_location.lat(),
+                        route.end_location.lng(),
+                        'End',
+                        'E',
+                        'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                    );
+
+                    // Fit bounds to show the entire route
+                    const bounds = new google.maps.LatLngBounds();
+                    bounds.extend(route.start_location);
+                    bounds.extend(route.end_location);
+                    map.fitBounds(bounds);
+                }
+            });
         }
 
         function initializeAutocomplete() {
             const startInput = document.getElementById('start');
             const endInput = document.getElementById('end');
             
-            const autocompleteStart = new google.maps.places.Autocomplete(startInput);
-            const autocompleteEnd = new google.maps.places.Autocomplete(endInput);
+            const autocompleteStart = new google.maps.places.Autocomplete(startInput, {
+                componentRestrictions: { country: 'PH' }
+            });
+            const autocompleteEnd = new google.maps.places.Autocomplete(endInput, {
+                componentRestrictions: { country: 'PH' }
+            });
 
             autocompleteStart.setFields(['formatted_address']);
             autocompleteEnd.setFields(['formatted_address']);
@@ -127,48 +166,32 @@
                 clearMap();
                 
                 if (data.commute_instructions) {
-                    // Single route response
                     const guideHTML = `
                         <h2>Commute Guide</h2>
                         <ul>
                             <li>
                                 <p>${data.commute_instructions}</p>
-                                <p>Estimated Time: ${data.travel_time} minutes</p>
+                                <p>Estimated Time: ${data.travel_time}</p>
                                 <p>Distance: ${data.distance.toFixed(2)} km</p>
                             </li>
                         </ul>`;
 
                     document.getElementById('commute-guide').innerHTML = guideHTML;
 
-                    // Draw route on map
+                    // Draw route on map using actual road directions
                     if (data.path && data.path.length > 0) {
-                        const path = data.path.map(coord => ({
-                            lat: parseFloat(coord.latitude),
-                            lng: parseFloat(coord.longitude)
-                        }));
-
-                        drawPolyline(path);
-
-                        // Add start and end markers
-                        addMarker(
-                            path[0].lat,
-                            path[0].lng,
-                            'Start',
-                            'S',
-                            'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                        // Create LatLng objects for start and end points
+                        const startPoint = new google.maps.LatLng(
+                            parseFloat(data.path[0].latitude),
+                            parseFloat(data.path[0].longitude)
                         );
-                        addMarker(
-                            path[path.length - 1].lat,
-                            path[path.length - 1].lng,
-                            'End',
-                            'E',
-                            'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                        const endPoint = new google.maps.LatLng(
+                            parseFloat(data.path[data.path.length - 1].latitude),
+                            parseFloat(data.path[data.path.length - 1].longitude)
                         );
-
-                        // Center map on the route
-                        const bounds = new google.maps.LatLngBounds();
-                        path.forEach(coord => bounds.extend(coord));
-                        map.fitBounds(bounds);
+                        
+                        // Draw the route
+                        drawRoute(startPoint, endPoint);
                     }
                 } else {
                     document.getElementById('commute-guide').innerHTML = 
@@ -181,8 +204,11 @@
             });
         });
 
-        google.maps.event.addDomListener(window, 'load', initializeAutocomplete);
-        window.onload = initMap;
+        // Initialize map and autocomplete when the page loads
+        window.onload = function() {
+            initMap();
+            initializeAutocomplete();
+        };
     </script>
 </body>
 </html>
