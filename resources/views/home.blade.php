@@ -171,10 +171,14 @@
       
       <!-- Modal Body -->
       <div class="modal-body">
-        <form id="forgotPasswordForm" method="POST" action="php/forgot_password.php">
+        <form id="forgotPasswordForm" method="POST" action="{{ route('password.email') }}">
+          @csrf
           <div class="mb-3">
             <label for="forgotEmail" class="form-label">Enter your email address:</label>
             <input type="email" id="forgotEmail" name="email" class="form-control" placeholder="Enter your registered email" required>
+            @error('email')
+                <small class="text-danger">{{ $message }}</small>
+            @enderror
           </div>
           <button type="submit" class="btn btn-primary w-100">Submit</button>
         </form>
