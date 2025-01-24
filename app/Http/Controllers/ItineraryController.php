@@ -179,18 +179,6 @@ class ItineraryController extends Controller
             }
         });
     }
-    private function findConnectingRoutes($startStop, $endStop)
-    {
-        // Query stops that are common between routes
-        $connectingStops = DB::table('jeepney_stops AS s1')
-            ->join('jeepney_stops AS s2', 's1.jeepney_route_id', '=', 's2.jeepney_route_id')
-            ->where('s1.stop_name', $startStop)
-            ->where('s2.stop_name', $endStop)
-            ->select('s1.jeepney_route_id')
-            ->get();
-    
-        return $connectingStops;
-    }
     
     private function findClosestDestination($lat, $lng, $destinations) 
     {
@@ -255,6 +243,7 @@ class ItineraryController extends Controller
 private function addToItineraryWithCommute($destination, $travelTime, $visitTime, $startLat, $startLng)
 {
     $distance = $this->calculateDistance($startLat, $startLng, $destination->latitude, $destination->longitude);
+    
     if ($distance < 1) {
         $walkingTime = ceil($distance * 15); // Estimate 15 minutes per km for walking
         $commuteInstructions = sprintf(
@@ -262,26 +251,29 @@ private function addToItineraryWithCommute($destination, $travelTime, $visitTime
             $distance,
             $walkingTime
         );
-        // Set travel time to walking time
-        $travelTime = $walkingTime;
+        $travelTime = $walkingTime; // Update travel time
     } else {
         $jeepneyInfo = $this->getJeepneyRoute($startLat, $startLng, $destination->latitude, $destination->longitude);
+
         if ($jeepneyInfo) {
-            // Use Google Maps time if available
+            // Safely access the coordinates, defaulting to current/destination lat-lng
+            $startCoords = $jeepneyInfo['routes'][0]['start_stop_coords'] ?? ['latitude' => $startLat, 'longitude' => $startLng];
+            $endCoords = $jeepneyInfo['routes'][0]['end_stop_coords'] ?? ['latitude' => $destination->latitude, 'longitude' => $destination->longitude];
+
             $travelTime = $this->getGoogleMapsTime(
-                $jeepneyInfo['start_stop_coords']['latitude'],
-                $jeepneyInfo['start_stop_coords']['longitude'],
-                $jeepneyInfo['end_stop_coords']['latitude'],
-                $jeepneyInfo['end_stop_coords']['longitude']
+                $startCoords['latitude'],
+                $startCoords['longitude'],
+                $endCoords['latitude'],
+                $endCoords['longitude']
             );
 
             $commuteInstructions = sprintf(
                 "Take a %s Jeep (%s jeep) from '%s' to '%s'. Fare: ₱%.2f.",
-                $jeepneyInfo['route_name'],
-                $jeepneyInfo['route_color'],
-                $jeepneyInfo['start_stop'],
-                $jeepneyInfo['end_stop'],
-                $jeepneyInfo['base_fare']
+                $jeepneyInfo['routes'][0]['route_name'] ?? 'Unknown Route',
+                $jeepneyInfo['routes'][0]['route_color'] ?? 'N/A',
+                $jeepneyInfo['routes'][0]['start_stop'] ?? 'Unknown Stop',
+                $jeepneyInfo['routes'][0]['end_stop'] ?? 'Unknown Stop',
+                $jeepneyInfo['routes'][0]['base_fare'] ?? 0
             );
         } else {
             $commuteInstructions = "No direct jeepney route available. Consider taking a tricycle.";
@@ -292,13 +284,14 @@ private function addToItineraryWithCommute($destination, $travelTime, $visitTime
         'name' => $destination->name,
         'type' => $destination->type,
         'travel_time' => $travelTime,
-        'visit_time' => $visitTime, // Include visit time here
+        'visit_time' => $visitTime,
         'commute_instructions' => $commuteInstructions,
     ];
 }
 
 public function generateCommuteGuide(Request $request)
 {
+    set_time_limit(120);
     try {
         $validatedData = $request->validate([
             'start' => 'required|string',
@@ -343,33 +336,28 @@ public function generateCommuteGuide(Request $request)
 
         // Find the best jeepney route
         $jeepneyInfo = $this->getJeepneyRoute($startLat, $startLng, $endLat, $endLng);
-
         if ($jeepneyInfo) {
             $response = [
                 'start' => $validatedData['start'],
                 'end' => $validatedData['end'],
                 'distance' => $distance,
                 'travel_time' => $this->getGoogleMapsTime($startLat, $startLng, $endLat, $endLng),
-                'commute_instructions' => sprintf(
-                    "Take a %s Jeep (%s jeep) from '%s' to '%s'. Fare: ₱%.2f.",
-                    $jeepneyInfo['route_name'],
-                    $jeepneyInfo['route_color'],
-                    $jeepneyInfo['start_stop'],
-                    $jeepneyInfo['end_stop'],
-                    $jeepneyInfo['base_fare']
-                ),
-                'path' => [
-                    ['latitude' => $startLat, 'longitude' => $startLng],
-                    ['latitude' => $jeepneyInfo['start_stop_coords']['latitude'], 
-                     'longitude' => $jeepneyInfo['start_stop_coords']['longitude']],
-                    ['latitude' => $jeepneyInfo['end_stop_coords']['latitude'], 
-                     'longitude' => $jeepneyInfo['end_stop_coords']['longitude']],
-                    ['latitude' => $endLat, 'longitude' => $endLng],
-                ],
+                'commute_instructions' => $jeepneyInfo['routes'] ? 
+                    collect($jeepneyInfo['routes'])->map(function($route) {
+                        return sprintf(
+                            "Take a %s Jeep (%s jeep) from '%s' to '%s'. Fare: ₱%.2f.",
+                            $route['route_name'],
+                            $route['route_color'],
+                            $route['start_stop'],
+                            $route['end_stop'],
+                            $route['base_fare']
+                        );
+                    })->implode(' Then ') : 
+                    'No route information available',
+                'path' => $this->generateRoutePath($jeepneyInfo, $startLat, $startLng, $endLat, $endLng),
             ];
             return response()->json($response);
         }
-
         return response()->json(['error' => 'No valid jeepney routes available.'], 400);
 
     } catch (\Exception $e) {
@@ -377,98 +365,262 @@ public function generateCommuteGuide(Request $request)
         return response()->json(['error' => 'An error occurred while generating the commute guide.'], 500);
     }
 }
+private function generateRoutePath($jeepneyInfo, $startLat, $startLng, $endLat, $endLng)
+{
+    if (!$jeepneyInfo || empty($jeepneyInfo['routes'])) {
+        return [];
+    }
+
+    $path = [
+        ['latitude' => $startLat, 'longitude' => $startLng]
+    ];
+
+    foreach ($jeepneyInfo['routes'] as $route) {
+        $path[] = $route['start_stop_coords'];
+        $path[] = $route['end_stop_coords'];
+    }
+
+    $path[] = ['latitude' => $endLat, 'longitude' => $endLng];
+
+    return $path;
+}
 
 private function getJeepneyRoute($startLat, $startLng, $endLat, $endLng)
 {
-    // Find nearby stops with reduced logging
+    \Log::info('Jeepney Route Search Debug', [
+        'start' => ['lat' => $startLat, 'lng' => $startLng],
+        'end' => ['lat' => $endLat, 'lng' => $endLng]
+    ]);
+
     $nearbyStartStops = JeepneyStop::select(DB::raw('*, 
         (6371 * acos(cos(radians(?)) * cos(radians(latitude)) 
         * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance'))
-        ->having('distance', '<', 1)
+        ->having('distance', '<', 2)
         ->orderBy('distance')
+        ->limit(10)
         ->setBindings([$startLat, $startLng, $startLat])
         ->get();
 
     $nearbyEndStops = JeepneyStop::select(DB::raw('*, 
         (6371 * acos(cos(radians(?)) * cos(radians(latitude)) 
         * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance'))
-        ->having('distance', '<', 1)
+        ->having('distance', '<', 2)
         ->orderBy('distance')
+        ->limit(10)
         ->setBindings([$endLat, $endLng, $endLat])
         ->get();
 
-    if ($nearbyStartStops->isEmpty() || $nearbyEndStops->isEmpty()) {
-        return null;
-    }
-
-    $startRouteIds = $nearbyStartStops->pluck('jeepney_route_id')->unique();
-    $endRouteIds = $nearbyEndStops->pluck('jeepney_route_id')->unique();
-    $possibleRoutes = JeepneyRoute::whereIn('id', $startRouteIds->merge($endRouteIds))->get();
-
-    $validRoutes = [];
-
-    foreach ($possibleRoutes as $route) {
-        $routeStops = JeepneyStop::where('jeepney_route_id', $route->id)
-            ->orderBy('order_in_route')
-            ->get();
-
-        foreach ($nearbyStartStops as $startStop) {
-            foreach ($nearbyEndStops as $endStop) {
-                if ($startStop->jeepney_route_id != $route->id || 
-                    $endStop->jeepney_route_id != $route->id || 
-                    $startStop->id === $endStop->id) {
-                    continue;
-                }
-
-                $startStopOnRoute = $routeStops->where('stop_name', $startStop->stop_name)->first();
-                $endStopOnRoute = $routeStops->where('stop_name', $endStop->stop_name)->first();
-
-                if ($startStopOnRoute && $endStopOnRoute) {
-                    $pathDistance = $this->calculateDistance(
-                        $startStopOnRoute->latitude,
-                        $startStopOnRoute->longitude,
-                        $endStopOnRoute->latitude,
-                        $endStopOnRoute->longitude
-                    );
-                    
-                    $validRoutes[] = [
-                        'route' => $route,
-                        'startStop' => $startStop,
-                        'endStop' => $endStop,
-                        'pathDistance' => $pathDistance
-                    ];
-                }
+    $directRoutes = [];
+    foreach ($nearbyStartStops as $startStop) {
+        foreach ($nearbyEndStops as $endStop) {
+            if ($startStop->jeepney_route_id === $endStop->jeepney_route_id) {
+                $route = JeepneyRoute::find($startStop->jeepney_route_id);
+                
+                $directRoutes[] = [
+                    'type' => 'direct',
+                    'routes' => [[
+                        'route_name' => $route->route_name,
+                        'route_color' => $route->route_color,
+                        'start_stop' => $startStop->stop_name,
+                        'end_stop' => $endStop->stop_name,
+                        'start_stop_coords' => [
+                            'latitude' => (float)$startStop->latitude,
+                            'longitude' => (float)$startStop->longitude
+                        ],
+                        'end_stop_coords' => [
+                            'latitude' => (float)$endStop->latitude,
+                            'longitude' => (float)$endStop->longitude
+                        ],
+                        'base_fare' => FareStructure::where('jeepney_route_id', $route->id)->value('base_fare') ?? 0
+                    ]]
+                ];
             }
         }
     }
 
-    if (!empty($validRoutes)) {
-        usort($validRoutes, function ($a, $b) {
-            return $a['pathDistance'] <=> $b['pathDistance'];
-        });
+    \Log::info('Direct Routes Found Debug', [
+        'count' => count($directRoutes),
+        'routes_sample' => array_slice($directRoutes, 0, 2)
+    ]);
 
-        $bestRoute = $validRoutes[0];
-        $fare = FareStructure::where('jeepney_route_id', $bestRoute['route']->id)
-            ->value('base_fare') ?? 0;
+    if (!empty($directRoutes)) {
+        // Ensure the first route has all necessary data
+        $firstRoute = $directRoutes[0];
+        
+        // Explicitly cast to float and provide default values
+        $firstRoute['routes'][0]['start_stop_coords']['latitude'] = 
+            (float)($firstRoute['routes'][0]['start_stop_coords']['latitude'] ?? $startLat);
+        $firstRoute['routes'][0]['start_stop_coords']['longitude'] = 
+            (float)($firstRoute['routes'][0]['start_stop_coords']['longitude'] ?? $startLng);
+        $firstRoute['routes'][0]['end_stop_coords']['latitude'] = 
+            (float)($firstRoute['routes'][0]['end_stop_coords']['latitude'] ?? $endLat);
+        $firstRoute['routes'][0]['end_stop_coords']['longitude'] = 
+            (float)($firstRoute['routes'][0]['end_stop_coords']['longitude'] ?? $endLng);
 
-        return [
-            'route_name' => $bestRoute['route']->route_name,
-            'route_color' => $bestRoute['route']->route_color,
-            'start_stop' => $bestRoute['startStop']->stop_name,
-            'end_stop' => $bestRoute['endStop']->stop_name,
-            'start_stop_coords' => [
-                'latitude' => $bestRoute['startStop']->latitude,
-                'longitude' => $bestRoute['startStop']->longitude
-            ],
-            'end_stop_coords' => [
-                'latitude' => $bestRoute['endStop']->latitude,
-                'longitude' => $bestRoute['endStop']->longitude
-            ],
-            'base_fare' => $fare
-        ];
+        return $this->formatRouteResponse($firstRoute);
+    }
+
+    $connectingRoutes = $this->findConnectingRoutes($nearbyStartStops, $nearbyEndStops);
+    if ($connectingRoutes) {
+        // Ensure connecting routes have coordinates
+        foreach ($connectingRoutes['routes'] as &$route) {
+            $route['start_stop_coords']['latitude'] = 
+                (float)($route['start_stop_coords']['latitude'] ?? $startLat);
+            $route['start_stop_coords']['longitude'] = 
+                (float)($route['start_stop_coords']['longitude'] ?? $startLng);
+            $route['end_stop_coords']['latitude'] = 
+                (float)($route['end_stop_coords']['latitude'] ?? $endLat);
+            $route['end_stop_coords']['longitude'] = 
+                (float)($route['end_stop_coords']['longitude'] ?? $endLng);
+        }
+        return $this->formatRouteResponse($connectingRoutes);
+    }
+
+    \Log::warning('No Jeepney Routes Found', [
+        'start' => ['lat' => $startLat, 'lng' => $startLng],
+        'end' => ['lat' => $endLat, 'lng' => $endLng]
+    ]);
+
+    return null;
+}
+private function formatRouteResponse($routeInfo)
+{
+    if (!$routeInfo || !isset($routeInfo['routes']) || empty($routeInfo['routes'])) {
+        \Log::error('Invalid Route Info', ['route_info' => $routeInfo]);
+        return null;
+    }
+
+    // Ensure the first route has all necessary coordinates
+    $firstRoute = $routeInfo['routes'][0];
+    
+    // Validate and ensure coordinates exist
+    if (!isset($firstRoute['start_stop_coords']['latitude']) || 
+        !isset($firstRoute['start_stop_coords']['longitude']) ||
+        !isset($firstRoute['end_stop_coords']['latitude']) || 
+        !isset($firstRoute['end_stop_coords']['longitude'])) {
+        
+        \Log::error('Missing Coordinates in Route', [
+            'route' => $firstRoute,
+            'start_stop_coords' => $firstRoute['start_stop_coords'] ?? 'Not set',
+            'end_stop_coords' => $firstRoute['end_stop_coords'] ?? 'Not set'
+        ]);
+        
+        return null;
+    }
+
+    return [
+        'type' => $routeInfo['type'] ?? 'unknown',
+        'routes' => $routeInfo['routes']
+    ];
+}
+private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops)
+{
+    foreach ($nearbyStartStops as $startStop) {
+        $potentialTransferStops = JeepneyStop::where('jeepney_route_id', '!=', $startStop->jeepney_route_id)
+            ->whereRaw('(6371 * acos(
+                cos(radians(?)) * cos(radians(latitude)) 
+                * cos(radians(longitude) - radians(?)) + 
+                sin(radians(?)) * sin(radians(latitude))
+            )) < 3', [$startStop->latitude, $startStop->longitude, $startStop->latitude])
+            ->limit(5)
+            ->get();
+
+        foreach ($potentialTransferStops as $transferStop) {
+            $endStop = $nearbyEndStops->first(function($stop) use ($transferStop) {
+                return $stop->jeepney_route_id === $transferStop->jeepney_route_id;
+            });
+
+            if ($endStop) {
+                $firstRoute = JeepneyRoute::find($startStop->jeepney_route_id);
+                $secondRoute = JeepneyRoute::find($transferStop->jeepney_route_id);
+                
+                return [
+                    'type' => 'connecting',
+                    'routes' => [
+                        [
+                            'route_name' => $firstRoute->route_name,
+                            'route_color' => $firstRoute->route_color,
+                            'start_stop' => $startStop->stop_name,
+                            'end_stop' => $transferStop->stop_name,
+                            'start_stop_coords' => [
+                                'latitude' => $startStop->latitude,
+                                'longitude' => $startStop->longitude
+                            ],
+                            'end_stop_coords' => [
+                                'latitude' => $transferStop->latitude,
+                                'longitude' => $transferStop->longitude
+                            ],
+                            'base_fare' => FareStructure::where('jeepney_route_id', $startStop->jeepney_route_id)->value('base_fare') ?? 0
+                        ],
+                        [
+                            'route_name' => $secondRoute->route_name,
+                            'route_color' => $secondRoute->route_color,
+                            'start_stop' => $transferStop->stop_name,
+                            'end_stop' => $endStop->stop_name,
+                            'start_stop_coords' => [
+                                'latitude' => $transferStop->latitude,
+                                'longitude' => $transferStop->longitude
+                            ],
+                            'end_stop_coords' => [
+                                'latitude' => $endStop->latitude,
+                                'longitude' => $endStop->longitude
+                            ],
+                            'base_fare' => FareStructure::where('jeepney_route_id', $endStop->jeepney_route_id)->value('base_fare') ?? 0
+                        ]
+                    ]
+                ];
+            }
+        }
     }
 
     return null;
+}
+
+private function findDirectRoute($nearbyStartStops, $nearbyEndStops)
+{
+    $directRoutes = [];
+
+    foreach ($nearbyStartStops as $startStop) {
+        foreach ($nearbyEndStops as $endStop) {
+            if ($startStop->jeepney_route_id === $endStop->jeepney_route_id) {
+                $route = JeepneyRoute::find($startStop->jeepney_route_id);
+                
+                $fare = FareStructure::where('jeepney_route_id', $route->id)->value('base_fare') ?? 0;
+                
+                $directRoutes[] = [
+                    'type' => 'direct',
+                    'routes' => [[
+                        'route_name' => $route->route_name,
+                        'route_color' => $route->route_color,
+                        'start_stop' => $startStop->stop_name,
+                        'end_stop' => $endStop->stop_name,
+                        'start_stop_coords' => [
+                            'latitude' => $startStop->latitude,
+                            'longitude' => $startStop->longitude
+                        ],
+                        'end_stop_coords' => [
+                            'latitude' => $endStop->latitude,
+                            'longitude' => $endStop->longitude
+                        ],
+                        'base_fare' => $fare
+                    ]]
+                ];
+            }
+        }
+    }
+
+    // Return the most direct route (closest stops)
+    return $directRoutes ? 
+        collect($directRoutes)->sortBy(function($route) {
+            $startCoords = $route['routes'][0]['start_stop_coords'];
+            $endCoords = $route['routes'][0]['end_stop_coords'];
+            return $this->calculateDistance(
+                $startCoords['latitude'], 
+                $startCoords['longitude'], 
+                $endCoords['latitude'], 
+                $endCoords['longitude']
+            );
+        })->first() : null;
 }
 
 private function getGoogleMapsTime($startLat, $startLng, $endLat, $endLng)
