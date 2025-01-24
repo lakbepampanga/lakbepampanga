@@ -57,13 +57,13 @@
 
 <!-- Flash Messages -->
 @if(session('success'))
-    <div class="alert alert-success text-center">
+    <div class="alert alert-success text-center flash-message" id="success-message">
         {{ session('success') }}
     </div>
 @endif
 
 @if($errors->any())
-    <div class="alert alert-danger">
+    <div class="alert alert-danger flash-message" id="error-message">
         <ul>
             @foreach($errors->all() as $error)
                 <li>{{ $error }}</li>
@@ -97,6 +97,9 @@
                         @error('password')
                             <small class="text-danger">{{ $message }}</small>
                         @enderror
+                    </div>
+                    <div class="mb-3">
+                        <input type="checkbox" id="showPassword" onclick="togglePassword()"> Show Password
                     </div>
                     <a href="#forgotPasswordModal" data-bs-toggle="modal" data-bs-dismiss="modal">Forgot Password?</a>
                     <button type="submit" class="btn btn-primary w-100">Login</button>
@@ -141,6 +144,9 @@
                   <div class="mb-3">
                       <label for="confirmPassword" class="form-label">Confirm Password:</label>
                       <input type="password" id="confirmPassword" name="password_confirmation" class="form-control" placeholder="Confirm your password" required>
+                  </div>
+                  <div class="mb-3">
+                      <input type="checkbox" id="showPasswordReg" onclick="toggleRegisterPassword()"> Show Password
                   </div>
                   <button type="submit" class="btn btn-primary w-100">Register</button>
               </form>
@@ -492,6 +498,41 @@
   const backdrops = document.querySelectorAll('.modal-backdrop');
   backdrops.forEach(backdrop => backdrop.remove());
 });
+
+function togglePassword() {
+        var passwordField = document.getElementById('password');
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+        } else {
+            passwordField.type = 'password';
+        }
+    }
+    function toggleRegisterPassword() {
+        var passwordField = document.getElementById('registerPassword');
+        var confirmPasswordField = document.getElementById('confirmPassword');
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            confirmPasswordField.type = 'text';
+        } else {
+            passwordField.type = 'password';
+            confirmPasswordField.type = 'password';
+        }
+    }
+
+     // Automatically hide flash messages after 5 seconds
+     setTimeout(function() {
+        var successMessage = document.getElementById('success-message');
+        var errorMessage = document.getElementById('error-message');
+        
+        if (successMessage) {
+            successMessage.style.display = 'none';
+        }
+
+        if (errorMessage) {
+            errorMessage.style.display = 'none';
+        }
+    }, 5000);
+
 
 </script>
 
