@@ -85,7 +85,7 @@
 <header id="header" class="header d-flex  fixed-top align-items-center">
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
-        <a href="home-.blade.php" class="logo d-flex align-items-center">
+        <a href="/" class="logo d-flex align-items-center">
             <h1 class="sitename">Lakbe Pampanga</h1>
         </a>
 
