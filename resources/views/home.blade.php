@@ -36,7 +36,7 @@
 <header id="header" class="header bg-white d-flex align-items-center fixed-top">
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
-        <a href="home-.blade.php" class="logo d-flex align-items-center">
+        <a href="home" class="logo d-flex align-items-center">
             <h1 class="sitename">Lakbe Pampanga</h1>
         </a>
 
@@ -118,7 +118,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">  
-              <form id ="registerForm" method="POST" action="{{ route('register') }}">
+              <form id="registerForm" method="POST" action="{{ route('register') }}">
                   @csrf
                   <div class="mb-3">
                       <label for="registerEmail" class="form-label">Email:</label>
@@ -131,6 +131,26 @@
                       <label for="registerUsername" class="form-label">Username:</label>
                       <input type="text" id="registerUsername" name="name" class="form-control" placeholder="Enter your username" required>
                       @error('name')
+                          <small class="text-danger">{{ $message }}</small>
+                      @enderror
+                  </div>
+                  <div class="mb-3">
+                      <label class="form-label">Gender:</label>
+                      <div class="btn-group w-100" role="group" aria-label="Gender selection">
+                          <input type="radio" class="btn-check" name="gender" id="male" value="male" autocomplete="off" required>
+                          <label class="btn btn-outline-primary" for="male">Male</label>
+
+                          <input type="radio" class="btn-check" name="gender" id="female" value="female" autocomplete="off" required>
+                          <label class="btn btn-outline-primary" for="female">Female</label>
+                      </div>
+                      @error('gender')
+                          <small class="text-danger">{{ $message }}</small>
+                      @enderror
+                  </div>
+                  <div class="mb-3">
+                      <label for="age" class="form-label">Age:</label>
+                      <input type="number" id="age" name="age" class="form-control" placeholder="Enter your age" min="1" max="120" required>
+                      @error('age')
                           <small class="text-danger">{{ $message }}</small>
                       @enderror
                   </div>
