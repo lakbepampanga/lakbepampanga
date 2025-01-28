@@ -17,6 +17,8 @@
   <link href="https://fonts.gstatic.com" rel="preconnect"   crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
 
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+
   <!-- Vendor CSS Files -->
     <link href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.css') }}" rel="stylesheet">
@@ -96,7 +98,7 @@
                 <li><a href="/commuting-guide">Commuting Guide</a></li>
                 <li><form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button type="submit" class="btn btn-custom btn-md px-3 py-2">Logout</button>
+                <button type="submit" class="btn btn-custom rounded-pill btn-md px-3 py-2">Logout</button>
                     </form>
                 </li>
                 
@@ -114,7 +116,8 @@
 
     <!-- Action Buttons -->
     <div class="d-flex flex-column flex-md-row justify-content-center align-items-center gap-3 mb-4">
-        <button id="use-location" class="btn btn-custom">Use Current Location</button>
+        <button id="use-location" class="btn btn-custom rounded-pill">Use Current Location</button>
+
     </div>
 
     <!-- Location Selection -->
