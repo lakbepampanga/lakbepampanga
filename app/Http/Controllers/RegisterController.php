@@ -15,6 +15,8 @@ class RegisterController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users', // Ensure unique email
             'password' => 'required|string|min:8|confirmed', // Confirmed ensures `password_confirmation` matches
+            'gender' => 'required|string|in:male,female', // Validate gender
+            'age' => 'required|integer|min:1|max:120', // Validate age
         ]);
 
         // Create the user
@@ -22,6 +24,8 @@ class RegisterController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'gender' => $request->gender, // Add gender
+            'age' => $request->age,       // Add age
         ]);
 
         // Log in the user
