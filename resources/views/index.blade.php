@@ -6,16 +6,46 @@
     <title>Pampanga Itinerary Planner</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACtmc6ZSEVHBJLkk9wtiRj5ssvW1RDh4s&libraries=places"></script>
+
+    <!-- Favicons -->
+  <link href="{{ asset('img/favicon.png') }}" rel="icon">
+<link href="{{ asset('img/apple-touch-icon.png') }}" rel="apple-touch-icon">
+
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect"   crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+    <link href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.css') }}" rel="stylesheet">
+    <link href="{{ asset('vendor/aos/aos.css') }}" rel="stylesheet">
+    <link href="{{ asset('vendor/glightbox/css/glightbox.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('vendor/swiper/swiper-bundle.min.css') }}" rel="stylesheet">
+
+<!-- Main CSS File -->
+<link href="{{ asset('css/main2.css') }}" rel="stylesheet">
+
+
+  <!-- Bootstrap CSS and JS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ asset('js/main.js') }}"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        #map {
-            height: 500px;
-            width: 100%;
-            margin-top: 20px;
-        }
+     
+        
+.btn-custom{
+    background-color: var(--button-color); /* Desired background color */
+    color: var(--accent-color);
+}
+
+.btn-custom:hover{
+    background-color: #683842; /* Hover background color */
+    color: white;
+    transition: 0.3s;   /* Hover border color */
+}
+
         #itinerary {
             margin-top: 20px;
         }
@@ -29,40 +59,106 @@
         #itinerary-form {
             margin-top: 20px;
         }
+
+
+/* Form Styling */
+.form-label {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.form-select {
+    border-radius: 30px;
+    padding: 10px;
+    font-size: 0.95rem;
+}
+
+#itinerary-form {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
     </style>
+
 </head>
 <body>
-<form method="POST" action="{{ route('logout') }}">
-        @csrf
-        <button type="submit">Logout</button>
-    </form>
-    <h1>Plan Your Pampanga Itinerary</h1>
+<header id="header" class="header d-flex  fixed-top align-items-center">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
-    <!-- Button to use current location -->
-    <button id="use-location">Use Current Location</button><br><br>
-    <a href="/commuting-guide" style="text-decoration: none; color: white; background-color: #007BFF; padding: 10px 15px; border-radius: 5px;">
-    Go to Commuting Guide</a>   
-    <!-- Option to select from dropdown -->
-    <label for="location">Or, select your starting location:</label>
-    <select id="location">
-        <option value="" disabled selected>Select your starting location</option>
-        <option value="Angeles">Angeles City</option>
-        <option value="Mabalacat">Mabalacat</option>
-        <option value="Magalang">Magalang</option>
-        <option value="Clark">Clark Freeport Zone</option>
-        <option value="Auf">AUF</option>
-    </select><br><br>
+        <a href="home-.blade.php" class="logo d-flex align-items-center">
+            <h1 class="sitename">Lakbe Pampanga</h1>
+        </a>
 
-    <!-- Form for hours and generating itinerary -->
-    <div id="itinerary-form" style="display: none;">
-        <label for="hours">How many hours do you have for travel?</label>
-        <input type="number" id="hours" min="1" max="12" placeholder="Enter hours">
-        <button id="generate-itinerary">Generate Itinerary</button>
+        <nav id="navmenu" class="navmenu">
+            <ul>
+                <li><a href="#" class="active">Plan</a></li>
+                <li><a href="#about">Saved Itineraries</a></li>
+                <li><a href="/commuting-guide">Commuting Guide</a></li>
+                <li><form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="btn btn-custom btn-md px-3 py-2">Logout</button>
+                    </form>
+                </li>
+                
+            </ul>
+            <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+        </nav>
+
+    </div>
+</header>
+<main class="main container mt-5 pt-5">
+
+<div class="container py-4">
+    <!-- Heading -->
+    <h1 class="text-center mb-4" id="section-title">Plan Your Pampanga Itinerary</h2>
+
+    <!-- Action Buttons -->
+    <div class="d-flex flex-column flex-md-row justify-content-center align-items-center gap-3 mb-4">
+        <button id="use-location" class="btn btn-custom">Use Current Location</button>
     </div>
 
-    <div id="map"></div>
-    <div id="itinerary"></div>
+    <!-- Location Selection -->
+    <div class="form-group mb-4 text-center">
+        <label for="location" class="form-label fw-bold">Or, select your starting location:</label>
+        <select id="location" class="form-select shadow-sm w-50 mx-auto">
+            <option value="" disabled selected>Select your starting location</option>
+            <option value="Angeles">Angeles City</option>
+            <option value="Mabalacat">Mabalacat</option>
+            <option value="Magalang">Magalang</option>
+            <option value="Clark">Clark Freeport Zone</option>
+            <option value="Auf">AUF</option>
+        </select>
+    </div>
 
+    <!-- Hours Input and Generate Itinerary Button -->
+    <div id="itinerary-form" class="bg-light p-4 rounded shadow-sm" style="display: none;">
+    <label for="hours" class="form-label fw-bold">How many hours do you have for travel?</label>
+    <input type="number" id="hours" class="form-control shadow-sm mb-3" min="1" max="12" placeholder="Enter hours">
+    
+    <div class="text-center">
+        <button id="generate-itinerary" class="btn btn-success w-50">Generate Itinerary</button>
+    </div>
+</div>
+
+</div>
+
+<!-- maps -->
+    <div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div id="map" class="w-100" style="height: 500px;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-4">
+    <div id="itinerary" class="mt-4"></div>
+</div>
+
+    </main>
+
+
+    <!--  -->
     <script>
     let map, userLat, userLng, markers = [], initialMarker = null, directionsService, directionsRenderer;
 
@@ -272,47 +368,56 @@
         .then((response) => response.json())
         .then((data) => {
             if (Array.isArray(data)) {
-                let itineraryHTML = '<h2>Your Itinerary</h2><ul>';
-                clearMap(); // Clear previous markers and route
+    let itineraryHTML = `
+        <h2 class="text-center my-4">Your Itinerary</h2>
+        <div class="row g-3">`; // Bootstrap row with gutter spacing
 
-                const pathCoordinates = [{ lat: userLat, lng: userLng }]; // Add starting location as the first point
+    clearMap(); // Clear previous markers and route
 
-                data.forEach((destination, index) => {
-                    itineraryHTML += `<li>
-                        <h3>${destination.name} (${destination.type})</h3>
-                        <p>${destination.description}</p>
-                        <p>Travel Time: ${destination.travel_time} minutes</p>
-                        <p>Time to Spend: ${destination.visit_time} minutes</p>
-                        <p><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
-                    </li>`;
+    const pathCoordinates = [{ lat: userLat, lng: userLng }]; // Add starting location as the first point
 
-                    const lat = parseFloat(destination.latitude);
-                    const lng = parseFloat(destination.longitude);
+    data.forEach((destination, index) => {
+        itineraryHTML += `
+            <div class="col-md-4"> <!-- Column for each card -->
+                <div class="card h-100 shadow-sm border-0"> <!-- Bootstrap card -->
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">${destination.name} (${destination.type})</h5>
+                        <p class="card-text text-muted">${destination.description}</p>
+                        <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
+                        <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
+                        <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+                    </div>
+                </div>
+            </div>`;
 
-                    if (!isNaN(lat) && !isNaN(lng)) {
-                        // Add marker with a label showing the location order
-                        addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
+        const lat = parseFloat(destination.latitude);
+        const lng = parseFloat(destination.longitude);
 
-                        // Add to route path coordinates
-                        pathCoordinates.push({ lat: lat, lng: lng });
-                    } else {
-                        console.error(`Invalid coordinates for destination: ${destination.name}`);
-                    }
-                });
+        if (!isNaN(lat) && !isNaN(lng)) {
+            // Add marker with a label showing the location order
+            addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
 
-                itineraryHTML += '</ul>';
-                document.getElementById('itinerary').innerHTML = itineraryHTML;
+            // Add to route path coordinates
+            pathCoordinates.push({ lat: lat, lng: lng });
+        } else {
+            console.error(`Invalid coordinates for destination: ${destination.name}`);
+        }
+    });
 
-                // Draw the route using Google Directions Service
-                if (pathCoordinates.length > 1) {
-                    drawRoute(pathCoordinates);
-                }
+    itineraryHTML += `</div>`; // Close the row
+    document.getElementById('itinerary').innerHTML = itineraryHTML;
 
-                // Adjust map to fit all markers
-                updateMapBounds();
-            } else {
-                alert("Error: Received data is not in the expected format.");
-            }
+    // Draw the route using Google Directions Service
+    if (pathCoordinates.length > 1) {
+        drawRoute(pathCoordinates);
+    }
+
+    // Adjust map to fit all markers
+    updateMapBounds();
+} else {
+    alert("Error: Received data is not in the expected format.");
+}
+
         })
         .catch((error) => {
             console.error("Error fetching itinerary:", error);

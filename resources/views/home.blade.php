@@ -23,7 +23,7 @@
     <link href="{{ asset('vendor/swiper/swiper-bundle.min.css') }}" rel="stylesheet">
 
 <!-- Main CSS File -->
-<link href="{{ asset('css/main.css') }}" rel="stylesheet">
+<link href="{{ asset('css/main2.css') }}" rel="stylesheet">
 
 
   <!-- Bootstrap CSS and JS -->
@@ -33,7 +33,7 @@
 
 <body class="index-page">
 
-<header id="header" class="header d-flex align-items-center fixed-top">
+<header id="header" class="header bg-white d-flex align-items-center fixed-top">
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
         <a href="home-.blade.php" class="logo d-flex align-items-center">
