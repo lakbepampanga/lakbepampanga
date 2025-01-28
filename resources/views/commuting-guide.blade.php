@@ -94,34 +94,39 @@
         <div class="row">
             <!-- Input Section (Left) -->
             <div class="col-md-6">
-                <div class="mb-4">
-                    <h1 class="fw-bold">Pampanga<br>Commuting Guide</h1>
-                    <p class="text-muted">Plan your trip with ease and get the best commuting routes.</p>
-                </div>
-                <div class="mt-4 rounded w-75">
-                    <div class="mb-3">
-                        <label for="start" class="form-label fw-bold">Enter your location:</label>
-                        <div class="input-group">
-                            <input type="text" id="start" class="form-control shadow-sm" placeholder="e.g., Clark Freeport Zone">
-                            <span class="input-group-text bg-white border shadow-sm">
-                                <i class="bi bi-geo-alt-fill text-muted"></i> <!-- Bootstrap Icons -->
-                            </span>
+                <!-- Input Form -->
+                <div id="input-section">
+                    <div class="mb-4">
+                        <h1 class="fw-bold">Pampanga<br>Commuting Guide</h1>
+                        <p class="text-muted">Plan your trip with ease and get the best commuting routes.</p>
+                    </div>
+                    <div class="mt-4 rounded w-75">
+                        <div class="mb-3">
+                            <label for="start" class="form-label fw-bold">Enter your location:</label>
+                            <div class="input-group">
+                                <input type="text" id="start" class="form-control shadow-sm" placeholder="e.g., Clark Freeport Zone">
+                                <span class="input-group-text bg-white border shadow-sm">
+                                    <i class="bi bi-geo-alt-fill text-muted"></i> <!-- Bootstrap Icons -->
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="end" class="form-label fw-bold">Enter your destination:</label>
+                            <input type="text" id="end" class="form-control shadow-sm" placeholder="e.g., Angeles City Hall">
+                        </div>
+
+                        <div class="mt-4">
+                            <button id="generate-guide" class="btn btn-custom px-4">Generate Guide</button>
                         </div>
                     </div>
+                </div>
 
-                    <div class="mb-3">
-                        <label for="end" class="form-label fw-bold">Enter your destination:</label>
-                        <input type="text" id="end" class="form-control shadow-sm" placeholder="e.g., Angeles City Hall">
-                    </div>
-
-                    <div class=" mt-4">
-                        <button id="generate-guide" class="btn btn-custom px-4">Generate Guide</button>
-                    </div>
-
-                    <!-- Commute Guide Section -->
-                    <div id="commute-guide" class="mt-4 p-3 bg-light rounded shadow-sm">
-                        <h5 class="fw-bold">Commute Guide</h5>
-                        <p class="text-muted">Your results will appear here after generating.</p>
+                <!-- Commute Guide Results -->
+                <div id="result-section" style="display: none;">
+                    <div id="commute-guide" class="p-3 rounded"></div>
+                    <div class="mt-3 text-center">
+                        <button id="back-button" class="btn btn-secondary px-4">Back</button>
                     </div>
                 </div>
             </div>
@@ -133,6 +138,8 @@
         </div>
     </div>
 </main>
+
+
 
 
 <footer id="footer" class="footer dark-background w-100">
@@ -239,75 +246,78 @@
         }
 
         document.getElementById('generate-guide').addEventListener('click', () => {
-            const start = document.getElementById('start').value;
-            const end = document.getElementById('end').value;
+    const start = document.getElementById('start').value;
+    const end = document.getElementById('end').value;
 
-            if (!start || !end) {
-                alert("Please enter both your location and destination.");
-                return;
-            }
+    if (!start || !end) {
+        alert("Please enter both your location and destination.");
+        return;
+    }
 
-            fetch('/api/commute-guide', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                },
-                body: JSON.stringify({ start: start, end: end }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    alert(data.error);
-                    return;
-                }
+    fetch('/api/commute-guide', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        },
+        body: JSON.stringify({ start: start, end: end }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
 
-                clearMap();
-                
-                if (data.commute_instructions) {
-                    const guideHTML = `
-                         <h2 class="fw-bold text-center mb-4">Commute Guide</h2>
-                        <div class="card shadow-sm border-0 mb-3">
-                            <div class="card-body">
-                                <p class="card-text mb-3">
-                                    <strong>Instructions:</strong> ${data.commute_instructions}
-                                </p>
-                                <p class="card-text mb-2">
-                                    <strong>Estimated Time:</strong> ${data.travel_time}
-                                </p>
-                                <p class="card-text">
-                                    <strong>Distance:</strong> ${data.distance.toFixed(2)} km
-                                </p>
-                            </div>
-                        </div>`;
+        // Hide the input form and show the result section
+        document.getElementById('input-section').style.display = 'none';
+        document.getElementById('result-section').style.display = 'block';
 
-                    document.getElementById('commute-guide').innerHTML = guideHTML;
+        // Display the commute guide results
+        const guideHTML = `
+            <h2 class="fw-bold text-center mb-4">Commute Guide</h2>
+            <div class="card shadow-sm border-0 mb-3">
+                <div class="card-body">
+                    <p class="card-text mb-3">
+                        <strong>Instructions:</strong> ${data.commute_instructions}
+                    </p>
+                    <p class="card-text mb-2">
+                        <strong>Estimated Time:</strong> ${data.travel_time}
+                    </p>
+                    <p class="card-text">
+                        <strong>Distance:</strong> ${data.distance.toFixed(2)} km
+                    </p>
+                </div>
+            </div>`;
+        document.getElementById('commute-guide').innerHTML = guideHTML;
 
-                    // Draw route on map using actual road directions
-                    if (data.path && data.path.length > 0) {
-                        // Create LatLng objects for start and end points
-                        const startPoint = new google.maps.LatLng(
-                            parseFloat(data.path[0].latitude),
-                            parseFloat(data.path[0].longitude)
-                        );
-                        const endPoint = new google.maps.LatLng(
-                            parseFloat(data.path[data.path.length - 1].latitude),
-                            parseFloat(data.path[data.path.length - 1].longitude)
-                        );
-                        
-                        // Draw the route
-                        drawRoute(startPoint, endPoint);
-                    }
-                } else {
-                    document.getElementById('commute-guide').innerHTML = 
-                        '<p>No routes found for the given locations.</p>';
-                }
-            })
-            .catch(error => {
-                console.error("Error fetching commute guide:", error);
-                alert("An error occurred while generating the commute guide.");
-            });
-        });
+        // Draw route on map if path data is provided
+        if (data.path && data.path.length > 0) {
+            const startPoint = new google.maps.LatLng(
+                parseFloat(data.path[0].latitude),
+                parseFloat(data.path[0].longitude)
+            );
+            const endPoint = new google.maps.LatLng(
+                parseFloat(data.path[data.path.length - 1].latitude),
+                parseFloat(data.path[data.path.length - 1].longitude)
+            );
+            drawRoute(startPoint, endPoint);
+        }
+    })
+    .catch(error => {
+        console.error("Error fetching commute guide:", error);
+        alert("An error occurred while generating the commute guide.");
+    });
+});
+
+document.getElementById('back-button').addEventListener('click', () => {
+    // Show the input form and hide the result section
+    document.getElementById('input-section').style.display = 'block';
+    document.getElementById('result-section').style.display = 'none';
+    document.getElementById('commute-guide').innerHTML = ''; // Clear results
+});
+
+
 
         // Initialize map and autocomplete when the page loads
         window.onload = function() {
