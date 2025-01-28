@@ -6,12 +6,35 @@
     <title>Pampanga Commuting Guide</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACtmc6ZSEVHBJLkk9wtiRj5ssvW1RDh4s&libraries=places,geometry,directions"></script>
+     <!-- Favicons -->
+  <link href="{{ asset('img/favicon.png') }}" rel="icon">
+<link href="{{ asset('img/apple-touch-icon.png') }}" rel="apple-touch-icon">
+
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect"   crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+    <link href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.css') }}" rel="stylesheet">
+    <link href="{{ asset('vendor/aos/aos.css') }}" rel="stylesheet">
+    <link href="{{ asset('vendor/glightbox/css/glightbox.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('vendor/swiper/swiper-bundle.min.css') }}" rel="stylesheet">
+
+<!-- Main CSS File -->
+<link href="{{ asset('css/main2.css') }}" rel="stylesheet">
+
+
+  <!-- Bootstrap CSS and JS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ asset('js/main.js') }}"></script>
 
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
         #map {
             height: 500px;
             width: 100%;
@@ -27,23 +50,99 @@
         #commute-guide li {
             margin-bottom: 15px;
         }
+
+        .btn-custom{
+    background-color: var(--button-color); /* Desired background color */
+    color: var(--accent-color);
+}
+
+.btn-custom:hover{
+    background-color: #683842; /* Hover background color */
+    color: white;
+    transition: 0.3s;   /* Hover border color */
+}
     </style>
 </head>
 <body>
-    <h1>Pampanga Commuting Guide</h1>
+<header id="header" class="header d-flex bg-white fixed-top align-items-center">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
-    <label for="start">Enter your location:</label>
-    <input type="text" id="start" placeholder="e.g., Clark Freeport Zone">
-    <br><br>
+        <a href="/" class="logo d-flex align-items-center">
+            <h1 class="sitename">Lakbe Pampanga</h1>
+        </a>
 
-    <label for="end">Enter your destination:</label>
-    <input type="text" id="end" placeholder="e.g., Angeles City Hall">
-    <br><br>
+        <nav id="navmenu" class="navmenu">
+            <ul>
+                <li><a href="/index">Plan</a></li>
+                <li><a href="#about">Saved Itineraries</a></li>
+                <li><a href="/commuting-guide" class="active">Commuting Guide</a></li>
+                <li><form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="btn btn-custom rounded-pill btn-md px-3 py-2">Logout</button>
+                    </form>
+                </li>
+                
+            </ul>
+            <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+        </nav>
 
-    <button id="generate-guide">Generate Commute Guide</button>
+    </div>
+</header>
+<!-- main -->
+<main class="main container mt-5 pt-5">
+    <div class="container mt-4 pt-4">
+        <div class="row">
+            <!-- Input Section (Left) -->
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <h1 class="fw-bold">Pampanga<br>Commuting Guide</h1>
+                    <p class="text-muted">Plan your trip with ease and get the best commuting routes.</p>
+                </div>
+                <div class="mt-4 rounded w-75">
+                    <div class="mb-3">
+                        <label for="start" class="form-label fw-bold">Enter your location:</label>
+                        <div class="input-group">
+                            <input type="text" id="start" class="form-control shadow-sm" placeholder="e.g., Clark Freeport Zone">
+                            <span class="input-group-text bg-white border shadow-sm">
+                                <i class="bi bi-geo-alt-fill text-muted"></i> <!-- Bootstrap Icons -->
+                            </span>
+                        </div>
+                    </div>
 
-    <div id="map"></div>
-    <div id="commute-guide"></div>
+                    <div class="mb-3">
+                        <label for="end" class="form-label fw-bold">Enter your destination:</label>
+                        <input type="text" id="end" class="form-control shadow-sm" placeholder="e.g., Angeles City Hall">
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <button id="generate-guide" class="btn btn-custom rounded-pill px-4">Generate Commute Guide</button>
+                    </div>
+
+                    <!-- Commute Guide Section -->
+                    <div id="commute-guide" class="mt-4 p-3 bg-light rounded shadow-sm">
+                        <h5 class="fw-bold">Commute Guide</h5>
+                        <p class="text-muted">Your results will appear here after generating.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Section (Right) -->
+            <div class="col-md-6">
+                <div id="map" class="w-100 rounded shadow-sm" style="height: 500px; border: 1px solid #e0e0e0;"></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+
+<footer id="footer" class="footer dark-background w-100">
+  <div class="container-fluid text-center py-4">
+    <p>© <span>Copyright</span> <strong class="px-1 sitename">Lakbe Pampanga</strong> <span>All Rights Reserved</span></p>
+    <div class="credits">
+      Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> Distributed By <a href="https://themewagon.com">ThemeWagon</a>
+    </div>
+  </div>
+</footer>
 
     <script>
         let map, markers = [], directionsRenderer;
@@ -167,14 +266,20 @@
                 
                 if (data.commute_instructions) {
                     const guideHTML = `
-                        <h2>Commute Guide</h2>
-                        <ul>
-                            <li>
-                                <p>${data.commute_instructions}</p>
-                                <p>Estimated Time: ${data.travel_time}</p>
-                                <p>Distance: ${data.distance.toFixed(2)} km</p>
-                            </li>
-                        </ul>`;
+                         <h2 class="fw-bold text-center mb-4">Commute Guide</h2>
+                        <div class="card shadow-sm border-0 mb-3">
+                            <div class="card-body">
+                                <p class="card-text mb-3">
+                                    <strong>Instructions:</strong> ${data.commute_instructions}
+                                </p>
+                                <p class="card-text mb-2">
+                                    <strong>Estimated Time:</strong> ${data.travel_time}
+                                </p>
+                                <p class="card-text">
+                                    <strong>Distance:</strong> ${data.distance.toFixed(2)} km
+                                </p>
+                            </div>
+                        </div>`;
 
                     document.getElementById('commute-guide').innerHTML = guideHTML;
 

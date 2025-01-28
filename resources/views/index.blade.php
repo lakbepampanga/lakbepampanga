@@ -84,7 +84,7 @@
 
 </head>
 <body>
-<header id="header" class="header d-flex  fixed-top align-items-center">
+<header id="header" class="header d-flex bg-white fixed-top align-items-center">
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
         <a href="/" class="logo d-flex align-items-center">
@@ -108,7 +108,7 @@
 
     </div>
 </header>
-<main class="main container mt-5 pt-5">
+<main class="main container mt-5 pt-5 mb-5">
 
 <div class="container py-4">
     <!-- Heading -->
@@ -134,34 +134,52 @@
     </div>
 
     <!-- Hours Input and Generate Itinerary Button -->
-    <div id="itinerary-form" class="bg-light p-4 rounded shadow-sm" style="display: none;">
-    <label for="hours" class="form-label fw-bold">How many hours do you have for travel?</label>
-    <input type="number" id="hours" class="form-control shadow-sm mb-3" min="1" max="12" placeholder="Enter hours">
-    
-    <div class="text-center">
-        <button id="generate-itinerary" class="btn btn-success w-50">Generate Itinerary</button>
+    <div id="itinerary-form" class="p-4 rounded" style="display: none;">
+        <label for="hours" class="form-label fw-bold">How many hours do you have for travel?</label>
+        <input type="number" id="hours" class="form-control shadow-sm mb-3" min="1" max="12" placeholder="Enter hours">
+        
+        <div class="text-center">
+            <button id="generate-itinerary" class="btn btn-success w-50">Generate Itinerary</button>
+        </div>
     </div>
-</div>
 
 </div>
 
 <!-- maps -->
-    <div class="container">
+<div class="container mt-4">
     <div class="row">
-        <div class="col-12">
-            <div id="map" class="w-100" style="height: 500px;"></div>
+        <!-- Itinerary Section (Left) -->
+        <div class="col-md-4">
+            <div id="itinerary" class="p-3 bg-light rounded shadow-sm" style="height: 500px; overflow-y: auto;">
+                <h5 class="fw-bold mb-3">Your Itinerary</h5>
+                
+                <!-- Placeholder for itinerary content -->
+                <div id="itinerary-content">
+                    <p class="text-muted">Your generated itinerary will appear here.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Section (Right) -->
+        <div class="col-md-8">
+            <div id="map" class="w-100 rounded shadow-sm" style="height: 500px; border: 1px solid #e0e0e0;"></div>
         </div>
     </div>
 </div>
 
-<div class="container mt-4">
-    <div id="itinerary" class="mt-4"></div>
-</div>
-
     </main>
 
+    <footer id="footer" class="footer dark-background w-100">
+  <div class="container-fluid text-center py-4">
+    <p>© <span>Copyright</span> <strong class="px-1 sitename">Lakbe Pampanga</strong> <span>All Rights Reserved</span></p>
+    <div class="credits">
+      Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> Distributed By <a href="https://themewagon.com">ThemeWagon</a>
+    </div>
+  </div>
+</footer>
 
-    <!--  -->
+
+    <!-- scripts -->
     <script>
     let map, userLat, userLng, markers = [], initialMarker = null, directionsService, directionsRenderer;
 
@@ -371,43 +389,37 @@
         .then((response) => response.json())
         .then((data) => {
             if (Array.isArray(data)) {
-    let itineraryHTML = `
-        <h2 class="text-center my-4">Your Itinerary</h2>
-        <div class="row g-3">`; // Bootstrap row with gutter spacing
+                let itineraryHTML = ''; // Initialize the HTML for the cards
+clearMap(); // Clear previous markers and routes
 
-    clearMap(); // Clear previous markers and route
+const pathCoordinates = [{ lat: userLat, lng: userLng }]; // Add starting location as the first point
 
-    const pathCoordinates = [{ lat: userLat, lng: userLng }]; // Add starting location as the first point
+data.forEach((destination, index) => {
+    itineraryHTML += `
+        <div class="card mb-3 shadow-sm border-0"> <!-- Single card -->
+            <div class="card-body">
+                <h5 class="card-title text-primary">${destination.name} (${destination.type})</h5>
+                <p class="card-text text-muted">${destination.description}</p>
+                <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
+                <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
+                <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+            </div>
+        </div>`;
 
-    data.forEach((destination, index) => {
-        itineraryHTML += `
-            <div class="col-md-4"> <!-- Column for each card -->
-                <div class="card h-100 shadow-sm border-0"> <!-- Bootstrap card -->
-                    <div class="card-body">
-                        <h5 class="card-title text-primary">${destination.name} (${destination.type})</h5>
-                        <p class="card-text text-muted">${destination.description}</p>
-                        <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
-                        <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
-                        <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
-                    </div>
-                </div>
-            </div>`;
+    const lat = parseFloat(destination.latitude);
+    const lng = parseFloat(destination.longitude);
 
-        const lat = parseFloat(destination.latitude);
-        const lng = parseFloat(destination.longitude);
+    if (!isNaN(lat) && !isNaN(lng)) {
+        // Add marker with a label showing the location order
+        addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
 
-        if (!isNaN(lat) && !isNaN(lng)) {
-            // Add marker with a label showing the location order
-            addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
+        // Add to route path coordinates
+        pathCoordinates.push({ lat: lat, lng: lng });
+    } else {
+        console.error(`Invalid coordinates for destination: ${destination.name}`);
+    }
+});
 
-            // Add to route path coordinates
-            pathCoordinates.push({ lat: lat, lng: lng });
-        } else {
-            console.error(`Invalid coordinates for destination: ${destination.name}`);
-        }
-    });
-
-    itineraryHTML += `</div>`; // Close the row
     document.getElementById('itinerary').innerHTML = itineraryHTML;
 
     // Draw the route using Google Directions Service
