@@ -114,8 +114,8 @@
                         <input type="text" id="end" class="form-control shadow-sm" placeholder="e.g., Angeles City Hall">
                     </div>
 
-                    <div class="text-center mt-4">
-                        <button id="generate-guide" class="btn btn-custom rounded-pill px-4">Generate Commute Guide</button>
+                    <div class=" mt-4">
+                        <button id="generate-guide" class="btn btn-custom px-4">Generate Guide</button>
                     </div>
 
                     <!-- Commute Guide Section -->
