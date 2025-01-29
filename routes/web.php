@@ -42,3 +42,6 @@
 
     Route::view('/commuting-guide', 'commuting-guide');
     Route::post('/api/commute-guide', [App\Http\Controllers\ItineraryController::class, 'generateCommuteGuide']);
+Route::middleware(['auth'])->group(function () {
+    Route::post('/api/save-itinerary', [App\Http\Controllers\ItineraryController::class, 'saveItinerary']);
+});

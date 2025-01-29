@@ -94,22 +94,22 @@
         <div class="row">
             <!-- Input Section (Left) -->
             <div class="col-md-6">
-                <!-- Input Form -->
-                <div id="input-section">
-                    <div class="mb-4">
-                        <h1 class="fw-bold">Pampanga<br>Commuting Guide</h1>
-                        <p class="text-muted">Plan your trip with ease and get the best commuting routes.</p>
-                    </div>
-                    <div class="mt-4 rounded w-75">
-                        <div class="mb-3">
-                            <label for="start" class="form-label fw-bold">Enter your location:</label>
-                            <div class="input-group">
-                                <input type="text" id="start" class="form-control shadow-sm" placeholder="e.g., Clark Freeport Zone">
-                                <span class="input-group-text bg-white border shadow-sm">
-                                    <i class="bi bi-geo-alt-fill text-muted"></i> <!-- Bootstrap Icons -->
-                                </span>
-                            </div>
+                    <div id="input-section">
+                        <div class="mb-4">
+                            <h1 class="fw-bold">Pampanga<br>Commuting Guide</h1>
+                            <p class="text-muted">Plan your trip with ease and get the best commuting routes.</p>
                         </div>
+                        <div class="mt-4 rounded w-75">
+                            <div class="mb-3">
+                                <label for="start" class="form-label fw-bold">Enter your location:</label>
+                                <div class="input-group">
+                                    <input type="text" id="start" class="form-control shadow-sm" placeholder="e.g., Clark Freeport Zone">
+                                    <button class="btn btn-custom" type="button" id="get-location">
+                                        <i class="bi bi-crosshair"></i>
+                                    </button>
+                                </div>
+                                <small id="location-status" class="form-text text-muted"></small>
+                            </div>
 
                         <div class="mb-3">
                             <label for="end" class="form-label fw-bold">Enter your destination:</label>
@@ -144,7 +144,7 @@
 
 <footer id="footer" class="footer dark-background w-100">
   <div class="container-fluid text-center py-4">
-    <p>© <span>Copyright</span> <strong class="px-1 sitename">Lakbe Pampanga</strong> <span>All Rights Reserved</span></p>
+    <p>Â© <span>Copyright</span> <strong class="px-1 sitename">Lakbe Pampanga</strong> <span>All Rights Reserved</span></p>
     <div class="credits">
       Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> Distributed By <a href="https://themewagon.com">ThemeWagon</a>
     </div>
@@ -191,44 +191,85 @@
             }
         }
 
-        function drawRoute(origin, destination) {
-            const directionsService = new google.maps.DirectionsService();
+  // Enhanced drawRoute function
+  function drawRoute(path) {
+    clearMap();
+    
+    if (!path || path.length < 2) return;
+    
+    // Create waypoints for the route
+    const waypoints = path.slice(1, -1).map(point => ({
+        location: new google.maps.LatLng(point.latitude, point.longitude),
+        stopover: true
+    }));
 
-            const request = {
-                origin: origin,
-                destination: destination,
-                travelMode: google.maps.TravelMode.DRIVING
-            };
+    const directionsService = new google.maps.DirectionsService();
+    const origin = new google.maps.LatLng(path[0].latitude, path[0].longitude);
+    const destination = new google.maps.LatLng(path[path.length - 1].latitude, path[path.length - 1].longitude);
 
-            directionsService.route(request, (result, status) => {
-                if (status === google.maps.DirectionsStatus.OK) {
-                    directionsRenderer.setDirections(result);
+    const request = {
+        origin: origin,
+        destination: destination,
+        waypoints: waypoints,
+        travelMode: google.maps.TravelMode.DRIVING,
+        optimizeWaypoints: false
+    };
 
-                    // Add custom markers for start and end points
-                    const route = result.routes[0].legs[0];
-                    addMarker(
-                        route.start_location.lat(),
-                        route.start_location.lng(),
-                        'Start',
-                        'S',
-                        'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
-                    );
-                    addMarker(
-                        route.end_location.lat(),
-                        route.end_location.lng(),
-                        'End',
-                        'E',
-                        'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                    );
+    directionsService.route(request, (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+            directionsRenderer.setDirections(result);
 
-                    // Fit bounds to show the entire route
-                    const bounds = new google.maps.LatLngBounds();
-                    bounds.extend(route.start_location);
-                    bounds.extend(route.end_location);
-                    map.fitBounds(bounds);
+            // Add markers for start, transfer points, and end
+            path.forEach((point, index) => {
+                let markerIcon, label;
+                
+                if (index === 0) {
+                    // Start point
+                    markerIcon = 'http://maps.google.com/mapfiles/ms/icons/green-dot.png';
+                    label = 'S';
+                } else if (index === path.length - 1) {
+                    // End point
+                    markerIcon = 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+                    label = 'E';
+                } else {
+                    // Transfer point
+                    markerIcon = 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+                    label = 'T' + index;
+                }
+
+                addMarker(
+                    parseFloat(point.latitude),
+                    parseFloat(point.longitude),
+                    index === 0 ? 'Start' : (index === path.length - 1 ? 'End' : 'Transfer Point'),
+                    label,
+                    markerIcon
+                );
+
+                // Add info window for transfer points
+                if (index > 0 && index < path.length - 1) {
+                    const marker = markers[markers.length - 1];
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: `<div style="padding: 10px;">
+                            <h6 class="mb-2">Transfer Point ${index}</h6>
+                            <p class="mb-0">Change jeepney here</p>
+                        </div>`
+                    });
+
+                    marker.addListener('click', () => {
+                        infoWindow.open(map, marker);
+                    });
                 }
             });
+
+            // Fit bounds to show the entire route
+            const bounds = new google.maps.LatLngBounds();
+            path.forEach(point => {
+                bounds.extend(new google.maps.LatLng(point.latitude, point.longitude));
+            });
+            map.fitBounds(bounds);
         }
+    });
+}
 
         function initializeAutocomplete() {
             const startInput = document.getElementById('start');
@@ -245,7 +286,8 @@
             autocompleteEnd.setFields(['formatted_address']);
         }
 
-        document.getElementById('generate-guide').addEventListener('click', () => {
+   // Update the fetch response handler to include route segments
+   document.getElementById('generate-guide').addEventListener('click', () => {
     const start = document.getElementById('start').value;
     const end = document.getElementById('end').value;
 
@@ -273,16 +315,27 @@
         document.getElementById('input-section').style.display = 'none';
         document.getElementById('result-section').style.display = 'block';
 
+        // Generate route instructions HTML
+        let instructionsHtml = '';
+        if (Array.isArray(data.commute_instructions)) {
+            instructionsHtml = data.commute_instructions.map((instruction, index) => 
+                `<p class="mb-2">${index + 1}. ${instruction}</p>`
+            ).join('');
+        } else {
+            instructionsHtml = `<p class="mb-2">${data.commute_instructions}</p>`;
+        }
+
         // Display the commute guide results
         const guideHTML = `
             <h2 class="fw-bold text-center mb-4">Commute Guide</h2>
             <div class="card shadow-sm border-0 mb-3">
                 <div class="card-body">
-                    <p class="card-text mb-3">
-                        <strong>Instructions:</strong> ${data.commute_instructions}
-                    </p>
+                    <div class="card-text mb-3">
+                        <strong>Instructions:</strong>
+                        ${instructionsHtml}
+                    </div>
                     <p class="card-text mb-2">
-                        <strong>Estimated Time:</strong> ${data.travel_time}
+                        <strong>Estimated Time:</strong> ${data.travel_time} minutes
                     </p>
                     <p class="card-text">
                         <strong>Distance:</strong> ${data.distance.toFixed(2)} km
@@ -291,17 +344,9 @@
             </div>`;
         document.getElementById('commute-guide').innerHTML = guideHTML;
 
-        // Draw route on map if path data is provided
+        // Draw route on map with transfer points
         if (data.path && data.path.length > 0) {
-            const startPoint = new google.maps.LatLng(
-                parseFloat(data.path[0].latitude),
-                parseFloat(data.path[0].longitude)
-            );
-            const endPoint = new google.maps.LatLng(
-                parseFloat(data.path[data.path.length - 1].latitude),
-                parseFloat(data.path[data.path.length - 1].longitude)
-            );
-            drawRoute(startPoint, endPoint);
+            drawRoute(data.path);
         }
     })
     .catch(error => {
@@ -323,6 +368,87 @@ document.getElementById('back-button').addEventListener('click', () => {
         window.onload = function() {
             initMap();
             initializeAutocomplete();
+        };
+        function initGeolocation() {
+            const locationButton = document.getElementById('get-location');
+            const locationStatus = document.getElementById('location-status');
+            const startInput = document.getElementById('start');
+
+            locationButton.addEventListener('click', () => {
+                if (!navigator.geolocation) {
+                    locationStatus.textContent = 'Geolocation is not supported by your browser';
+                    return;
+                }
+
+                locationStatus.textContent = 'Fetching your location...';
+                locationButton.disabled = true;
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const geocoder = new google.maps.Geocoder();
+                        const latlng = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        geocoder.geocode({ location: latlng }, (results, status) => {
+                            if (status === 'OK') {
+                                if (results[0]) {
+                                    startInput.value = results[0].formatted_address;
+                                    locationStatus.textContent = 'Location found!';
+                                    
+                                    // Add marker for current location
+                                    clearMap();
+                                    addMarker(
+                                        position.coords.latitude,
+                                        position.coords.longitude,
+                                        'Current Location',
+                                        'C',
+                                        'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                                    );
+                                    
+                                    // Center map on current location
+                                    map.setCenter(latlng);
+                                    map.setZoom(15);
+                                } else {
+                                    locationStatus.textContent = 'No address found for this location';
+                                }
+                            } else {
+                                locationStatus.textContent = 'Failed to get address for location';
+                            }
+                            locationButton.disabled = false;
+                        });
+                    },
+                    (error) => {
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                locationStatus.textContent = 'Location permission denied';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                locationStatus.textContent = 'Location information unavailable';
+                                break;
+                            case error.TIMEOUT:
+                                locationStatus.textContent = 'Location request timed out';
+                                break;
+                            default:
+                                locationStatus.textContent = 'An unknown error occurred';
+                        }
+                        locationButton.disabled = false;
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    }
+                );
+            });
+        }
+
+        // Update the window.onload function
+        window.onload = function() {
+            initMap();
+            initializeAutocomplete();
+            initGeolocation(); // Initialize geolocation functionality
         };
     </script>
 </body>

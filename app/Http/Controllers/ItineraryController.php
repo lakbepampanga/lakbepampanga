@@ -11,6 +11,7 @@ use App\Models\FareStructure;
 use App\Models\RouteSegment;
 use App\Models\TrafficData;
 use Illuminate\Support\Facades\Cache;
+use App\Models\SavedItinerary;
 
 class ItineraryController extends Controller
 {
@@ -392,13 +393,35 @@ private function getJeepneyRoute($startLat, $startLng, $endLat, $endLng)
         'end' => ['lat' => $endLat, 'lng' => $endLng]
     ]);
 
+    // Try forward direction first
+    $forwardRoute = $this->tryFindRoute($startLat, $startLng, $endLat, $endLng);
+    if ($forwardRoute) {
+        return $forwardRoute;
+    }
+
+    // If no forward route found, try reverse direction
+    $reverseRoute = $this->tryFindRoute($endLat, $endLng, $startLat, $startLng, true);
+    if ($reverseRoute) {
+        return $reverseRoute;
+    }
+
+    \Log::warning('No Jeepney Routes Found in either direction', [
+        'start' => ['lat' => $startLat, 'lng' => $startLng],
+        'end' => ['lat' => $endLat, 'lng' => $endLng]
+    ]);
+
+    return null;
+}
+
+private function tryFindRoute($fromLat, $fromLng, $toLat, $toLng, $isReverse = false)
+{
     $nearbyStartStops = JeepneyStop::select(DB::raw('*, 
         (6371 * acos(cos(radians(?)) * cos(radians(latitude)) 
         * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance'))
         ->having('distance', '<', 2)
         ->orderBy('distance')
         ->limit(10)
-        ->setBindings([$startLat, $startLng, $startLat])
+        ->setBindings([$fromLat, $fromLng, $fromLat])
         ->get();
 
     $nearbyEndStops = JeepneyStop::select(DB::raw('*, 
@@ -407,29 +430,46 @@ private function getJeepneyRoute($startLat, $startLng, $endLat, $endLng)
         ->having('distance', '<', 2)
         ->orderBy('distance')
         ->limit(10)
-        ->setBindings([$endLat, $endLng, $endLat])
+        ->setBindings([$toLat, $toLng, $toLat])
         ->get();
 
+    // Try direct routes first
     $directRoutes = [];
     foreach ($nearbyStartStops as $startStop) {
         foreach ($nearbyEndStops as $endStop) {
             if ($startStop->jeepney_route_id === $endStop->jeepney_route_id) {
                 $route = JeepneyRoute::find($startStop->jeepney_route_id);
                 
+                // Check route sequence if it's a reverse route
+                if ($isReverse) {
+                    // Get the sequence numbers for both stops
+                    $startSeq = RouteSegment::where('jeepney_route_id', $route->id)
+                        ->where('stop_id', $startStop->id)
+                        ->value('sequence_number');
+                    $endSeq = RouteSegment::where('jeepney_route_id', $route->id)
+                        ->where('stop_id', $endStop->id)
+                        ->value('sequence_number');
+                    
+                    // Skip if the sequence is invalid for reverse direction
+                    if ($startSeq <= $endSeq) {
+                        continue;
+                    }
+                }
+                
                 $directRoutes[] = [
                     'type' => 'direct',
                     'routes' => [[
                         'route_name' => $route->route_name,
                         'route_color' => $route->route_color,
-                        'start_stop' => $startStop->stop_name,
-                        'end_stop' => $endStop->stop_name,
+                        'start_stop' => $isReverse ? $endStop->stop_name : $startStop->stop_name,
+                        'end_stop' => $isReverse ? $startStop->stop_name : $endStop->stop_name,
                         'start_stop_coords' => [
-                            'latitude' => (float)$startStop->latitude,
-                            'longitude' => (float)$startStop->longitude
+                            'latitude' => (float)($isReverse ? $endStop->latitude : $startStop->latitude),
+                            'longitude' => (float)($isReverse ? $endStop->longitude : $startStop->longitude)
                         ],
                         'end_stop_coords' => [
-                            'latitude' => (float)$endStop->latitude,
-                            'longitude' => (float)$endStop->longitude
+                            'latitude' => (float)($isReverse ? $startStop->latitude : $endStop->latitude),
+                            'longitude' => (float)($isReverse ? $startStop->longitude : $endStop->longitude)
                         ],
                         'base_fare' => FareStructure::where('jeepney_route_id', $route->id)->value('base_fare') ?? 0
                     ]]
@@ -438,48 +478,29 @@ private function getJeepneyRoute($startLat, $startLng, $endLat, $endLng)
         }
     }
 
-    \Log::info('Direct Routes Found Debug', [
-        'count' => count($directRoutes),
-        'routes_sample' => array_slice($directRoutes, 0, 2)
-    ]);
-
     if (!empty($directRoutes)) {
-        // Ensure the first route has all necessary data
-        $firstRoute = $directRoutes[0];
-        
-        // Explicitly cast to float and provide default values
-        $firstRoute['routes'][0]['start_stop_coords']['latitude'] = 
-            (float)($firstRoute['routes'][0]['start_stop_coords']['latitude'] ?? $startLat);
-        $firstRoute['routes'][0]['start_stop_coords']['longitude'] = 
-            (float)($firstRoute['routes'][0]['start_stop_coords']['longitude'] ?? $startLng);
-        $firstRoute['routes'][0]['end_stop_coords']['latitude'] = 
-            (float)($firstRoute['routes'][0]['end_stop_coords']['latitude'] ?? $endLat);
-        $firstRoute['routes'][0]['end_stop_coords']['longitude'] = 
-            (float)($firstRoute['routes'][0]['end_stop_coords']['longitude'] ?? $endLng);
-
-        return $this->formatRouteResponse($firstRoute);
+        return $this->formatRouteResponse($directRoutes[0]);
     }
 
+    // If no direct routes, try connecting routes
     $connectingRoutes = $this->findConnectingRoutes($nearbyStartStops, $nearbyEndStops);
     if ($connectingRoutes) {
-        // Ensure connecting routes have coordinates
-        foreach ($connectingRoutes['routes'] as &$route) {
-            $route['start_stop_coords']['latitude'] = 
-                (float)($route['start_stop_coords']['latitude'] ?? $startLat);
-            $route['start_stop_coords']['longitude'] = 
-                (float)($route['start_stop_coords']['longitude'] ?? $startLng);
-            $route['end_stop_coords']['latitude'] = 
-                (float)($route['end_stop_coords']['latitude'] ?? $endLat);
-            $route['end_stop_coords']['longitude'] = 
-                (float)($route['end_stop_coords']['longitude'] ?? $endLng);
+        if ($isReverse) {
+            // Reverse the order of routes for connecting routes
+            $connectingRoutes['routes'] = array_reverse($connectingRoutes['routes']);
+            foreach ($connectingRoutes['routes'] as &$route) {
+                // Swap start and end points
+                $temp = $route['start_stop'];
+                $route['start_stop'] = $route['end_stop'];
+                $route['end_stop'] = $temp;
+
+                $temp = $route['start_stop_coords'];
+                $route['start_stop_coords'] = $route['end_stop_coords'];
+                $route['end_stop_coords'] = $temp;
+            }
         }
         return $this->formatRouteResponse($connectingRoutes);
     }
-
-    \Log::warning('No Jeepney Routes Found', [
-        'start' => ['lat' => $startLat, 'lng' => $startLng],
-        'end' => ['lat' => $endLat, 'lng' => $endLng]
-    ]);
 
     return null;
 }
@@ -660,5 +681,132 @@ private function getGoogleMapsTime($startLat, $startLng, $endLat, $endLng)
         $totalDistance += $distance;
     }
     return $totalDistance;
+}
+public function getAlternativeDestinations(Request $request)
+{
+    try {
+        $validatedData = $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+            'radius' => 'required|numeric|max:10.0'
+        ]);
+
+        $destinations = Destination::select(
+            '*',
+            DB::raw('(
+                6371 * acos(
+                    cos(radians(?)) * cos(radians(latitude)) * 
+                    cos(radians(longitude) - radians(?)) + 
+                    sin(radians(?)) * sin(radians(latitude))
+                )
+            ) AS distance'),
+        )
+        ->whereNotNull('latitude')
+        ->whereNotNull('longitude')
+        ->setBindings([
+            $validatedData['latitude'], 
+            $validatedData['longitude'], 
+            $validatedData['latitude']
+        ])
+        ->having('distance', '<=', $validatedData['radius'])
+        ->orderBy('distance')
+        ->get();
+
+        return response()->json($destinations);
+    } catch (\Exception $e) {
+        \Log::error('Error fetching alternative destinations:', ['error' => $e->getMessage()]);
+        return response()->json(['error' => 'An error occurred while fetching alternatives.'], 500);
+    }
+}
+public function updateItineraryItem(Request $request)
+{
+    try {
+        $validatedData = $request->validate([
+            'previousDestination' => 'nullable|array',
+            'newDestination' => 'required|array',
+            'nextDestination' => 'nullable|array',
+            'startLat' => 'required|numeric', // Add these validations
+            'startLng' => 'required|numeric'
+        ]);
+
+        $startLat = $validatedData['previousDestination'] 
+            ? $validatedData['previousDestination']['latitude']
+            : $validatedData['startLat'];
+            
+        $startLng = $validatedData['previousDestination']
+            ? $validatedData['previousDestination']['longitude']
+            : $validatedData['startLng'];
+
+        $newDestination = $validatedData['newDestination'];
+        
+        // Calculate new travel times and commute instructions
+        $travelTime = $this->getTravelTimeFromGoogle(
+            $startLat,
+            $startLng,
+            $newDestination['latitude'],
+            $newDestination['longitude']
+        );
+
+        $visitTime = $newDestination['type'] === 'restaurant' ? 40 : 20;
+
+        $updatedItem = $this->addToItineraryWithCommute(
+            (object)$newDestination,
+            $travelTime,
+            $visitTime,
+            $startLat,
+            $startLng
+        );
+
+        // Add coordinates to the response
+        $updatedItem['latitude'] = $newDestination['latitude'];
+        $updatedItem['longitude'] = $newDestination['longitude'];
+
+        return response()->json($updatedItem);
+    } catch (\Exception $e) {
+        \Log::error('Error updating itinerary item:', ['error' => $e->getMessage()]);
+        return response()->json(['error' => 'An error occurred while updating the itinerary.'], 500);
+    }
+}
+// ItineraryController.php
+public function saveItinerary(Request $request)
+{
+    try {
+        \Log::info('Received save request', $request->all());
+
+        $validatedData = $request->validate([
+            'itinerary_data' => 'required|array',
+            'start_lat' => 'required|numeric',
+            'start_lng' => 'required|numeric',
+            'duration_hours' => 'required|integer'
+        ]);
+
+        \Log::info('User ID: ' . auth()->id());
+
+        $savedItinerary = \App\Models\SavedItinerary::create([
+            'user_id' => auth()->id(),
+            'name' => 'Itinerary ' . now()->format('Y-m-d H:i'),
+            'itinerary_data' => $validatedData['itinerary_data'],
+            'start_lat' => $validatedData['start_lat'],
+            'start_lng' => $validatedData['start_lng'],
+            'duration_hours' => $validatedData['duration_hours']
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Itinerary saved successfully',
+            'data' => $savedItinerary
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Save itinerary error:', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
 }
 }

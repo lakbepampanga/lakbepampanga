@@ -150,16 +150,52 @@
     <div class="row">
         <!-- Itinerary Section (Left) -->
         <div class="col-md-4">
-            <div id="itinerary" class="p-3 bg-light rounded shadow-sm" style="height: 500px; overflow-y: auto;">
-                <h5 class="fw-bold mb-3">Your Itinerary</h5>
-                
-                <!-- Placeholder for itinerary content -->
-                <div id="itinerary-content">
-                    <p class="text-muted">Your generated itinerary will appear here.</p>
+    <div id="itinerary" class="p-3 bg-light rounded shadow-sm" style="height: 500px; overflow-y: auto;">
+        <h5 class="fw-bold mb-3">Your Itinerary</h5>
+        
+        <div id="itinerary-content">
+            @if(isset($itinerary) && count($itinerary) > 0)
+                @foreach($itinerary as $index => $item)
+                    <div class="card mb-3 shadow-sm border-0" data-destination-id="{{ $index }}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h5 class="card-title text-primary">{{ $item->name }} ({{ $item->type }})</h5>
+                                <button class="btn btn-sm btn-outline-primary edit-destination" 
+                                        data-index="{{ $index }}"
+                                        data-lat="{{ $item->latitude }}"
+                                        data-lng="{{ $item->longitude }}">
+                                    <i class="bi bi-pencil"></i> Change
+                                </button>
+                            </div>
+                            <p class="card-text text-muted">{{ $item->description }}</p>
+                            <p class="card-text"><strong>Travel Time:</strong> {{ $item->travel_time }}</p>
+                            <p class="card-text"><strong>Time to Spend:</strong> {{ $item->visit_time }}</p>
+                            <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->commute_instructions }}</p>
+                        </div>
+                    </div>
+                @endforeach
+            @else
+                <p class="text-muted">Your generated itinerary will appear here.</p>
+            @endif
+        </div>
+    </div>
+</div>
+<!-- Add a modal for alternative destinations -->
+<div class="modal fade" id="alternativeDestinationsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Choose Alternative Destination</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="alternative-destinations" class="list-group">
+                    <!-- Alternative destinations will be loaded here -->
                 </div>
             </div>
         </div>
-
+    </div>
+</div>
         <!-- Map Section (Right) -->
         <div class="col-md-8">
             <div id="map" class="w-100 rounded shadow-sm" style="height: 500px; border: 1px solid #e0e0e0;"></div>
@@ -182,7 +218,7 @@
     <!-- scripts -->
     <script>
     let map, userLat, userLng, markers = [], initialMarker = null, directionsService, directionsRenderer;
-
+    let currentItineraryData = [];
     // Initialize Google Map
     function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
@@ -365,6 +401,7 @@
     });
 
     // Event listener for "Generate Itinerary" button
+    // Update this part in your existing script section in the blade template
     document.getElementById('generate-itinerary').addEventListener('click', () => {
     const hours = document.getElementById('hours').value;
 
@@ -389,62 +426,461 @@
         .then((response) => response.json())
         .then((data) => {
             if (Array.isArray(data)) {
-                let itineraryHTML = ''; // Initialize the HTML for the cards
-clearMap(); // Clear previous markers and routes
+                // Initialize currentItineraryData
+                currentItineraryData = [...data];
 
-const pathCoordinates = [{ lat: userLat, lng: userLng }]; // Add starting location as the first point
+                // Clear previous map markers/routes
+                clearMap(); 
 
-data.forEach((destination, index) => {
-    itineraryHTML += `
-        <div class="card mb-3 shadow-sm border-0"> <!-- Single card -->
-            <div class="card-body">
-                <h5 class="card-title text-primary">${destination.name} (${destination.type})</h5>
-                <p class="card-text text-muted">${destination.description}</p>
-                <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
-                <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
-                <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
-            </div>
-        </div>`;
+                // Setup path coordinates starting with user location
+                const pathCoordinates = [{ lat: userLat, lng: userLng }]; 
 
-    const lat = parseFloat(destination.latitude);
-    const lng = parseFloat(destination.longitude);
+                // Generate itinerary HTML
+                let itineraryHTML = `
+                    <div class="text-end mb-3">
+                        <button class="btn btn-custom save-itinerary">
+                            <i class="bi bi-save"></i> Save Itinerary
+                        </button>
+                    </div>`;
 
-    if (!isNaN(lat) && !isNaN(lng)) {
-        // Add marker with a label showing the location order
-        addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
+                currentItineraryData.forEach((destination, index) => {
+                    itineraryHTML += `
+                        <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h5 class="card-title text-primary">${destination.name} (${destination.type})</h5>
+                                    <button class="btn btn-sm btn-custom edit-destination" 
+                                            data-index="${index}"
+                                            data-lat="${destination.latitude}"
+                                            data-lng="${destination.longitude}">
+                                        <i class="bi bi-pencil"></i> Change
+                                    </button>
+                                </div>
+                                <p class="card-text text-muted">${destination.description}</p>
+                                <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
+                                <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
+                                <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+                            </div>
+                        </div>`;
 
-        // Add to route path coordinates
-        pathCoordinates.push({ lat: lat, lng: lng });
-    } else {
-        console.error(`Invalid coordinates for destination: ${destination.name}`);
-    }
+                    const lat = parseFloat(destination.latitude);
+                    const lng = parseFloat(destination.longitude);
+
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
+                        pathCoordinates.push({ lat: lat, lng: lng });
+                    }
+                });
+
+                // Update the DOM
+                document.getElementById('itinerary-content').innerHTML = itineraryHTML;
+
+                // Add event listeners
+                document.querySelector('.save-itinerary').addEventListener('click', () => {
+    console.log('Current itinerary data before saving:', currentItineraryData);
+    saveItinerary(currentItineraryData);
 });
 
-    document.getElementById('itinerary').innerHTML = itineraryHTML;
+                document.querySelectorAll('.edit-destination').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const index = parseInt(e.target.closest('.edit-destination').dataset.index);
+                        const lat = parseFloat(e.target.closest('.edit-destination').dataset.lat);
+                        const lng = parseFloat(e.target.closest('.edit-destination').dataset.lng);
+                        editingIndex = index; // Set the global editingIndex
+                        fetchAlternativeDestinations(lat, lng);
+                    });
+                });
 
-    // Draw the route using Google Directions Service
-    if (pathCoordinates.length > 1) {
-        drawRoute(pathCoordinates);
-    }
+                // Draw the route using Google Directions Service
+                if (pathCoordinates.length > 1) {
+                    drawRoute(pathCoordinates);
+                }
 
-    // Adjust map to fit all markers
-    updateMapBounds();
-} else {
-    alert("Error: Received data is not in the expected format.");
-}
-
+                // Adjust map to fit all markers
+                updateMapBounds();
+            }
         })
         .catch((error) => {
-            console.error("Error fetching itinerary:", error);
+            console.error("Error:", error);
             alert("An error occurred while generating the itinerary.");
         });
 });
 
+// Add this where you handle destination selection
+async function handleDestinationSelect(newDestination) {
+    try {
+        const response = await fetch('/api/update-itinerary-item', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({
+                previousDestination: editingIndex > 0 ? currentItineraryData[editingIndex - 1] : null,
+                newDestination: newDestination,
+                nextDestination: editingIndex < currentItineraryData.length - 1 ? currentItineraryData[editingIndex + 1] : null,
+                startLat: userLat,
+                startLng: userLng
+            }),
+        });
+
+        if (!response.ok) throw new Error('Failed to update itinerary');
+        
+        const updatedItem = await response.json();
+        
+        // Update the current itinerary data with the new destination
+        currentItineraryData[editingIndex] = {
+            name: newDestination.name,
+            type: newDestination.type,
+            description: newDestination.description,
+            latitude: newDestination.latitude,
+            longitude: newDestination.longitude,
+            travel_time: updatedItem.travel_time,
+            visit_time: updatedItem.visit_time,
+            commute_instructions: updatedItem.commute_instructions
+        };
+
+        // Update UI
+        let itineraryHTML = `
+            <div class="text-end mb-3">
+                <button class="btn btn-custom save-itinerary">
+                    <i class="bi bi-save"></i> Save Itinerary
+                </button>
+            </div>`;
+
+        // Clear previous markers and routes
+        clearMap();
+
+        const pathCoordinates = [{ lat: userLat, lng: userLng }];
+
+        // Rebuild the itinerary display with current data
+        currentItineraryData.forEach((destination, index) => {
+            itineraryHTML += `
+                <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="card-title text-primary">${destination.name} (${destination.type})</h5>
+                            <button class="btn btn-sm btn-custom edit-destination" 
+                                    data-index="${index}"
+                                    data-lat="${destination.latitude}"
+                                    data-lng="${destination.longitude}">
+                                <i class="bi bi-pencil"></i> Change
+                            </button>
+                        </div>
+                        <p class="card-text text-muted">${destination.description}</p>
+                        <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
+                        <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
+                        <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+                    </div>
+                </div>`;
+
+            const lat = parseFloat(destination.latitude);
+            const lng = parseFloat(destination.longitude);
+
+            if (!isNaN(lat) && !isNaN(lng)) {
+                addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
+                pathCoordinates.push({ lat: lat, lng: lng });
+            }
+        });
+
+        document.getElementById('itinerary-content').innerHTML = itineraryHTML;
+
+        // Reattach event listeners
+        document.querySelector('.save-itinerary').addEventListener('click', () => {
+    console.log('Current itinerary data before saving:', currentItineraryData);
+    saveItinerary(currentItineraryData);
+});
+
+        document.querySelectorAll('.edit-destination').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const btn = e.target.closest('.edit-destination');
+                editingIndex = parseInt(btn.dataset.index);
+                fetchAlternativeDestinations(
+                    parseFloat(btn.dataset.lat),
+                    parseFloat(btn.dataset.lng)
+                );
+            });
+        });
+
+        // Update the map
+        if (pathCoordinates.length > 1) {
+            drawRoute(pathCoordinates);
+        }
+        updateMapBounds();
+
+        alternativesModal.hide();
+        editingIndex = null;
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to update itinerary');
+    }
+}
+
+// Function to update the itinerary UI
+function updateItineraryUI() {
+    let itineraryHTML = `
+        <div class="text-end mb-3">
+            <button class="btn btn-custom save-itinerary">
+                <i class="bi bi-save"></i> Save Itinerary
+            </button>
+        </div>`;
+
+    currentItineraryData.forEach((destination, index) => {
+        itineraryHTML += `
+            <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="card-title text-primary">${destination.name} (${destination.type})</h5>
+                        <button class="btn btn-sm btn-custom edit-destination" 
+                                data-index="${index}"
+                                data-lat="${destination.latitude}"
+                                data-lng="${destination.longitude}">
+                            <i class="bi bi-pencil"></i> Change
+                        </button>
+                    </div>
+                    <p class="card-text text-muted">${destination.description}</p>
+                    <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
+                    <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
+                    <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+                </div>
+            </div>`;
+    });
+
+    document.getElementById('itinerary-content').innerHTML = itineraryHTML;
+
+    // Reattach event listeners
+    document.querySelector('.save-itinerary').addEventListener('click', saveItinerary);
+    document.querySelectorAll('.edit-destination').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const index = parseInt(e.target.closest('.edit-destination').dataset.index);
+            const lat = parseFloat(e.target.closest('.edit-destination').dataset.lat);
+            const lng = parseFloat(e.target.closest('.edit-destination').dataset.lng);
+            fetchAlternativeDestinations(lat, lng, index);
+        });
+    });
+}
+
+// Update your saveItinerary function
+async function saveItinerary() {
+    try {
+        console.log('Saving itinerary data:', currentItineraryData);
+
+        const response = await fetch('/api/save-itinerary', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({
+                itinerary_data: currentItineraryData,
+                start_lat: userLat,
+                start_lng: userLng,
+                duration_hours: parseInt(document.getElementById('hours').value)
+            }),
+        });
+
+        if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.error || 'Failed to save itinerary');
+        }
+        
+        const alertHTML = `
+            <div class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 1050;" role="alert">
+                Itinerary saved successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('afterbegin', alertHTML);
+        
+        setTimeout(() => {
+            const alert = document.querySelector('.alert');
+            if (alert) alert.remove();
+        }, 3000);
+    } catch (error) {
+        console.error('Save Error:', error);
+        const alertHTML = `
+            <div class="alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 1050;" role="alert">
+                ${error.message || 'Failed to save itinerary. Please try again.'}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('afterbegin', alertHTML);
+        
+        setTimeout(() => {
+            const alert = document.querySelector('.alert');
+            if (alert) alert.remove();
+        }, 3000);
+    }
+}
 
     // Initialize map when the page loads
     window.onload = initMap;
-</script>
+let editingIndex = null;
+const alternativesModal = new bootstrap.Modal(document.getElementById('alternativeDestinationsModal'));
+// Function to fetch alternative destinations
+async function fetchAlternativeDestinations(lat, lng) {
+    try {
+        const response = await fetch('/api/alternative-destinations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({
+                latitude: lat,
+                longitude: lng,
+                radius: 5.0
+            }),
+        });
 
+        if (!response.ok) throw new Error('Failed to fetch alternatives');
+        
+        const destinations = await response.json();
+        const container = document.getElementById('alternative-destinations');
+        container.innerHTML = destinations.map(dest => `
+            <button class="list-group-item list-group-item-action" 
+                    onclick="selectNewDestination(${JSON.stringify(dest).replace(/"/g, '&quot;')})">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">${dest.name}</h6>
+                        <p class="mb-1 text-muted small">${dest.description}</p>
+                        <small>Type: ${dest.type}</small>
+                    </div>
+                </div>
+            </button>
+        `).join('');
+
+        alternativesModal.show();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to load alternative destinations');
+    }
+}
+
+// Function to handle destination selection
+// Update the selectNewDestination function to include starting coordinates
+async function selectNewDestination(newDestination) {
+    try {
+        const response = await fetch('/api/update-itinerary-item', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({
+                previousDestination: editingIndex > 0 ? currentItineraryData[editingIndex - 1] : null,
+                newDestination: newDestination,
+                nextDestination: editingIndex < currentItineraryData.length - 1 ? currentItineraryData[editingIndex + 1] : null,
+                startLat: userLat,
+                startLng: userLng
+            }),
+        });
+
+        if (!response.ok) throw new Error('Failed to update itinerary');
+        
+        const updatedItem = await response.json();
+        
+        // Update currentItineraryData with the new destination
+        currentItineraryData[editingIndex] = {
+            ...newDestination,
+            travel_time: updatedItem.travel_time,
+            visit_time: updatedItem.visit_time,
+            commute_instructions: updatedItem.commute_instructions
+        };
+
+        console.log('Updated currentItineraryData:', currentItineraryData); // Debug log
+        
+        // Update the itinerary UI
+        updateItineraryItem(editingIndex, updatedItem, newDestination);
+        
+        // Update map
+        updateMap();
+        
+        alternativesModal.hide();
+        editingIndex = null;
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to update itinerary');
+    }
+}
+
+// Function to update a single itinerary item in the UI
+function updateItineraryItem(index, updatedItem, newDestination) {
+    const itemElement = document.querySelector(`[data-destination-id="${index}"]`);
+    if (itemElement) {
+        itemElement.innerHTML = `
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="card-title text-primary">${newDestination.name} (${newDestination.type})</h5>
+                    <button class="btn btn-sm btn-outline-primary edit-destination" 
+                            data-index="${index}"
+                            data-lat="${newDestination.latitude}"
+                            data-lng="${newDestination.longitude}">
+                        <i class="bi bi-pencil"></i> Change
+                    </button>
+                </div>
+                <p class="card-text text-muted">${newDestination.description}</p>
+                <p class="card-text"><strong>Travel Time:</strong> ${updatedItem.travel_time}</p>
+                <p class="card-text"><strong>Time to Spend:</strong> ${updatedItem.visit_time}</p>
+                <p class="card-text"><strong>Commute Instructions:</strong> ${updatedItem.commute_instructions}</p>
+            </div>
+        `;
+    }
+}
+
+// Event delegation for edit buttons
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.edit-destination')) {
+        const btn = e.target.closest('.edit-destination');
+        editingIndex = parseInt(btn.dataset.index);
+        fetchAlternativeDestinations(
+            parseFloat(btn.dataset.lat),
+            parseFloat(btn.dataset.lng)
+        );
+    }
+});
+// Function to update map
+function updateMap() {
+    clearMap();
+    
+    const pathCoordinates = [{ lat: userLat, lng: userLng }];
+    
+    document.querySelectorAll('[data-destination-id]').forEach((el, index) => {
+        const btn = el.querySelector('.edit-destination');
+        const lat = parseFloat(btn.dataset.lat);
+        const lng = parseFloat(btn.dataset.lng);
+        const name = el.querySelector('.card-title').textContent.split(' (')[0];
+        
+        if (!isNaN(lat) && !isNaN(lng)) {
+            addMarker(lat, lng, `${index + 1}. ${name}`, index + 1);
+            pathCoordinates.push({ lat, lng });
+        }
+    });
+    
+    if (pathCoordinates.length > 1) {
+        drawRoute(pathCoordinates);
+    }
+    
+    updateMapBounds();
+}
+</script>
+<!-- Modal for alternative destinations -->
+<div class="modal fade" id="alternativeDestinationsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Choose Alternative Destination</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="alternative-destinations" class="list-group">
+                    <!-- Alternative destinations will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 
 </body>
