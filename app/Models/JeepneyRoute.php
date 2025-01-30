@@ -7,6 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class JeepneyRoute extends Model
 {
+    protected $fillable = [
+        'route_name',
+        'route_color',
+        'description'
+    ];
+        // Define the relationship with JeepneyStop
+        public function stops()
+        {
+            return $this->hasMany(JeepneyStop::class);
+        }
     use HasFactory;
     public function jeepneyStops()
 {

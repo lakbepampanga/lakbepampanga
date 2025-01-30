@@ -9,7 +9,27 @@ use App\Http\Controllers\SavedItineraryController;
 use App\Http\Controllers\AdminController;
 
 
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/routes', [AdminController::class, 'routes'])->name('routes.index');
+});
 
+Route::prefix('admin')->name('admin.')->group(function () {
+    // User routes
+    Route::get('/users/{user}/edit', [AdminController::class, 'editUser'])->name('users.edit');
+    Route::put('/users/{user}', [AdminController::class, 'updateUser'])->name('users.update');
+    
+    // Route routes
+    Route::get('/routes/{route}/edit', [AdminController::class, 'editRoute'])->name('routes.edit');
+    Route::put('/routes/{route}', [AdminController::class, 'updateRoute'])->name('routes.update');
+    
+    // Stop routes
+    Route::get('/routes/{route}/stops', [AdminController::class, 'stops'])->name('routes.stops');
+    Route::get('/routes/{route}/stops/create', [AdminController::class, 'createStop'])->name('routes.stops.create');
+    Route::post('/stops', [AdminController::class, 'storeStop'])->name('stops.store');
+    Route::get('/stops/{stop}/edit', [AdminController::class, 'editStop'])->name('stops.edit');
+    Route::put('/stops/{stop}', [AdminController::class, 'updateStop'])->name('stops.update');
+    Route::delete('/stops/{stop}', [AdminController::class, 'deleteStop'])->name('stops.delete');
+});
 // Home page with combined login and register forms
 Route::get('/', function () {
     return view('home'); // Show the home.blade.php file
@@ -95,4 +115,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {  // A
     Route::get('/users/{user}/edit', [AdminController::class, 'editUser'])->name('admin.users.edit');
     Route::put('/users/{user}', [AdminController::class, 'updateUser'])->name('admin.users.update');
     Route::delete('/users/{user}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
+
+
 });
