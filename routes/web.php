@@ -6,6 +6,8 @@ use App\Http\Controllers\ItineraryController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\SavedItineraryController;
+use App\Http\Controllers\AdminController;
+
 
 
 // Home page with combined login and register forms
@@ -58,4 +60,39 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/saved-itinerary', [SavedItineraryController::class, 'index'])->name('saved-itinerary');
     Route::delete('/itineraries/{itinerary}', [SavedItineraryController::class, 'destroy'])->name('itineraries.destroy');
+});
+
+
+Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {  // Added prefix('admin')
+    Route::get('/', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    
+    // Destinations Management
+    Route::get('/destinations', [AdminController::class, 'destinations'])->name('admin.destinations.index'); // Added admin. prefix
+    Route::get('/destinations/create', [AdminController::class, 'createDestination'])->name('admin.destinations.create');
+    Route::post('/destinations', [AdminController::class, 'storeDestination'])->name('admin.destinations.store');
+    Route::get('/destinations/{destination}/edit', [AdminController::class, 'editDestination'])->name('admin.destinations.edit');
+    Route::put('/destinations/{destination}', [AdminController::class, 'updateDestination'])->name('admin.destinations.update');
+    Route::delete('/destinations/{destination}', [AdminController::class, 'deleteDestination'])->name('admin.destinations.delete');
+    
+    // Jeepney Routes Management
+    Route::get('/routes', [AdminController::class, 'routes'])->name('admin.routes.index'); // Added admin. prefix
+    Route::get('/routes/create', [AdminController::class, 'createRoute'])->name('admin.routes.create');
+    Route::post('/routes', [AdminController::class, 'storeRoute'])->name('admin.routes.store');
+    Route::get('/routes/{route}/edit', [AdminController::class, 'editRoute'])->name('admin.routes.edit');
+    Route::put('/routes/{route}', [AdminController::class, 'updateRoute'])->name('admin.routes.update');
+    Route::delete('/routes/{route}', [AdminController::class, 'deleteRoute'])->name('admin.routes.delete');
+    
+    // Jeepney Stops Management
+    Route::get('/routes/{route}/stops', [AdminController::class, 'stops'])->name('admin.routes.stops'); // Added admin. prefix
+    Route::get('/routes/{route}/stops/create', [AdminController::class, 'createStop'])->name('admin.stops.create');
+    Route::post('/routes/{route}/stops', [AdminController::class, 'storeStop'])->name('admin.stops.store');
+    Route::get('/stops/{stop}/edit', [AdminController::class, 'editStop'])->name('admin.stops.edit');
+    Route::put('/stops/{stop}', [AdminController::class, 'updateStop'])->name('admin.stops.update');
+    Route::delete('/stops/{stop}', [AdminController::class, 'deleteStop'])->name('admin.stops.delete');
+    
+    // Users Management
+    Route::get('/users', [AdminController::class, 'users'])->name('admin.users.index'); // Added admin. prefix
+    Route::get('/users/{user}/edit', [AdminController::class, 'editUser'])->name('admin.users.edit');
+    Route::put('/users/{user}', [AdminController::class, 'updateUser'])->name('admin.users.update');
+    Route::delete('/users/{user}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
 });
