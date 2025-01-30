@@ -72,17 +72,17 @@
         </a>
 
         <nav id="navmenu" class="navmenu">
-            <ul>
-                <li><a href="/index">Plan</a></li>
-                <li><a href="#about">Saved Itineraries</a></li>
-                <li><a href="/commuting-guide" class="active">Commuting Guide</a></li>
-                <li><form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="btn btn-custom rounded-pill btn-md px-3 py-2">Logout</button>
-                    </form>
-                </li>
-                
-            </ul>
+        <ul>
+    <li><a href="/index" class="{{ request()->is('index') ? 'active' : '' }}">Plan</a></li>
+    <li><a href="/saved-itinerary" class="{{ request()->is('saved-itinerary') ? 'active' : '' }}">Saved Itineraries</a></li>
+    <li><a href="/commuting-guide" class="{{ request()->is('commuting-guide') ? 'active' : '' }}">Commuting Guide</a></li>
+    <li>
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="btn btn-custom rounded-pill btn-md px-3 py-2">Logout</button>
+        </form>
+    </li>
+</ul>
             <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
 

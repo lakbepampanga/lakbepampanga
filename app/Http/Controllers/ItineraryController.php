@@ -15,6 +15,7 @@ use App\Models\SavedItinerary;
 
 class ItineraryController extends Controller
 {
+    
     public function generateItinerary(Request $request)
     {
         try {
