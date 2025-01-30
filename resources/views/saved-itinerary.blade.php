@@ -68,6 +68,7 @@
                                             <div class="small mt-1">
                                                 <strong>Route:</strong> {{ $destination['commute_instructions'] }}
                                             </div>
+                                            
                                         </div>
                                     @endforeach
                                 </div>
