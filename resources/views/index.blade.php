@@ -39,11 +39,11 @@
         
 .btn-custom{
     background-color: var(--button-color); /* Desired background color */
-    color: var(--accent-color);
+    color: var(--button-text-color);
 }
 
 .btn-custom:hover{
-    background-color: #683842; /* Hover background color */
+    background-color: var(--button-hover-color);
     color: white;
     transition: 0.3s;   /* Hover border color */
 }
@@ -64,15 +64,56 @@
 
 
 /* Form Styling */
+
+.form-group {
+    background-color: var(--surface-color);
+    padding: 20px;
+    border-radius: 8px;
+    transition: all 0.3s ease-in-out;
+}
+
+.form-control{
+    border-radius: 30px;
+    border: 2px solid var(--accent-color);
+    background-color: var(--background-color);
+}
+
 .form-label {
     font-weight: 600;
     font-size: 1rem;
+    color: var(--heading-color);
 }
 
 .form-select {
     border-radius: 30px;
     padding: 10px;
     font-size: 0.95rem;
+    border: 2px solid var(--accent-color);
+    background-color: var(--background-color);
+    color: var(--default-color);
+    transition: border-color 0.3s ease-in-out;
+}
+
+.form-select:focus {
+    border-color: var(--nav-hover-color);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
+}
+
+.form-select option {
+    background-color: var(--surface-color);
+    color: var(--default-color);
+}
+
+.form-select option:hover,
+.form-select option:checked {
+    background-color: var(--accent-color) !important;
+    color: var(--contrast-color) !important;
+}
+
+/* For better compatibility in some browsers */
+.form-select:focus option:checked {
+    background-color: var(--accent-color) !important;
+    color: var(--contrast-color) !important;
 }
 
 #itinerary-form {
@@ -87,9 +128,14 @@
 <header id="header" class="header d-flex bg-white fixed-top align-items-center">
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
-        <a href="/" class="logo d-flex align-items-center">
+        <!-- <a href="/" class="logo d-flex align-items-center">
             <h1 class="sitename">Lakbe Pampanga</h1>
+        </a> -->
+
+        <a href="/" class="logo d-flex align-items-center">
+            <img src="{{ asset('img/lakbe-logo1.png') }}" alt="Lakbe Pampanga Logo" class="img-fluid">
         </a>
+
 
         <nav id="navmenu" class="navmenu">
         <ul>
@@ -112,7 +158,7 @@
 
 <div class="container py-4">
     <!-- Heading -->
-    <h1 class="text-center mb-4" id="section-title">Plan Your Pampanga Itinerary</h2>
+    <h1 class="text-center mb-4 " id="section-title">Plan Your Pampanga Itinerary</h2>
 
     <!-- Action Buttons -->
     <div class="d-flex flex-column flex-md-row justify-content-center align-items-center gap-3 mb-4">
@@ -136,10 +182,10 @@
     <!-- Hours Input and Generate Itinerary Button -->
     <div id="itinerary-form" class="p-4 rounded" style="display: none;">
         <label for="hours" class="form-label fw-bold">How many hours do you have for travel?</label>
-        <input type="number" id="hours" class="form-control shadow-sm mb-3" min="1" max="12" placeholder="Enter hours">
+        <input type="number" id="hours" class="form-control shadow-sm mb-3 rounded-pill" min="1" max="12" placeholder="Enter hours">
         
         <div class="text-center">
-            <button id="generate-itinerary" class="btn btn-success w-50">Generate Itinerary</button>
+            <button id="generate-itinerary" class="btn btn-custom rounded-pill w-auto">Generate Itinerary</button>
         </div>
     </div>
 
@@ -168,7 +214,7 @@
                                     <div class="col-md-8">
                                         <div class="card-body">
                                             <div class="d-flex justify-content-between align-items-start">
-                                                <h5 class="card-title text-primary">{{ $item->name }} ({{ $item->type }})</h5>
+                                                <h5 class="card-title">{{ $item->name }} ({{ $item->type }})</h5>
                                                 <button class="btn btn-sm btn-outline-primary edit-destination" 
                                                         data-index="{{ $index }}"
                                                         data-lat="{{ $item->latitude }}"
@@ -473,7 +519,7 @@
                 <div class="col-md-8">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
-                            <h5 class="card-title text-primary">
+                            <h5 class="card-title">
                                 ${destination.name} (${destination.type})
                                 
                             </h5>
@@ -601,7 +647,7 @@ async function handleDestinationSelect(newDestination) {
                 <div class="col-md-8">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
-                            <h5 class="card-title text-primary">
+                            <h5 class="card-title">
                                 ${destination.name} (${destination.type})
                                 
                             </h5>
@@ -689,7 +735,7 @@ function updateItineraryUI() {
                 <div class="col-md-8">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
-                            <h5 class="card-title text-primary">
+                            <h5 class="card-title">
                                 ${destination.name} (${destination.type})
                                 
                             </h5>
@@ -891,7 +937,7 @@ function updateItineraryItem(index, updatedItem, newDestination) {
                 <div class="col-md-8">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
-                            <h5 class="card-title text-primary">
+                            <h5 class="card-title">
                                 ${newDestination.name} (${newDestination.type})
                             </h5>
                         </div>

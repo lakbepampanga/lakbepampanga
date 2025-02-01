@@ -53,11 +53,11 @@
 
         .btn-custom{
     background-color: var(--button-color); /* Desired background color */
-    color: var(--accent-color);
+    color: var(--button-text-color);
 }
 
 .btn-custom:hover{
-    background-color: #683842; /* Hover background color */
+    background-color: var(--button-hover-color);
     color: white;
     transition: 0.3s;   /* Hover border color */
 }
@@ -67,8 +67,12 @@
 <header id="header" class="header d-flex bg-white fixed-top align-items-center">
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
-        <a href="/" class="logo d-flex align-items-center">
+       <!-- <a href="/" class="logo d-flex align-items-center">
             <h1 class="sitename">Lakbe Pampanga</h1>
+        </a> -->
+
+        <a href="/" class="logo d-flex align-items-center">
+            <img src="{{ asset('img/lakbe-logo1.png') }}" alt="Lakbe Pampanga Logo" class="img-fluid">
         </a>
 
         <nav id="navmenu" class="navmenu">
@@ -96,7 +100,7 @@
             <div class="col-md-6">
                     <div id="input-section">
                         <div class="mb-4">
-                            <h1 class="fw-bold">Pampanga<br>Commuting Guide</h1>
+                            <h1 class="fw-bold text-custom">Pampanga<br>Commuting Guide</h1>
                             <p class="text-muted">Plan your trip with ease and get the best commuting routes.</p>
                         </div>
                         <div class="mt-4 rounded w-75">
