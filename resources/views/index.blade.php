@@ -149,37 +149,59 @@
 <div class="container mt-4">
     <div class="row">
         <!-- Itinerary Section (Left) -->
-        <div class="col-md-4">
-    <div id="itinerary" class="p-3 bg-light rounded shadow-sm" style="height: 500px; overflow-y: auto;">
-        <h5 class="fw-bold mb-3">Your Itinerary</h5>
-        
-        <div id="itinerary-content">
-            @if(isset($itinerary) && count($itinerary) > 0)
-                @foreach($itinerary as $index => $item)
-                    <div class="card mb-3 shadow-sm border-0" data-destination-id="{{ $index }}">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <h5 class="card-title text-primary">{{ $item->name }} ({{ $item->type }})</h5>
-                                <button class="btn btn-sm btn-outline-primary edit-destination" 
-                                        data-index="{{ $index }}"
-                                        data-lat="{{ $item->latitude }}"
-                                        data-lng="{{ $item->longitude }}">
-                                    <i class="bi bi-pencil"></i> Change
-                                </button>
+        <div class="col-md-6">
+            <div id="itinerary" class="p-3 bg-light rounded shadow-sm" style="height: 500px; overflow-y: auto;">
+                <h5 class="fw-bold mb-3">Your Itinerary</h5>
+                
+                <div id="itinerary-content">
+                    @if(isset($itinerary) && count($itinerary) > 0)
+                        @foreach($itinerary as $index => $item)
+                            <div class="card mb-3 shadow-sm border-0" data-destination-id="{{ $index }}">
+                                <div class="row g-0">
+                                    <!-- Left Column: Placeholder Image -->
+                                    <div class="col-md-4">
+                                        <img src="https://placehold.co/100x300" 
+                                             class="img-fluid rounded-start" 
+                                             alt="Placeholder for {{ $item->name }}">
+                                    </div>
+                                    <!-- Right Column: Destination Content -->
+                                    <div class="col-md-8">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <h5 class="card-title text-primary">{{ $item->name }} ({{ $item->type }})</h5>
+                                                <button class="btn btn-sm btn-outline-primary edit-destination" 
+                                                        data-index="{{ $index }}"
+                                                        data-lat="{{ $item->latitude }}"
+                                                        data-lng="{{ $item->longitude }}">
+                                                    <i class="bi bi-pencil"></i> Change
+                                                </button>
+                                            </div>
+                                            <p class="card-text text-muted">{{ $item->description }}</p>
+                                            <p class="card-text"><strong>Travel Time:</strong> {{ $item->travel_time }}</p>
+                                            <p class="card-text"><strong>Time to Spend:</strong> {{ $item->visit_time }}</p>
+                                            <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->commute_instructions }}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="card-text text-muted">{{ $item->description }}</p>
-                            <p class="card-text"><strong>Travel Time:</strong> {{ $item->travel_time }}</p>
-                            <p class="card-text"><strong>Time to Spend:</strong> {{ $item->visit_time }}</p>
-                            <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->commute_instructions }}</p>
-                        </div>
-                    </div>
-                @endforeach
-            @else
-                <p class="text-muted">Your generated itinerary will appear here.</p>
-            @endif
+                        @endforeach
+                    @else
+                        <p class="text-muted">Your generated itinerary will appear here.</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+        <!-- Map Section (Right) -->
+        <div class="col-md-6">
+            <div id="map" class="w-100 rounded shadow-sm" style="height: 500px; border: 1px solid #e0e0e0;"></div>
         </div>
     </div>
 </div>
+
+</div>
+
+
+
 <!-- Add a modal for alternative destinations -->
 <div class="modal fade" id="alternativeDestinationsModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -193,12 +215,6 @@
                     <!-- Alternative destinations will be loaded here -->
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-        <!-- Map Section (Right) -->
-        <div class="col-md-8">
-            <div id="map" class="w-100 rounded shadow-sm" style="height: 500px; border: 1px solid #e0e0e0;"></div>
         </div>
     </div>
 </div>
@@ -437,40 +453,57 @@
 
                 // Generate itinerary HTML
                 let itineraryHTML = `
-                    <div class="text-end mb-3">
+                    <div class="text-center mb-3">
                         <button class="btn btn-custom save-itinerary">
                             <i class="bi bi-save"></i> Save Itinerary
                         </button>
                     </div>`;
 
-                currentItineraryData.forEach((destination, index) => {
-                    itineraryHTML += `
-                        <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <h5 class="card-title text-primary">${destination.name} (${destination.type})</h5>
-                                    <button class="btn btn-sm btn-custom edit-destination" 
-                                            data-index="${index}"
-                                            data-lat="${destination.latitude}"
-                                            data-lng="${destination.longitude}">
-                                        <i class="bi bi-pencil"></i> Change
-                                    </button>
-                                </div>
-                                <p class="card-text text-muted">${destination.description}</p>
-                                <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
-                                <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
-                                <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
-                            </div>
-                        </div>`;
+                    currentItineraryData.forEach((destination, index) => {
+    itineraryHTML += `
+        <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
+            <div class="row g-0">
+                <!-- Left Column: Placeholder Image -->
+                <div class="col-md-4">
+                    <img src="https://www.svgrepo.com/show/508699/landscape-placeholder.svg" 
+                         class="img-fluid rounded-start" 
+                         alt="Placeholder for ${destination.name}">
+                </div>
+                <!-- Right Column: Content -->
+                <div class="col-md-8">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="card-title text-primary">
+                                ${destination.name} (${destination.type})
+                                
+                            </h5>
+                        </div>
+                            <p class="card-text text-muted">${destination.description}</p>
+                        <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
+                        <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
+                        <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+                        <button class="btn btn-sm btn-custom edit-destination" 
+                                    data-index="${index}"
+                                    data-lat="${destination.latitude}"
+                                    data-lng="${destination.longitude}">
+                                <i class="bi bi-pencil"></i> Change
+                            </button>
+                       
+                        
+                    </div>
+                </div>
+            </div>
+        </div>`;
 
-                    const lat = parseFloat(destination.latitude);
-                    const lng = parseFloat(destination.longitude);
+    const lat = parseFloat(destination.latitude);
+    const lng = parseFloat(destination.longitude);
 
-                    if (!isNaN(lat) && !isNaN(lng)) {
-                        addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
-                        pathCoordinates.push({ lat: lat, lng: lng });
-                    }
-                });
+    if (!isNaN(lat) && !isNaN(lng)) {
+        addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
+        pathCoordinates.push({ lat: lat, lng: lng });
+    }
+});
+
 
                 // Update the DOM
                 document.getElementById('itinerary-content').innerHTML = itineraryHTML;
@@ -557,22 +590,38 @@ async function handleDestinationSelect(newDestination) {
         currentItineraryData.forEach((destination, index) => {
             itineraryHTML += `
                 <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
+            <div class="row g-0">
+                <!-- Left Column: Placeholder Image -->
+                <div class="col-md-4">
+                    <img src="https://www.svgrepo.com/show/508699/landscape-placeholder.svg" 
+                         class="img-fluid rounded-start" 
+                         alt="Placeholder for ${destination.name}">
+                </div>
+                <!-- Right Column: Content -->
+                <div class="col-md-8">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
-                            <h5 class="card-title text-primary">${destination.name} (${destination.type})</h5>
-                            <button class="btn btn-sm btn-custom edit-destination" 
+                            <h5 class="card-title text-primary">
+                                ${destination.name} (${destination.type})
+                                
+                            </h5>
+                        </div>
+                            <p class="card-text text-muted">${destination.description}</p>
+                        <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
+                        <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
+                        <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+                        <button class="btn btn-sm btn-custom edit-destination" 
                                     data-index="${index}"
                                     data-lat="${destination.latitude}"
                                     data-lng="${destination.longitude}">
                                 <i class="bi bi-pencil"></i> Change
                             </button>
-                        </div>
-                        <p class="card-text text-muted">${destination.description}</p>
-                        <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
-                        <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
-                        <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+                       
+                        
                     </div>
-                </div>`;
+                </div>
+            </div>
+        </div>`;
 
             const lat = parseFloat(destination.latitude);
             const lng = parseFloat(destination.longitude);
@@ -629,22 +678,38 @@ function updateItineraryUI() {
     currentItineraryData.forEach((destination, index) => {
         itineraryHTML += `
             <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h5 class="card-title text-primary">${destination.name} (${destination.type})</h5>
-                        <button class="btn btn-sm btn-custom edit-destination" 
-                                data-index="${index}"
-                                data-lat="${destination.latitude}"
-                                data-lng="${destination.longitude}">
-                            <i class="bi bi-pencil"></i> Change
-                        </button>
-                    </div>
-                    <p class="card-text text-muted">${destination.description}</p>
-                    <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
-                    <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
-                    <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+            <div class="row g-0">
+                <!-- Left Column: Placeholder Image -->
+                <div class="col-md-4">
+                    <img src="https://www.svgrepo.com/show/508699/landscape-placeholder.svg" 
+                         class="img-fluid rounded-start" 
+                         alt="Placeholder for ${destination.name}">
                 </div>
-            </div>`;
+                <!-- Right Column: Content -->
+                <div class="col-md-8">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="card-title text-primary">
+                                ${destination.name} (${destination.type})
+                                
+                            </h5>
+                        </div>
+                            <p class="card-text text-muted">${destination.description}</p>
+                        <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
+                        <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
+                        <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+                        <button class="btn btn-sm btn-custom edit-destination" 
+                                    data-index="${index}"
+                                    data-lat="${destination.latitude}"
+                                    data-lng="${destination.longitude}">
+                                <i class="bi bi-pencil"></i> Change
+                            </button>
+                       
+                        
+                    </div>
+                </div>
+            </div>
+        </div>`;
     });
 
     document.getElementById('itinerary-content').innerHTML = itineraryHTML;
@@ -808,26 +873,48 @@ async function selectNewDestination(newDestination) {
 // Function to update a single itinerary item in the UI
 function updateItineraryItem(index, updatedItem, newDestination) {
     const itemElement = document.querySelector(`[data-destination-id="${index}"]`);
+
     if (itemElement) {
-        itemElement.innerHTML = `
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <h5 class="card-title text-primary">${newDestination.name} (${newDestination.type})</h5>
-                    <button class="btn btn-sm btn-outline-primary edit-destination" 
-                            data-index="${index}"
-                            data-lat="${newDestination.latitude}"
-                            data-lng="${newDestination.longitude}">
-                        <i class="bi bi-pencil"></i> Change
-                    </button>
+        // Create a new card element and replace the existing one
+        const newCard = document.createElement('div');
+        newCard.className = "card mb-3 border-0";
+        newCard.setAttribute("data-destination-id", index);
+        newCard.innerHTML = `
+            <div class="row g-0">
+                <!-- Left Column: Placeholder Image -->
+                <div class="col-md-4">
+                    <img src="https://www.svgrepo.com/show/508699/landscape-placeholder.svg" 
+                         class="img-fluid rounded-start" 
+                         alt="Placeholder for ${newDestination.name}">
                 </div>
-                <p class="card-text text-muted">${newDestination.description}</p>
+                <!-- Right Column: Content -->
+                <div class="col-md-8">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="card-title text-primary">
+                                ${newDestination.name} (${newDestination.type})
+                            </h5>
+                        </div>
+                         <p class="card-text text-muted">${newDestination.description}</p>
                 <p class="card-text"><strong>Travel Time:</strong> ${updatedItem.travel_time}</p>
                 <p class="card-text"><strong>Time to Spend:</strong> ${updatedItem.visit_time}</p>
                 <p class="card-text"><strong>Commute Instructions:</strong> ${updatedItem.commute_instructions}</p>
+                        <button class="btn btn-sm btn-custom edit-destination" 
+                                data-index="${index}"
+                                data-lat="${newDestination.latitude}"
+                                data-lng="${newDestination.longitude}">
+                            <i class="bi bi-pencil"></i> Change
+                        </button>
+                    </div>
+                </div>
             </div>
         `;
+
+        // Replace the old card with the new card
+        itemElement.replaceWith(newCard);
     }
 }
+
 
 // Event delegation for edit buttons
 document.addEventListener('click', function(e) {

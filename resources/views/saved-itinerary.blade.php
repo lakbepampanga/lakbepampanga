@@ -26,7 +26,7 @@
 
 <main class="main container mt-5 pt-5">
     <div class="container py-4">
-        <h1 class="text-center mb-4">Your Saved Itineraries</h1>
+        <h1 class="text-center mb-4" id="section-title">Your Saved Itineraries</h1>
 
         @if(session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">

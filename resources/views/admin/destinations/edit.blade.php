@@ -21,10 +21,10 @@
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('admin.destinations.update', $destination) }}" method="POST">
+            <form action="{{ route('admin.destinations.update', $destination) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
-                
+
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label for="name" class="form-label">Name</label>
@@ -85,6 +85,22 @@
                     <label for="travel_time" class="form-label">Travel Time (minutes)</label>
                     <input type="number" class="form-control" id="travel_time" name="travel_time" value="{{ old('travel_time', $destination->travel_time) }}" min="1" required>
                 </div>
+
+                <!-- Image Upload -->
+                <div class="mb-3">
+                    <label for="image" class="form-label">Upload Image</label>
+                    <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                </div>
+
+                <!-- Display Existing Image -->
+                @if($destination->image)
+                    <div class="mb-3">
+                        <label class="form-label">Current Image</label>
+                        <div>
+                            <img src="{{ asset('storage/' . $destination->image) }}" alt="Destination Image" class="img-fluid" width="200">
+                        </div>
+                    </div>
+                @endif
 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                     <button type="submit" class="btn btn-primary">
