@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Destination;
 use Illuminate\Http\Request;
+use App\Models\DestinationVisit;
+use App\Models\ItineraryCompletion;  // Add this line
 
 class DestinationController extends Controller
 {
@@ -45,4 +47,5 @@ class DestinationController extends Controller
 
         return $earthRadius * $c; // Distance in kilometers
     }
+
 }

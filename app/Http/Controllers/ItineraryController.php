@@ -12,6 +12,9 @@ use App\Models\RouteSegment;
 use App\Models\TrafficData;
 use Illuminate\Support\Facades\Cache;
 use App\Models\SavedItinerary;
+use App\Models\ItineraryCompletion;  // Add this line
+use App\Models\DestinationVisit;  // Add this line
+
 
 class ItineraryController extends Controller
 {
@@ -810,4 +813,5 @@ public function saveItinerary(Request $request)
         ], 500);
     }
 }
+
 }

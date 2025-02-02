@@ -1,6 +1,9 @@
 <?php
 
 namespace App\Models;
+use App\Models\Destination;
+use App\Models\DestinationVisit;
+
 
 use Illuminate\Database\Eloquent\Model;
 
@@ -23,4 +26,9 @@ class SavedItinerary extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+
+                
+
+
 }

@@ -86,4 +86,19 @@ class Destination extends Model
     {
         return $this->closing_time ? $this->closing_time->format('H:i') : 'Not specified';
     }
+
+    public function completion()
+{
+    return $this->hasOne(ItineraryCompletion::class);
+}
+
+public function isCompleted()
+{
+    return $this->completion()->exists();
+}
+// In Destination model
+public function visits()
+{
+    return $this->hasMany(DestinationVisit::class);
+}
 }

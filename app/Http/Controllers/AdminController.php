@@ -8,6 +8,10 @@ use App\Models\User;
 use App\Models\JeepneyRoute;
 use App\Models\JeepneyStop;
 use Illuminate\Support\Facades\Storage;
+use App\Models\DestinationVisit;
+use App\Models\ItineraryCompletion;  // Add this line
+
+
 
 
 class AdminController extends Controller
@@ -20,8 +24,60 @@ class AdminController extends Controller
             'routes' => JeepneyRoute::count(),
             'stops' => JeepneyStop::count()
         ];
-        
-        return view('admin.dashboard', compact('stats'));
+
+        // Get destination analytics
+        $destinationStats = Destination::withCount(['visits'])
+            ->with(['visits.user'])
+            ->get()
+            ->map(function ($destination) {
+                $visits = $destination->visits;
+                
+                // Calculate age groups
+                $ageGroups = $visits->map->user->groupBy(function ($user) {
+                    if ($user->age < 18) return 'Under 18';
+                    if ($user->age < 25) return '18-24';
+                    if ($user->age < 35) return '25-34';
+                    if ($user->age < 45) return '35-44';
+                    return '45+';
+                })->map->count();
+
+                // Calculate gender distribution
+                $genderDistribution = $visits->map->user
+                    ->groupBy('gender')
+                    ->map->count();
+
+                return [
+                    'name' => $destination->name,
+                    'total_visits' => $visits->count(),
+                    'age_distribution' => $ageGroups->toArray(),
+                    'gender_distribution' => $genderDistribution->toArray()
+                ];
+            });
+
+        // Get overall analytics
+        $overallStats = [
+            'total_completed_itineraries' => ItineraryCompletion::count(),
+            'total_visits' => DestinationVisit::count(),
+            'gender_distribution' => User::groupBy('gender')
+                ->selectRaw('gender, count(*) as count')
+                ->pluck('count', 'gender')
+                ->toArray(),
+            'age_groups' => User::selectRaw('
+                CASE 
+                    WHEN age < 18 THEN "Under 18"
+                    WHEN age < 25 THEN "18-24"
+                    WHEN age < 35 THEN "25-34"
+                    WHEN age < 45 THEN "35-44"
+                    ELSE "45+"
+                END as age_group,
+                COUNT(*) as count
+            ')
+            ->groupBy('age_group')
+            ->pluck('count', 'age_group')
+            ->toArray()
+        ];
+
+        return view('admin.dashboard', compact('stats', 'destinationStats', 'overallStats'));
     }
 
     // Destinations Management
@@ -255,4 +311,6 @@ class AdminController extends Controller
         $user->delete();
         return redirect()->route('admin.users.index')->with('success', 'User deleted successfully');
     }
+
+
 }

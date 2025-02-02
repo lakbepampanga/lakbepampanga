@@ -759,3 +759,8 @@ html, body {
 .text-custom{
   color: var(--heading-color)
 }
+
+/* card title */
+.text-custom{
+  color: var(--heading-color)
+}
