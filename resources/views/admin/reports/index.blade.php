@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container-fluid py-4">
-    <h2 class="mb-4">Commute Instructions Reports</h2>
+    <h2 class="mb-4">Reports Management</h2>
 
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -31,7 +31,8 @@
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Destination</th>
+                            <th>Type</th>
+                            <th>Location Details</th>
                             <th>Reported By</th>
                             <th>Issue Type</th>
                             <th>Status</th>
@@ -43,7 +44,21 @@
                         @forelse($reports as $report)
                             <tr class="report-row" data-status="{{ $report->status }}">
                                 <td>{{ $report->id }}</td>
-                                <td>{{ $report->destination_name }}</td>
+                                <td>
+                                    @if($report instanceof \App\Models\CommutingReport)
+                                        <span class="badge bg-info">Commuting</span>
+                                    @else
+                                        <span class="badge bg-primary">Itinerary</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($report instanceof \App\Models\CommutingReport)
+                                        <strong>From:</strong> {{ $report->start_location }}<br>
+                                        <strong>To:</strong> {{ $report->end_location }}
+                                    @else
+                                        {{ $report->destination_name }}
+                                    @endif
+                                </td>
                                 <td>{{ $report->user->name }}</td>
                                 <td>{{ ucfirst(str_replace('_', ' ', $report->issue_type)) }}</td>
                                 <td>
@@ -82,10 +97,20 @@
                                                 </div>
                                             </div>
 
-                                            <div class="mb-3">
-                                                <h6>Destination:</h6>
-                                                <p class="border p-2 rounded bg-light">{{ $report->destination_name }}</p>
-                                            </div>
+                                            @if($report instanceof \App\Models\CommutingReport)
+                                                <div class="mb-3">
+                                                    <h6>Route Details:</h6>
+                                                    <div class="border p-2 rounded bg-light">
+                                                        <p class="mb-1"><strong>From:</strong> {{ $report->start_location }}</p>
+                                                        <p class="mb-0"><strong>To:</strong> {{ $report->end_location }}</p>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div class="mb-3">
+                                                    <h6>Destination:</h6>
+                                                    <p class="border p-2 rounded bg-light">{{ $report->destination_name }}</p>
+                                                </div>
+                                            @endif
                                             
                                             <div class="mb-3">
                                                 <h6>Current Instructions:</h6>
@@ -97,7 +122,7 @@
                                                 <p class="border p-2 rounded bg-light">{{ $report->description }}</p>
                                             </div>
 
-                                            <form action="{{ route('admin.reports.update', $report) }}" method="POST">
+                                            <form action="{{ $report instanceof \App\Models\CommutingReport ? route('admin.commuting.reports.update', $report) : route('admin.reports.update', $report) }}" method="POST">
                                                 @csrf
                                                 @method('PUT')
                                                 
@@ -127,7 +152,7 @@
                             </div>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center">No reports found</td>
+                                <td colspan="8" class="text-center">No reports found</td>
                             </tr>
                         @endforelse
                     </tbody>

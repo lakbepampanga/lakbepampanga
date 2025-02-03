@@ -1,24 +1,50 @@
 <?php
 
 namespace App\Http\Controllers;
+use App\Models\CommutingReport;
 
 use App\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\CommutingReportController; // Add this line
+
 
 class ReportController extends Controller
 {
     public function index()
     {
-        $reports = Report::with('user')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        // Get both types of reports
+        $itineraryReports = Report::with('user')->get();
+        $commutingReports = CommutingReport::with('user')->get();
+        
+        // Merge the collections
+        $allReports = $itineraryReports->concat($commutingReports)
+            ->sortByDesc('created_at');
+        
+        // Paginate the merged collection
+        $page = request('page', 1);
+        $perPage = 10;
+        
+        $reports = new \Illuminate\Pagination\LengthAwarePaginator(
+            $allReports->forPage($page, $perPage),
+            $allReports->count(),
+            $perPage,
+            $page,
+            ['path' => request()->url()]
+        );
             
         return view('admin.reports.index', compact('reports'));
     }
 
-    public function show(Report $report)
+    public function show($id)
     {
+        // Try to find in both report types
+        $report = Report::find($id) ?? CommutingReport::find($id);
+        
+        if (!$report) {
+            abort(404);
+        }
+
         return view('admin.reports.show', compact('report'));
     }
 

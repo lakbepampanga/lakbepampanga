@@ -11,6 +11,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DestinationController;
 use App\Http\Controllers\DestinationVisitController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\CommutingReportController;
 
 // Public routes
 Route::get('/', function () {
@@ -54,12 +55,17 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/destinations/mark-visited', [DestinationVisitController::class, 'markVisited'])
         ->name('destinations.markVisited');
 
-    // User Reports
+    // User Reports (Itinerary Reports)
     Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
+    
+    // User Commuting Reports
+    Route::post('/commuting-reports', [CommutingReportController::class, 'store'])
+        ->name('commuting.reports.store');
 });
 
 // Admin routes
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Dashboard
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
     
     // Destinations Management
@@ -96,4 +102,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/{report}', [ReportController::class, 'show'])->name('reports.show');
     Route::put('/reports/{report}', [ReportController::class, 'update'])->name('reports.update');
+
+    // Commuting Reports Management
+    Route::put('/commuting-reports/{report}', [CommutingReportController::class, 'update'])
+        ->name('commuting.reports.update');
 });

@@ -141,10 +141,61 @@
             </div>
         </div>
     </div>
+
+    
 </main>
+<!-- Report Modal -->
+<!-- Report Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Report Commute Instructions Issue</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="reportForm" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <p class="mb-0">Reporting issue for route:</p>
+                        <p class="mb-0"><strong>From:</strong> <span id="displayStart"></span></p>
+                        <p class="mb-0"><strong>To:</strong> <span id="displayEnd"></span></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">What's wrong with these instructions?</label>
+                        <select class="form-select" name="issue_type" required>
+                            <option value="">Select an issue...</option>
+                            <option value="incorrect_route">Incorrect Route</option>
+                            <option value="outdated">Outdated Information</option>
+                            <option value="unclear">Unclear Instructions</option>
+                            <option value="missing_info">Missing Information</option>
+                            <option value="other">Other Issue</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Please describe the issue:</label>
+                        <textarea class="form-control" name="description" rows="4" required 
+                                placeholder="Please provide details about what's wrong and any suggestions for improvement..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-
-
+<style>
+.alert-info {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    color: #495057;
+}
+</style>
 
 <footer id="footer" class="footer dark-background w-100">
   <div class="container-fluid text-center py-4">
@@ -331,21 +382,29 @@
 
         // Display the commute guide results
         const guideHTML = `
-            <h2 class="fw-bold text-center mb-4">Commute Guide</h2>
-            <div class="card shadow-sm border-0 mb-3">
-                <div class="card-body">
-                    <div class="card-text mb-3">
-                        <strong>Instructions:</strong>
-                        ${instructionsHtml}
-                    </div>
-                    <p class="card-text mb-2">
-                        <strong>Estimated Time:</strong> ${data.travel_time} minutes
-                    </p>
-                    <p class="card-text">
-                        <strong>Distance:</strong> ${data.distance.toFixed(2)} km
-                    </p>
+    <h2 class="fw-bold text-center mb-4">Commute Guide</h2>
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <div class="card-text mb-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <strong>Instructions:</strong>
+                    <button type="button" 
+                            class="btn btn-sm btn-link text-danger report-instructions" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#reportModal">
+                        <i class="bi bi-exclamation-triangle"></i> Report Issue
+                    </button>
                 </div>
-            </div>`;
+                ${instructionsHtml}
+            </div>
+            <p class="card-text mb-2">
+                <strong>Estimated Time:</strong> ${data.travel_time} minutes
+            </p>
+            <p class="card-text">
+                <strong>Distance:</strong> ${data.distance.toFixed(2)} km
+            </p>
+        </div>
+    </div>`;
         document.getElementById('commute-guide').innerHTML = guideHTML;
 
         // Draw route on map with transfer points
@@ -454,6 +513,110 @@ document.getElementById('back-button').addEventListener('click', () => {
             initializeAutocomplete();
             initGeolocation(); // Initialize geolocation functionality
         };
+
+
+
+        //report
+ // Update the guide generation code to store data
+document.addEventListener('DOMContentLoaded', function() {
+    let currentGuideData = null;
+
+    // Store the guide data when generated
+    document.getElementById('generate-guide').addEventListener('click', async function() {
+        const start = document.getElementById('start').value;
+        const end = document.getElementById('end').value;
+        
+        console.log('Storing locations:', { start, end }); // Debug log
+
+        currentGuideData = {
+            start: start,
+            end: end,
+            instructions: null
+        };
+    });
+
+    // Handle report button clicks
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.report-instructions')) {
+            console.log('Current guide data:', currentGuideData); // Debug log
+            if (currentGuideData) {
+                // Update the display in the modal
+                document.getElementById('displayStart').textContent = currentGuideData.start || 'Not available';
+                document.getElementById('displayEnd').textContent = currentGuideData.end || 'Not available';
+            } else {
+                console.log('No guide data available'); // Debug log
+            }
+        }
+    });
+
+    // Handle form submission
+    document.getElementById('reportForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!currentGuideData) {
+            alert('Please generate a route first before submitting a report.');
+            return;
+        }
+
+        const formData = new FormData();
+        
+        // Add the form fields
+        formData.append('start_location', currentGuideData.start);
+        formData.append('end_location', currentGuideData.end);
+        formData.append('issue_type', document.querySelector('select[name="issue_type"]').value);
+        formData.append('description', document.querySelector('textarea[name="description"]').value);
+        formData.append('current_instructions', currentGuideData.instructions || 'No instructions available');
+
+        // Add CSRF token
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+
+        console.log('Submitting data:', Object.fromEntries(formData)); // Debug log
+        
+        const submitButton = this.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+
+        fetch('/commuting-reports', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            },
+            body: formData
+        })
+        .then(async response => {
+            const text = await response.text();
+            console.log('Raw response:', text); // Debug log
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error('Invalid JSON response: ' + text);
+            }
+        })
+        .then(data => {
+            if (data.success) {
+                alert('Thank you for your report. We will review it shortly.');
+                bootstrap.Modal.getInstance(document.getElementById('reportModal')).hide();
+                this.reset();
+            } else {
+                alert(data.error || 'An error occurred while submitting your report.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while submitting your report. Please try again.');
+        })
+        .finally(() => {
+            submitButton.disabled = false;
+        });
+    });
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.report-instructions') && currentGuideData) {
+        document.getElementById('displayStart').textContent = currentGuideData.start;
+        document.getElementById('displayEnd').textContent = currentGuideData.end;
+    }
+});
     </script>
 </body>
 </html>
