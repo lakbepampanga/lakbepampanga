@@ -156,7 +156,7 @@
 </header>
 <main class="main container mt-5 pt-5 mb-5">
 
-<div class="container py-4">
+<div class="container mt-5 py-5">
     <!-- Heading -->
     <h1 class="text-center mb-4 " id="section-title">Plan Your Pampanga Itinerary</h2>
 

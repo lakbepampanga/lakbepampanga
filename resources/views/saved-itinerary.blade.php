@@ -48,122 +48,114 @@
 </style>
 
 <main class="main container mt-5 pt-5">
-    <div class="container py-4">
-        <h1 class="text-center mb-4" id="section-title">Your Saved Itineraries</h1>
+<div class="container py-4">
+    <h1 class="text-center mb-4" id="section-title">Your Saved Itineraries</h1>
 
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
 
-        @if($itineraries->isEmpty())
-            <div class="text-center">
-                <p class="text-muted">You haven't saved any itineraries yet.</p>
-                <a href="{{ route('index') }}" class="btn btn-custom">Create New Itinerary</a>
-            </div>
-        @else
-            <div class="row row-cols-1 row-cols-md-2 g-4">
-                @foreach($itineraries as $itinerary)
-                    <div class="col">
-                        <div class="card h-100 shadow-sm">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <h5 class="card-title">{{ $itinerary->name }}</h5>
-                                    <small class="text-muted">{{ $itinerary->created_at->format('M d, Y') }}</small>
-                                </div>
-                                
-                                <p class="mb-2"><strong>Duration:</strong> {{ $itinerary->duration_hours }} hours</p>
-                                
-                                <div class="destinations-list">
-    @foreach($itinerary->itinerary_data as $index => $destination)
-    <div class="destination-item mb-3 p-3 bg-light rounded">
-    <div class="d-flex justify-content-between align-items-start mb-2">
-        <h6 class="mb-0">{{ $index + 1 }}. {{ $destination['name'] }}</h6>
-        @if(isset($destination['visited']) && $destination['visited'])
-            <span class="badge bg-success">
-                <i class="bi bi-check-circle-fill"></i> Visited
-            </span>
-        @else
-            <form action="{{ route('destinations.markVisited') }}" method="POST" class="mark-visited-form">
-                @csrf
-                <input type="hidden" name="destination_id" value="{{ $destination['name'] }}" required>
-                <input type="hidden" name="saved_itinerary_id" value="{{ $itinerary->id }}" required>
-                <button type="submit" class="btn btn-sm btn-outline-success">
-                    <i class="bi bi-check-circle"></i> Mark Visited
-                </button>
-            </form>
-        @endif
-    </div>
-    <p class="text-muted small mb-1">{{ $destination['description'] }}</p>
-    <div class="small">
-        <span class="badge bg-primary">{{ $destination['type'] }}</span>
-        <span class="ms-2">{{ $destination['visit_time'] }} mins</span>
-    </div>
-    <div class="small mt-2">
-        <strong>Travel:</strong> {{ $destination['travel_time'] }} mins
-    </div>
-    <div class="small mt-1">
-        <strong>Route:</strong> {{ $destination['commute_instructions'] }}
-        <button type="button" 
-            class="btn btn-sm btn-link text-danger report-instructions" 
-            data-bs-toggle="modal" 
-            data-bs-target="#reportModal"
-            data-destination="{{ $destination['name'] }}"
-            data-instructions="{{ $destination['commute_instructions'] }}"
-            data-itinerary-id="{{ $itinerary->id }}">
-        <i class="bi bi-exclamation-triangle"></i> Report Issue
-    </button>
-    </div>
-</div>
-    @endforeach
-</div>
+    @if($itineraries->isEmpty())
+        <div class="text-center">
+            <p class="text-muted">You haven't saved any itineraries yet.</p>
+            <a href="{{ route('index') }}" class="btn btn-custom">Create New Itinerary</a>
+        </div>
+    @else
+        <div class="d-flex flex-column gap-4">
+            @foreach($itineraries as $itinerary)
+                <div class="d-flex gap-4 align-items-start">
+                    
+                    <!-- Left: Itinerary Card -->
+                    <div class="card itinerary-card flex-grow-1 shadow-sm"
+                    data-itinerary="{{ json_encode($itinerary) }}" 
+                    data-map-container="map-container-{{ $itinerary->id }}">
 
-                                <div class="d-flex justify-content-between mt-3">
-                                    <button class="btn btn-sm btn-custom view-map" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#mapModal"
-                                            data-itinerary="{{ json_encode($itinerary) }}">
-                                        <i class="bi bi-map"></i> View Map
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title">{{ $itinerary->name }}</h5>
+                                <small class="text-muted">{{ $itinerary->created_at->format('M d, Y') }}</small>
+                            </div>
+
+                            <p class="mb-2"><strong>Duration:</strong> {{ $itinerary->duration_hours }} hours</p>
+
+                            <div class="destinations-list">
+                                @foreach($itinerary->itinerary_data as $index => $destination)
+                                    <div class="destination-item mb-3 p-3 bg-light rounded">
+                                        <h6 class="mb-0">{{ $index + 1 }}. {{ $destination['name'] }}</h6>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <p class="text-muted small mb-1">{{ $destination['description'] }}</p>
+                                            
+                                            @if(isset($destination['visited']) && $destination['visited'])
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle-fill"></i> Visited
+                                                </span>
+                                            @else
+                                                <form action="{{ route('destinations.markVisited') }}" method="POST" class="mark-visited-form">
+                                                    @csrf
+                                                    <input type="hidden" name="destination_id" value="{{ $destination['name'] }}" required>
+                                                    <input type="hidden" name="saved_itinerary_id" value="{{ $itinerary->id }}" required>
+                                                    <button type="submit" class="btn btn-sm btn-outline-success">
+                                                        <i class="bi bi-check-circle"></i> Mark Visited
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                        
+                                        <div class="small">
+                                            <span class="badge bg-primary">{{ $destination['type'] }}</span>
+                                            <span class="ms-2">{{ $destination['visit_time'] }} mins</span>
+                                        </div>
+                                        
+                                        <div class="small mt-2">
+                                            <strong>Travel:</strong> {{ $destination['travel_time'] }} mins
+                                        </div>
+                                        
+                                        <div class="small mt-1">
+                                            <strong>Route:</strong> {{ $destination['commute_instructions'] }}
+                                            <button type="button" 
+                                                class="btn btn-sm btn-link text-danger report-instructions" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#reportModal"
+                                                data-destination="{{ $destination['name'] }}"
+                                                data-instructions="{{ $destination['commute_instructions'] }}"
+                                                data-itinerary-id="{{ $itinerary->id }}">
+                                                <i class="bi bi-exclamation-triangle"></i> Report Issue
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-3">
+                                <form action="{{ route('itineraries.destroy', $itinerary->id) }}"
+                                      method="POST"
+                                      onsubmit="return confirm('Are you sure you want to delete this itinerary?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="bi bi-trash"></i> Delete
                                     </button>
-                                    
-                                    <form action="{{ route('itineraries.destroy', $itinerary->id) }}" 
-                                          method="POST" 
-                                          onsubmit="return confirm('Are you sure you want to delete this itinerary?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger">
-                                            <i class="bi bi-trash"></i> Delete
-                                        </button>
-                                    </form>
-                                </div>
+                                </form>
                             </div>
                         </div>
                     </div>
-                @endforeach
-            </div>
 
-            <!-- Map Modal -->
-            <div class="modal fade" id="mapModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Itinerary Map</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div id="itineraryMap" style="height: 400px;"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        @endif
-    </div>
+                    <!-- Right: Map -->
+                    <div id="map-container-{{ $itinerary->id }}" class="map-container" style="width: 50%; border: 1px solid #ddd; border-radius: 8px;"></div>
+                
+                </div> <!-- Closing div for itinerary row -->
+            @endforeach
+        </div>
+    @endif
+</div>
 
-    <!-- REPORT SECTION -->
-    <div class="modal fade" id="reportModal" tabindex="-1">
-    <div class="modal-dialog">
+
+    <!-- Report Modal -->
+<div class="modal fade custom-report-modal" id="reportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Report Commute Instructions Issue</h5>
@@ -202,153 +194,127 @@
         </div>
     </div>
 </div>
+
 </main>
 
 @push('scripts')
 <script>
-let map, markers = [], directionsService, directionsRenderer;
+window.onload = function() {
+    let maps = {};
+    let markers = {};
+    let directionsService = new google.maps.DirectionsService();
+    let directionsRenderers = {};
 
-// Initialize map modal functionality
-document.querySelectorAll('.view-map').forEach(button => {
-    button.addEventListener('click', function() {
-        const itineraryData = JSON.parse(this.dataset.itinerary);
-        const modalElement = document.getElementById('mapModal');
-        const modal = new bootstrap.Modal(modalElement);
-        
-        // Clean up when modal is hidden
-        modalElement.addEventListener('hidden.bs.modal', function () {
-            // Clear markers
-            markers.forEach(marker => marker.setMap(null));
-            markers = [];
-            
-            // Clear directions
-            if (directionsRenderer) {
-                directionsRenderer.setMap(null);
-            }
-            
-            // Remove modal backdrop if it's stuck
-            const backdrop = document.querySelector('.modal-backdrop');
-            if (backdrop) {
-                backdrop.remove();
-            }
-            
-            // Ensure body classes are cleaned up
-            document.body.classList.remove('modal-open');
-            document.body.style.overflow = '';
-            document.body.style.paddingRight = '';
-        });
-
-        // Initialize map after modal is shown
-        modalElement.addEventListener('shown.bs.modal', function() {
-            initializeMap(itineraryData);
-        }, { once: true });
-
-        modal.show();
-    });
-});
-
-function initializeMap(itineraryData) {
-    // Clear previous markers and routes
-    markers.forEach(marker => marker.setMap(null));
-    markers = [];
-    if (directionsRenderer) {
-        directionsRenderer.setMap(null);
+    // Ensure Google Maps API is loaded
+    if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+        console.error("Google Maps API is not loaded.");
+        return;
     }
 
-    // Initialize map
-    map = new google.maps.Map(document.getElementById('itineraryMap'), {
-        zoom: 13,
-        center: { 
-            lat: parseFloat(itineraryData.start_lat), 
-            lng: parseFloat(itineraryData.start_lng) 
+    // Initialize maps for each itinerary
+    document.querySelectorAll('.itinerary-card').forEach(card => {
+        const itineraryDataAttr = card.getAttribute('data-itinerary');
+        const mapContainerId = card.getAttribute('data-map-container');
+
+        // Ensure data attributes exist
+        if (!itineraryDataAttr || !mapContainerId) {
+            console.error(`Missing data attributes for card:`, card);
+            return;
+        }
+
+        try {
+            const itineraryData = JSON.parse(itineraryDataAttr);
+            initializeMap(itineraryData, mapContainerId, card);
+        } catch (error) {
+            console.error("Error parsing itinerary data:", error);
         }
     });
 
-    directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({
-        map: map,
-        suppressMarkers: true
-    });
+    function initializeMap(itineraryData, containerId, itineraryCard) {
+        const mapContainer = document.getElementById(containerId);
 
-    // Add markers and draw route
-    const pathCoordinates = [
-        { lat: parseFloat(itineraryData.start_lat), lng: parseFloat(itineraryData.start_lng) }
-    ];
-
-    // Add starting point marker
-    addMarker(
-        parseFloat(itineraryData.start_lat),
-        parseFloat(itineraryData.start_lng),
-        'Starting Point',
-        'S'
-    );
-
-    // Add destination markers
-    itineraryData.itinerary_data.forEach((destination, index) => {
-        const lat = parseFloat(destination.latitude);
-        const lng = parseFloat(destination.longitude);
-        
-        addMarker(lat, lng, destination.name, (index + 1).toString());
-        pathCoordinates.push({ lat, lng });
-    });
-
-    // Draw route
-    drawRoute(pathCoordinates);
-    
-    // Fit bounds to show all markers
-    const bounds = new google.maps.LatLngBounds();
-    markers.forEach(marker => bounds.extend(marker.getPosition()));
-    map.fitBounds(bounds);
-}
-
-function addMarker(lat, lng, title, label) {
-    const marker = new google.maps.Marker({
-        position: { lat, lng },
-        map: map,
-        title: title,
-        label: {
-            text: label,
-            color: 'white',
-            fontSize: '12px',
-            fontWeight: 'bold'
+        if (!mapContainer) {
+            console.error(`Map container with ID ${containerId} not found.`);
+            return;
         }
-    });
-    markers.push(marker);
-}
 
-function drawRoute(pathCoordinates) {
-    if (pathCoordinates.length < 2) return;
-
-    const waypoints = pathCoordinates.slice(1, -1).map(coord => ({
-        location: new google.maps.LatLng(coord.lat, coord.lng),
-        stopover: true
-    }));
-
-    directionsService.route({
-        origin: new google.maps.LatLng(pathCoordinates[0].lat, pathCoordinates[0].lng),
-        destination: new google.maps.LatLng(
-            pathCoordinates[pathCoordinates.length - 1].lat,
-            pathCoordinates[pathCoordinates.length - 1].lng
-        ),
-        waypoints: waypoints,
-        travelMode: google.maps.TravelMode.DRIVING
-    }, (response, status) => {
-        if (status === google.maps.DirectionsStatus.OK) {
-            directionsRenderer.setDirections(response);
+        // Match map height with itinerary card height
+        if (itineraryCard) {
+            mapContainer.style.height = `${itineraryCard.offsetHeight}px`;
         }
+
+        // Clear previous markers
+        if (markers[containerId]) {
+            markers[containerId].forEach(marker => marker.setMap(null));
+        }
+        markers[containerId] = [];
+
+        // Initialize map if not already created
+        if (!maps[containerId]) {
+            maps[containerId] = new google.maps.Map(mapContainer, {
+                zoom: 13,
+                center: {
+                    lat: parseFloat(itineraryData.start_lat),
+                    lng: parseFloat(itineraryData.start_lng),
+                }
+            });
+
+            directionsRenderers[containerId] = new google.maps.DirectionsRenderer({
+                map: maps[containerId],
+                suppressMarkers: true
+            });
+        }
+
+        // Add starting point marker
+        markers[containerId].push(
+            new google.maps.Marker({
+                position: {
+                    lat: parseFloat(itineraryData.start_lat),
+                    lng: parseFloat(itineraryData.start_lng),
+                },
+                map: maps[containerId],
+                title: 'Starting Point',
+            })
+        );
+
+        // Add destination markers
+        itineraryData.itinerary_data.forEach((destination, index) => {
+            markers[containerId].push(
+                new google.maps.Marker({
+                    position: {
+                        lat: parseFloat(destination.latitude),
+                        lng: parseFloat(destination.longitude),
+                    },
+                    map: maps[containerId],
+                    title: destination.name,
+                })
+            );
+        });
+
+        // Adjust map bounds
+        const bounds = new google.maps.LatLngBounds();
+        markers[containerId].forEach(marker => bounds.extend(marker.getPosition()));
+        maps[containerId].fitBounds(bounds);
+    }
+
+    // Handle report modal data population
+    document.querySelectorAll('.report-instructions').forEach(button => {
+        button.addEventListener('click', function () {
+            document.getElementById('reportDestination').value = this.dataset.destination;
+            document.getElementById('reportItinerary').value = this.dataset.itineraryId;
+            document.getElementById('reportCurrentInstructions').value = this.dataset.instructions;
+        });
     });
-}
-document.addEventListener('DOMContentLoaded', function() {
+
+    // Handle "Mark Visited" form submission
     document.querySelectorAll('.destination-item form').forEach(form => {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             const formData = new FormData(form);
             const actionUrl = form.action;
-            
-            // Get CSRF token from meta tag
             const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            
+
             fetch(actionUrl, {
                 method: 'POST',
                 headers: {
@@ -359,34 +325,27 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(async response => {
                 const responseText = await response.text();
-                
-                // Check if response contains login page (session expired)
+
                 if (responseText.includes('loginModal')) {
-                    // Session expired - redirect to login
                     alert('Your session has expired. Please log in again.');
                     window.location.href = '/login';
                     return;
                 }
-                
+
                 try {
-                    // Try to parse the response as JSON
                     const data = JSON.parse(responseText);
-                    if(data.success) {
-                        // Replace the form with the visited badge
+                    if (data.success) {
                         const badge = document.createElement('span');
                         badge.className = 'badge bg-success';
                         badge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Visited';
                         form.replaceWith(badge);
-                    } else if(data.error) {
+                    } else if (data.error) {
                         console.error('Server error:', data.error);
                         alert(data.error);
                     }
                 } catch (e) {
-                    // If we get here and haven't already handled session expiry,
-                    // there's some other error
                     console.error('Response parsing error:', e);
-                    console.error('Response text:', responseText);
-                    alert('An error occurred. Please try refreshing the page and trying again.');
+                    alert('An error occurred. Please refresh the page and try again.');
                 }
             })
             .catch(error => {
@@ -395,28 +354,15 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
-});
 
-//JAVASCRIPT FOR REPORT
-document.addEventListener('DOMContentLoaded', function() {
-    // Handle report button clicks
-    document.querySelectorAll('.report-instructions').forEach(button => {
-        button.addEventListener('click', function() {
-            // Set the hidden fields in the modal
-            document.getElementById('reportDestination').value = this.dataset.destination;
-            document.getElementById('reportItinerary').value = this.dataset.itineraryId;
-            document.getElementById('reportCurrentInstructions').value = this.dataset.instructions;
-        });
-    });
-
-    // Handle form submission
+    // Handle report form submission
     document.getElementById('reportForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
         const formData = new FormData(this);
         const submitButton = this.querySelector('button[type="submit"]');
         submitButton.disabled = true;
-        
+
         fetch(this.action, {
             method: 'POST',
             headers: {
@@ -442,9 +388,30 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.disabled = false;
         });
     });
+};
+
+document.addEventListener("DOMContentLoaded", function () {
+    let reportModal = document.getElementById('reportModal');
+
+    // When the modal is fully hidden, remove the backdrop manually
+    reportModal.addEventListener('hidden.bs.modal', function () {
+        let backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove(); // Remove the stuck modal backdrop
+        }
+
+        // Ensure the body is not left in a modal-open state
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    });
 });
+
 
 </script>
 @endpush
+
+
+
 
 @endsection

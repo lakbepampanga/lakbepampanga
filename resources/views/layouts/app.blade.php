@@ -25,13 +25,20 @@
     
     <!-- Google Maps -->
     <script src="https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&libraries=places"></script>
-</head>
+  <style>
+    
+    </style>
+  </head>
 <body>
     @yield('content')
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.min.js"></script>
+    <script src="{{ asset('js/main.js') }}"></script>
+
     @stack('scripts')
-     <script src="{{ asset('js/main.js') }}"></script>
+     
 </body>
 </html>
