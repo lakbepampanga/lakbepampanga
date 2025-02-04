@@ -61,6 +61,28 @@
     color: white;
     transition: 0.3s;   /* Hover border color */
 }
+
+/* Google Places Autocomplete styling */
+.pac-container {
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--accent-color);
+    margin-top: 2px;
+}
+
+.pac-item {
+    padding: 8px 12px;
+    font-family: var(--font-primary);
+}
+
+.pac-item:hover {
+    background-color: var(--surface-color);
+}
+
+.pac-item-selected {
+    background-color: var(--accent-color);
+    color: var(--contrast-color);
+}
     </style>
 </head>
 <body>
@@ -326,20 +348,39 @@
     });
 }
 
-        function initializeAutocomplete() {
-            const startInput = document.getElementById('start');
-            const endInput = document.getElementById('end');
-            
-            const autocompleteStart = new google.maps.places.Autocomplete(startInput, {
-                componentRestrictions: { country: 'PH' }
-            });
-            const autocompleteEnd = new google.maps.places.Autocomplete(endInput, {
-                componentRestrictions: { country: 'PH' }
-            });
+function initializeAutocomplete() {
+    const startInput = document.getElementById('start');
+    const endInput = document.getElementById('end');
+    
+    // Define Pampanga boundaries
+    const pampangaBounds = new google.maps.LatLngBounds(
+        // Southwest coordinates of Pampanga
+        new google.maps.LatLng(14.9162, 120.4183),
+        // Northeast coordinates of Pampanga
+        new google.maps.LatLng(15.4087, 120.8245)
+    );
 
-            autocompleteStart.setFields(['formatted_address']);
-            autocompleteEnd.setFields(['formatted_address']);
-        }
+    const options = {
+        bounds: pampangaBounds,
+        strictBounds: true,
+        componentRestrictions: { country: 'PH' }
+    };
+
+    const autocompleteStart = new google.maps.places.Autocomplete(startInput, options);
+    const autocompleteEnd = new google.maps.places.Autocomplete(endInput, options);
+
+    autocompleteStart.setFields(['formatted_address']);
+    autocompleteEnd.setFields(['formatted_address']);
+
+    // Add listeners to validate locations are within Pampanga
+    autocompleteStart.addListener('place_changed', function() {
+        validatePlace(autocompleteStart, startInput, pampangaBounds);
+    });
+
+    autocompleteEnd.addListener('place_changed', function() {
+        validatePlace(autocompleteEnd, endInput, pampangaBounds);
+    });
+};
 
    // Update the fetch response handler to include route segments
    document.getElementById('generate-guide').addEventListener('click', () => {
