@@ -121,6 +121,28 @@
     margin: 0 auto;
 }
 
+/* Google Places Autocomplete styling */
+.pac-container {
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--accent-color);
+    margin-top: 2px;
+}
+
+.pac-item {
+    padding: 8px 12px;
+    font-family: var(--font-primary);
+}
+
+.pac-item:hover {
+    background-color: var(--surface-color);
+}
+
+.pac-item-selected {
+    background-color: var(--accent-color);
+    color: var(--contrast-color);
+}
+
     </style>
 
 </head>
@@ -168,16 +190,9 @@
 
     <!-- Location Selection -->
     <div class="form-group mb-4 text-center">
-        <label for="location" class="form-label fw-bold">Or, select your starting location:</label>
-        <select id="location" class="form-select shadow-sm w-50 mx-auto">
-            <option value="" disabled selected>Select your starting location</option>
-            <option value="Angeles">Angeles City</option>
-            <option value="Mabalacat">Mabalacat</option>
-            <option value="Magalang">Magalang</option>
-            <option value="Clark">Clark Freeport Zone</option>
-            <option value="Auf">AUF</option>
-        </select>
-    </div>
+    <label for="location" class="form-label fw-bold">Or, enter your starting location:</label>
+    <input type="text" id="location" class="form-control shadow-sm w-50 mx-auto" placeholder="Enter your starting location">
+</div>
 
     <!-- Hours Input and Generate Itinerary Button -->
     <div id="itinerary-form" class="p-4 rounded" style="display: none;">
@@ -441,26 +456,39 @@
         });
     }
 
-    // Event listener for location dropdown change
-    document.getElementById('location').addEventListener('change', (event) => {
-        const selectedLocation = event.target.value;
+// Initialize Google Places Autocomplete
+function initAutocomplete() {
+    const input = document.getElementById('location');
+    const autocomplete = new google.maps.places.Autocomplete(input, {
+        componentRestrictions: { country: 'PH' }, // Restrict to Philippines
+        bounds: new google.maps.LatLngBounds(
+            new google.maps.LatLng(15.0843, 120.5200), // SW bounds of Pampanga
+            new google.maps.LatLng(15.2843, 120.7200)  // NE bounds of Pampanga
+        ),
+        strictBounds: true
+    });
 
-        const locations = {
-            Angeles: { lat: 15.1347621, lng: 120.5903796 },
-            Mabalacat: { lat: 15.2443337, lng: 120.5642501 },
-            Magalang: { lat: 15.2144206, lng: 120.6612414 },
-            Clark: { lat: 15.1674883, lng: 120.5801295 }, 
-            Auf: { lat: 15.1453018, lng: 120.5948856 }
-        };
+    // When a place is selected
+    autocomplete.addListener('place_changed', function() {
+        const place = autocomplete.getPlace();
+        
+        if (!place.geometry) {
+            alert("No details available for this location");
+            return;
+        }
 
-        userLat = locations[selectedLocation].lat;
-        userLng = locations[selectedLocation].lng;
+        // Set user location
+        userLat = place.geometry.location.lat();
+        userLng = place.geometry.location.lng();
 
+        // Show the itinerary form
         document.getElementById('itinerary-form').style.display = 'block';
 
+        // Center map and add marker
         map.setCenter(new google.maps.LatLng(userLat, userLng));
-        setInitialLocationMarker(userLat, userLng, selectedLocation);
+        setInitialLocationMarker(userLat, userLng, place.name || "Selected Location");
     });
+}
 
     // Event listener for "Generate Itinerary" button
     // Update this part in your existing script section in the blade template
@@ -826,7 +854,11 @@ async function saveItinerary() {
 }
 
     // Initialize map when the page loads
-    window.onload = initMap;
+    // Initialize map when the page loads
+window.onload = function() {
+    initMap();
+    initAutocomplete();
+};
 let editingIndex = null;
 const alternativesModal = new bootstrap.Modal(document.getElementById('alternativeDestinationsModal'));
 // Function to fetch alternative destinations
