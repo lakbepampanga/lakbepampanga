@@ -177,8 +177,7 @@
 
     </div>
 </header>
-<!-- end of header -->
-<!-- main -->
+
 <main class="main container mt-5 pt-5 mb-5">
 
 <div class="container mt-5 py-5">
@@ -209,63 +208,82 @@
 
 </div>
 
-<!-- itinerary and maps -->
+<!-- Maps and Itinerary -->
 <div class="container mt-4">
-        <div class="row">
-            <!-- Itinerary Section (Left) -->
-            <div class="col-md-6">
-                <div id="itinerary" class="p-3 bg-light rounded shadow-sm" style="height: 500px; overflow-y: auto;">
-                    <h5 class="fw-bold mb-3">Your Itinerary</h5>
-                    <div id="itinerary-content">
-                        @if(isset($itinerary) && count($itinerary) > 0)
-                            @foreach($itinerary as $index => $item)
-                                <div class="card mb-3 shadow-sm border-0" data-destination-id="{{ $index }}">
-                                    <div class="row g-0">
-                                        <div class="col-md-4">
-                                            <img src="https://placehold.co/100x300" 
-                                                 class="img-fluid rounded-start" 
-                                                 alt="Placeholder for {{ $item->name }}">
-                                        </div>
-                                        <div class="col-md-8">
-                                            <div class="card-body">
-                                                <div class="d-flex justify-content-between align-items-start">
-                                                    <h5 class="card-title">{{ $item->name }} ({{ $item->type }})</h5>
-                                                    <button class="btn btn-sm btn-outline-primary edit-destination" 
-                                                            data-index="{{ $index }}"
-                                                            data-lat="{{ $item->latitude }}"
-                                                            data-lng="{{ $item->longitude }}">
-                                                        <i class="bi bi-pencil"></i> Change
-                                                    </button>
-                                                </div>
-                                                <p class="card-text text-muted">{{ $item->description }}</p>
-                                                <p class="card-text"><strong>Travel Time:</strong> {{ $item->travel_time }}</p>
-                                                <p class="card-text"><strong>Time to Spend:</strong> {{ $item->visit_time }}</p>
-                                                <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->commute_instructions }}</p>
+    <div class="row">
+        <!-- Itinerary Section (Left) -->
+        <div class="col-md-6">
+            <div id="itinerary" class="p-3 bg-light rounded shadow-sm" style="height: 500px; overflow-y: auto;">
+                <h5 class="fw-bold mb-3">Your Itinerary</h5>
+                
+                <div id="itinerary-content">
+                    @if(isset($itinerary) && count($itinerary) > 0)
+                        @foreach($itinerary as $index => $item)
+                            <div class="card mb-3 shadow-sm border-0" data-destination-id="{{ $index }}">
+                                <div class="row g-0">
+                                    <!-- Left Column: Placeholder Image -->
+                                    <div class="col-md-4">
+                                        <img src="https://placehold.co/100x300" 
+                                             class="img-fluid rounded-start" 
+                                             alt="Placeholder for {{ $item->name }}">
+                                    </div>
+                                    <!-- Right Column: Destination Content -->
+                                    <div class="col-md-8">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <h5 class="card-title">{{ $item->name }} ({{ $item->type }})</h5>
+                                                <button class="btn btn-sm btn-outline-primary edit-destination" 
+                                                        data-index="{{ $index }}"
+                                                        data-lat="{{ $item->latitude }}"
+                                                        data-lng="{{ $item->longitude }}">
+                                                    <i class="bi bi-pencil"></i> Change
+                                                </button>
                                             </div>
+                                            <p class="card-text text-muted">{{ $item->description }}</p>
+                                            <p class="card-text"><strong>Travel Time:</strong> {{ $item->travel_time }}</p>
+                                            <p class="card-text"><strong>Time to Spend:</strong> {{ $item->visit_time }}</p>
+                                            <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->commute_instructions }}</p>
                                         </div>
                                     </div>
                                 </div>
-                            @endforeach
-                        @else
-                            <p class="text-muted">Your generated itinerary will appear here.</p>
-                        @endif
-                    </div>
+                            </div>
+                        @endforeach
+                    @else
+                        <p class="text-muted">Your generated itinerary will appear here.</p>
+                    @endif
                 </div>
             </div>
-            
-            <!-- Map Section (Right) -->
-            <div class="col-md-6 d-none d-md-block">
+        </div>
+
+        <!-- Map Section (Right) -->
+        <div class="col-md-6">
+            <div id="map-container" class="d-none d-md-block"> <!-- Hidden on mobile -->
                 <div id="map" class="w-100 rounded shadow-sm" style="height: 500px; border: 1px solid #e0e0e0;"></div>
             </div>
         </div>
     </div>
 
-    <!-- View Map Button (Only on Mobile) -->
-    <button id="view-map-btn" class="btn btn-primary rounded-pill d-md-none position-fixed bottom-0 end-0 m-3" style="z-index: 1050;">
-        View Map
-    </button>
+    <!-- View Map Button (Visible on Mobile Only) -->
+    <button id="view-map-btn" class="btn btn-custom rounded-pill d-md-none position-fixed start-50 translate-middle-x" style="bottom: 140px; z-index: 1050;">
+    View Map
+</button>
 
+</div>
 
+<!-- Modal for Mobile Map -->
+<div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mapModalLabel">Map View</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0"> <!-- Remove padding to ensure full-screen map -->
+                <div id="map-modal-placeholder" class="w-100 h-100"></div> 
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Add a modal for alternative destinations -->
 <div class="modal fade" id="alternativeDestinationsModal" tabindex="-1">
@@ -1035,20 +1053,37 @@ function updateMap() {
 }
 </script>
 
-<!-- view map btn -->
+<!-- JavaScript to Toggle Mobile Map -->
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const viewMapButton = document.getElementById("view-map-btn");
-        const mapSection = document.getElementById("map");
+        const mapModal = new bootstrap.Modal(document.getElementById("mapModal"));
+        const mapContainer = document.getElementById("map-container");
+        const mapModalPlaceholder = document.getElementById("map-modal-placeholder");
+        const originalMapParent = mapContainer.parentNode; // Store original position
+        
+        // When the modal is shown, move the map-container into the modal
+        document.getElementById("mapModal").addEventListener("show.bs.modal", function () {
+            mapModalPlaceholder.appendChild(mapContainer);
+            mapContainer.classList.remove("d-none");
 
+            // Trigger resize event for Google Maps to adjust correctly
+            setTimeout(() => {
+                if (typeof google !== "undefined" && google.maps && google.maps.event) {
+                    google.maps.event.trigger(map, "resize");
+                }
+            }, 300);
+        });
+
+        // When the modal is hidden, move the map-container back to its original location
+        document.getElementById("mapModal").addEventListener("hidden.bs.modal", function () {
+            originalMapParent.appendChild(mapContainer);
+            mapContainer.classList.add("d-none", "d-md-block"); // Hide on mobile again
+        });
+
+        // Show the modal when "View Map" button is clicked
         viewMapButton.addEventListener("click", function () {
-            if (mapSection.style.display === "block") {
-                mapSection.style.display = "none"; // Hide map
-                viewMapButton.textContent = "View Map"; // Update button text
-            } else {
-                mapSection.style.display = "block"; // Show map
-                viewMapButton.textContent = "Hide Map"; // Update button text
-            }
+            mapModal.show();
         });
     });
 </script>

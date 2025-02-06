@@ -1015,12 +1015,19 @@ html, body {
 }   
 
 /* index-blade map secion */
-#map {
-  display: none; /* Hide map by default on mobile */
+
+
+@media (max-width: 768px) {
+  #map-modal-placeholder #map-container {
+      width: 100%;
+      height: 100vh !important; /* Full viewport height */
+  }
+  #map-modal-placeholder #map {
+      width: 100%;
+      height: 100vh !important; /* Full viewport height */
+  }
 }
 
-@media (min-width: 768px) {
-  #map {
-      display: block; /* Show map on larger screens */
-  }
+#view-map-btn {
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
 }
