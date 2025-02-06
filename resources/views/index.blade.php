@@ -177,6 +177,8 @@
 
     </div>
 </header>
+<!-- end of header -->
+<!-- main -->
 <main class="main container mt-5 pt-5 mb-5">
 
 <div class="container mt-5 py-5">
@@ -207,60 +209,61 @@
 
 </div>
 
-<!-- maps -->
+<!-- itinerary and maps -->
 <div class="container mt-4">
-    <div class="row">
-        <!-- Itinerary Section (Left) -->
-        <div class="col-md-6">
-            <div id="itinerary" class="p-3 bg-light rounded shadow-sm" style="height: 500px; overflow-y: auto;">
-                <h5 class="fw-bold mb-3">Your Itinerary</h5>
-                
-                <div id="itinerary-content">
-                    @if(isset($itinerary) && count($itinerary) > 0)
-                        @foreach($itinerary as $index => $item)
-                            <div class="card mb-3 shadow-sm border-0" data-destination-id="{{ $index }}">
-                                <div class="row g-0">
-                                    <!-- Left Column: Placeholder Image -->
-                                    <div class="col-md-4">
-                                        <img src="https://placehold.co/100x300" 
-                                             class="img-fluid rounded-start" 
-                                             alt="Placeholder for {{ $item->name }}">
-                                    </div>
-                                    <!-- Right Column: Destination Content -->
-                                    <div class="col-md-8">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <h5 class="card-title">{{ $item->name }} ({{ $item->type }})</h5>
-                                                <button class="btn btn-sm btn-outline-primary edit-destination" 
-                                                        data-index="{{ $index }}"
-                                                        data-lat="{{ $item->latitude }}"
-                                                        data-lng="{{ $item->longitude }}">
-                                                    <i class="bi bi-pencil"></i> Change
-                                                </button>
+        <div class="row">
+            <!-- Itinerary Section (Left) -->
+            <div class="col-md-6">
+                <div id="itinerary" class="p-3 bg-light rounded shadow-sm" style="height: 500px; overflow-y: auto;">
+                    <h5 class="fw-bold mb-3">Your Itinerary</h5>
+                    <div id="itinerary-content">
+                        @if(isset($itinerary) && count($itinerary) > 0)
+                            @foreach($itinerary as $index => $item)
+                                <div class="card mb-3 shadow-sm border-0" data-destination-id="{{ $index }}">
+                                    <div class="row g-0">
+                                        <div class="col-md-4">
+                                            <img src="https://placehold.co/100x300" 
+                                                 class="img-fluid rounded-start" 
+                                                 alt="Placeholder for {{ $item->name }}">
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <h5 class="card-title">{{ $item->name }} ({{ $item->type }})</h5>
+                                                    <button class="btn btn-sm btn-outline-primary edit-destination" 
+                                                            data-index="{{ $index }}"
+                                                            data-lat="{{ $item->latitude }}"
+                                                            data-lng="{{ $item->longitude }}">
+                                                        <i class="bi bi-pencil"></i> Change
+                                                    </button>
+                                                </div>
+                                                <p class="card-text text-muted">{{ $item->description }}</p>
+                                                <p class="card-text"><strong>Travel Time:</strong> {{ $item->travel_time }}</p>
+                                                <p class="card-text"><strong>Time to Spend:</strong> {{ $item->visit_time }}</p>
+                                                <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->commute_instructions }}</p>
                                             </div>
-                                            <p class="card-text text-muted">{{ $item->description }}</p>
-                                            <p class="card-text"><strong>Travel Time:</strong> {{ $item->travel_time }}</p>
-                                            <p class="card-text"><strong>Time to Spend:</strong> {{ $item->visit_time }}</p>
-                                            <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->commute_instructions }}</p>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        @endforeach
-                    @else
-                        <p class="text-muted">Your generated itinerary will appear here.</p>
-                    @endif
+                            @endforeach
+                        @else
+                            <p class="text-muted">Your generated itinerary will appear here.</p>
+                        @endif
+                    </div>
                 </div>
             </div>
-        </div>
-        <!-- Map Section (Right) -->
-        <div class="col-md-6">
-            <div id="map" class="w-100 rounded shadow-sm" style="height: 500px; border: 1px solid #e0e0e0;"></div>
+            
+            <!-- Map Section (Right) -->
+            <div class="col-md-6 d-none d-md-block">
+                <div id="map" class="w-100 rounded shadow-sm" style="height: 500px; border: 1px solid #e0e0e0;"></div>
+            </div>
         </div>
     </div>
-</div>
 
-</div>
+    <!-- View Map Button (Only on Mobile) -->
+    <button id="view-map-btn" class="btn btn-primary rounded-pill d-md-none position-fixed bottom-0 end-0 m-3" style="z-index: 1050;">
+        View Map
+    </button>
 
 
 
@@ -1031,23 +1034,24 @@ function updateMap() {
     updateMapBounds();
 }
 </script>
-<!-- Modal for alternative destinations -->
-<div class="modal fade" id="alternativeDestinationsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Choose Alternative Destination</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="alternative-destinations" class="list-group">
-                    <!-- Alternative destinations will be loaded here -->
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
+<!-- view map btn -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const viewMapButton = document.getElementById("view-map-btn");
+        const mapSection = document.getElementById("map");
+
+        viewMapButton.addEventListener("click", function () {
+            if (mapSection.style.display === "block") {
+                mapSection.style.display = "none"; // Hide map
+                viewMapButton.textContent = "View Map"; // Update button text
+            } else {
+                mapSection.style.display = "block"; // Show map
+                viewMapButton.textContent = "Hide Map"; // Update button text
+            }
+        });
+    });
+</script>
 
 </body>
 </html>

@@ -1014,4 +1014,13 @@ html, body {
   max-width: 500px;
 }   
 
+/* index-blade map secion */
+#map {
+  display: none; /* Hide map by default on mobile */
+}
 
+@media (min-width: 768px) {
+  #map {
+      display: block; /* Show map on larger screens */
+  }
+}
