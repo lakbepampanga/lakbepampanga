@@ -10,7 +10,8 @@ class JeepneyRoute extends Model
     protected $fillable = [
         'route_name',
         'route_color',
-        'description'
+        'description',
+        'image_path'
     ];
         // Define the relationship with JeepneyStop
         public function stops()

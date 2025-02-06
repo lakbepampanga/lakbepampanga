@@ -442,21 +442,35 @@ function initializeAutocomplete() {
         document.getElementById('input-section').style.display = 'none';
         document.getElementById('result-section').style.display = 'block';
 
-        // Generate route instructions HTML
-        let instructionsHtml = '';
+let instructionsHtml = '';
 if (Array.isArray(data.commute_instructions)) {
     instructionsHtml = data.commute_instructions.map((instruction, index) => `
-        <div class="instruction-step p-2 mb-3 bg-light rounded">
+        <div class="instruction-step p-3 bg-light rounded mb-3">
             <div class="d-flex align-items-start">
-                <span class="step-number me-2 px-2 py-1 rounded-circle bg-primary text-white">
+                <span class="step-number me-3 px-2 py-1 rounded-circle bg-primary text-white">
                     ${index + 1}
                 </span>
-                <p class="mb-0 instruction-text">${instruction}</p>
+                <div class="instruction-content w-100">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="route-info">
+                            <p class="mb-2 instruction-text">${instruction.instruction}</p>
+
+                        </div>
+                        ${instruction.image_path ? `
+                            <div class="route-image ms-3">
+                                <img src="${instruction.image_path}" 
+                                     alt="${instruction.route_name}" 
+                                     class="img-fluid rounded" 
+                                     style="max-width: 120px; height: auto;">
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
             </div>
         </div>
     `).join('');
-} 
-else {
+} else {
+    // Your existing else block for non-array instructions
     instructionsHtml = `
         <div class="instruction-step p-3 bg-light rounded">
             <div class="jeepney-instructions">

@@ -196,40 +196,63 @@ class AdminController extends Controller
     }
 
     public function storeRoute(Request $request)
-    {
-        $validated = $request->validate([
-            'route_name' => 'required|string|max:255',
-            'route_color' => 'nullable|string|max:50',
-            'description' => 'nullable|string'
-        ]);
+{
+    $validated = $request->validate([
+        'route_name' => 'required|string|max:255',
+        'route_color' => 'nullable|string|max:50',
+        'description' => 'nullable|string',
+        'route_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+    ]);
 
-        JeepneyRoute::create($validated);
-        return redirect()->route('admin.routes.index')->with('success', 'Route created successfully');
+    $routeData = $validated;
+    if ($request->hasFile('route_image')) {
+        $routeData['image_path'] = $request->file('route_image')->store('route-images', 'public');
     }
 
-    public function editRoute(JeepneyRoute $route)
-    {
-        return view('admin.routes.edit', compact('route'));
+    JeepneyRoute::create($routeData);
+    return redirect()->route('admin.routes.index')->with('success', 'Route created successfully');
+}
+
+public function editRoute(JeepneyRoute $route)
+{
+    return view('admin.routes.edit', compact('route'));
+}
+
+public function updateRoute(Request $request, JeepneyRoute $route)
+{
+    $validated = $request->validate([
+        'route_name' => 'required|string|max:255',
+        'route_color' => 'nullable|string|max:50',
+        'description' => 'nullable|string',
+        'route_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'remove_image' => 'nullable|boolean'
+    ]);
+
+    if ($request->hasFile('route_image')) {
+        if ($route->image_path) {
+            Storage::disk('public')->delete($route->image_path);
+        }
+        $validated['image_path'] = $request->file('route_image')->store('route-images', 'public');
     }
 
-    public function updateRoute(Request $request, JeepneyRoute $route)
-    {
-        $validated = $request->validate([
-            'route_name' => 'required|string|max:255',
-            'route_color' => 'nullable|string|max:50',
-            'description' => 'nullable|string'
-        ]);
-
-        $route->update($validated);
-        return redirect()->route('admin.routes.index')->with('success', 'Route updated successfully');
+    if ($request->has('remove_image') && $route->image_path) {
+        Storage::disk('public')->delete($route->image_path);
+        $validated['image_path'] = null;
     }
 
-    public function deleteRoute(JeepneyRoute $route)
-    {
-        $route->stops()->delete(); // Delete associated stops
-        $route->delete();
-        return redirect()->route('admin.routes.index')->with('success', 'Route and associated stops deleted successfully');
+    $route->update($validated);
+    return redirect()->route('admin.routes.index')->with('success', 'Route updated successfully');
+}
+
+public function deleteRoute(JeepneyRoute $route)
+{
+    if ($route->image_path) {
+        Storage::disk('public')->delete($route->image_path);
     }
+    $route->stops()->delete(); // Delete associated stops
+    $route->delete();
+    return redirect()->route('admin.routes.index')->with('success', 'Route and associated stops deleted successfully');
+}
 
     // Jeepney Stops Management
     public function stops(JeepneyRoute $route)

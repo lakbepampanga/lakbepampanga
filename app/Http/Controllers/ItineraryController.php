@@ -342,26 +342,42 @@ public function generateCommuteGuide(Request $request)
         // Find the best jeepney route
         $jeepneyInfo = $this->getJeepneyRoute($startLat, $startLng, $endLat, $endLng);
         if ($jeepneyInfo) {
-            $response = [
-                'start' => $validatedData['start'],
-                'end' => $validatedData['end'],
-                'distance' => $distance,
-                'travel_time' => $this->getGoogleMapsTime($startLat, $startLng, $endLat, $endLng),
-                'commute_instructions' => $jeepneyInfo['routes'] ? 
-                    collect($jeepneyInfo['routes'])->map(function($route) {
-                        return sprintf(
-                            "Take a %s Jeep (%s jeep) from '%s' to '%s'. Fare: ₱%.2f.",
-                            $route['route_name'],
-                            $route['route_color'],
-                            $route['start_stop'],
-                            $route['end_stop'],
-                            $route['base_fare']
-                        );
-                    })->implode(' Then ') : 
-                    'No route information available',
-                'path' => $this->generateRoutePath($jeepneyInfo, $startLat, $startLng, $endLat, $endLng),
+// In your generateCommuteGuide function, modify the $jeepneyInfo part:
+    if ($jeepneyInfo) {
+        $routes = collect($jeepneyInfo['routes'])->map(function($route, $index) {
+            // Fetch the image path from jeepney_routes table
+            $jeepneyRoute = \App\Models\JeepneyRoute::where('route_name', $route['route_name'])->first();
+            $imagePath = $jeepneyRoute ? asset('storage/' . $jeepneyRoute->image_path) : null;
+            
+            // Add "Then take" prefix for instructions after the first one
+            $prefix = $index === 0 ? "Take" : "Then take";
+            
+            return [
+                'instruction' => sprintf(
+                    "%s a %s Jeep (%s jeep) from '%s' to '%s'. Fare: ₱%.2f.",
+                    $prefix,
+                    $route['route_name'],
+                    $route['route_color'],
+                    $route['start_stop'],
+                    $route['end_stop'],
+                    $route['base_fare']
+                ),
+                'image_path' => $imagePath,
+                'route_name' => $route['route_name'],
+                'route_color' => $route['route_color']
             ];
-            return response()->json($response);
+        });
+    
+        $response = [
+            'start' => $validatedData['start'],
+            'end' => $validatedData['end'],
+            'distance' => $distance,
+            'travel_time' => $this->getGoogleMapsTime($startLat, $startLng, $endLat, $endLng),
+            'commute_instructions' => $routes,
+            'path' => $this->generateRoutePath($jeepneyInfo, $startLat, $startLng, $endLat, $endLng),
+        ];
+        return response()->json($response);
+    }
         }
         return response()->json(['error' => 'No valid jeepney routes available.'], 400);
 
