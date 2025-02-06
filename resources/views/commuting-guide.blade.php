@@ -82,7 +82,36 @@
 .pac-item-selected {
     background-color: var(--accent-color);
     color: var(--contrast-color);
+    
 }
+
+    .instruction-step {
+        border-left: 4px solid #0d6efd;
+        transition: all 0.3s ease;
+    }
+    
+    .instruction-text {
+        color: #424242;
+        line-height: 1.6;
+        font-size: 0.95rem;
+    }
+    
+    .jeepney-instructions {
+        padding: 10px;
+        border-radius: 8px;
+        background-color: #ffffff;
+    }
+    
+    .route-details {
+        border-left: 2px solid #e9ecef;
+    }
+    
+    .instruction-step:hover {
+        transform: translateX(5px);
+        background-color: #f8f9fa;
+    }
+
+
     </style>
 </head>
 <body>
@@ -415,24 +444,75 @@ function initializeAutocomplete() {
 
         // Generate route instructions HTML
         let instructionsHtml = '';
-        if (Array.isArray(data.commute_instructions)) {
-            instructionsHtml = data.commute_instructions.map((instruction, index) => 
-                `<p class="mb-2">${index + 1}. ${instruction}</p>`
-            ).join('');
-        } else {
-            instructionsHtml = `<p class="mb-2">${data.commute_instructions}</p>`;
-        }
+if (Array.isArray(data.commute_instructions)) {
+    instructionsHtml = data.commute_instructions.map((instruction, index) => `
+        <div class="instruction-step p-2 mb-3 bg-light rounded">
+            <div class="d-flex align-items-start">
+                <span class="step-number me-2 px-2 py-1 rounded-circle bg-primary text-white">
+                    ${index + 1}
+                </span>
+                <p class="mb-0 instruction-text">${instruction}</p>
+            </div>
+        </div>
+    `).join('');
+} 
+else {
+    instructionsHtml = `
+        <div class="instruction-step p-3 bg-light rounded">
+            <div class="jeepney-instructions">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-truck text-primary me-2" style="font-size: 1.2rem;"></i>
+                    <span class="fw-bold">Jeepney Route</span>
+                </div>
+                <div class="route-details ps-4">
+                    <p class="mb-0 instruction-text">
+                        ${data.commute_instructions}
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
-        // Display the commute guide results
-        const guideHTML = `
+// Display the commute guide results
+const guideHTML = `
+    <style>
+        .instruction-step {
+            transition: all 0.3s ease;
+            border-left: 4px solid #0d6efd;
+        }
+        .instruction-step:hover {
+            transform: translateX(5px);
+        }
+        .step-number {
+            min-width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .instruction-text {
+            color: #424242;
+            line-height: 1.5;
+        }
+        .info-icon {
+            color: #0d6efd;
+        }
+    </style>
+
     <h2 class="fw-bold text-center mb-4">Commute Guide</h2>
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-body">
             <div class="card-text mb-3">
-                <div class="d-flex justify-content-between align-items-start">
-                    <strong>Instructions:</strong>
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <strong class="d-flex align-items-center">
+                        <i class="bi bi-map-fill me-2 info-icon"></i>
+                        Instructions:
+                    </strong>
                     <button type="button" 
-                            class="btn btn-sm btn-link text-danger report-instructions" 
+                            class="btn btn-sm btn-outline-danger report-instructions" 
                             data-bs-toggle="modal" 
                             data-bs-target="#reportModal">
                         <i class="bi bi-exclamation-triangle"></i> Report Issue
@@ -440,12 +520,18 @@ function initializeAutocomplete() {
                 </div>
                 ${instructionsHtml}
             </div>
-            <p class="card-text mb-2">
-                <strong>Estimated Time:</strong> ${data.travel_time} minutes
-            </p>
-            <p class="card-text">
-                <strong>Distance:</strong> ${data.distance.toFixed(2)} km
-            </p>
+            <div class="border-top pt-3">
+                <p class="card-text mb-2 d-flex align-items-center">
+                    <i class="bi bi-clock-fill me-2 info-icon"></i>
+                    <strong>Estimated Time:</strong>
+                    <span class="ms-2">${data.travel_time} minutes</span>
+                </p>
+                <p class="card-text d-flex align-items-center">
+                    <i class="bi bi-geo-alt-fill me-2 info-icon"></i>
+                    <strong>Distance:</strong>
+                    <span class="ms-2">${data.distance.toFixed(2)} km</span>
+                </p>
+            </div>
         </div>
     </div>`;
         document.getElementById('commute-guide').innerHTML = guideHTML;
