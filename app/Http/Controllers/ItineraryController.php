@@ -580,7 +580,8 @@ private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxCo
                     ->first();
 
                 if ($nearbyBetterStops) {
-                    $route = JeepneyRoute::find($nearbyBetterStops->jeepney_route_id);
+                    if ($nearbyBetterStops->order_in_route < $endStop->order_in_route) {
+                        $route = JeepneyRoute::find($nearbyBetterStops->jeepney_route_id);
                     if ($route) {
                         return [
                             'type' => 'connecting',
@@ -603,6 +604,8 @@ private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxCo
                     }
                 }
             }
+            }
+            
         }
 
         // Rest of your existing code remains exactly the same...
