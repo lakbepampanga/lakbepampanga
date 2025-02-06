@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lakbe Pampanga</title>
    
-  <!-- Favicons -->
+     <!-- Favicons -->
   <link href="{{ asset('img/favicon.png') }}" rel="icon">
 <link href="{{ asset('img/apple-touch-icon.png') }}" rel="apple-touch-icon">
 
@@ -15,6 +15,8 @@
   <link href="https://fonts.gstatic.com" rel="preconnect"   crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
 
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+
   <!-- Vendor CSS Files -->
     <link href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.css') }}" rel="stylesheet">
@@ -23,36 +25,56 @@
     <link href="{{ asset('vendor/swiper/swiper-bundle.min.css') }}" rel="stylesheet">
 
 <!-- Main CSS File -->
-<link href="{{ asset('css/main.css') }}" rel="stylesheet">
+<link href="{{ asset('css/main2.css') }}" rel="stylesheet">
 
 
   <!-- Bootstrap CSS and JS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  
+    <style>
+     
+        
+.btn-custom{
+    background-color: var(--button-color); /* Desired background color */
+    color: var(--button-text-color);
+}
+
+.btn-custom:hover{
+    background-color: var(--button-hover-color);
+    color: white;
+    transition: 0.3s;   /* Hover border color */
+}
+
+
+</style>
+
 </head>
 
 <body class="index-page">
 
-<header id="header" class="header bg-white d-flex align-items-center fixed-top">
+<header id="header" class="header d-flex bg-white fixed-top align-items-center">
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
-        <!-- <a href="home" class="logo d-flex align-items-center">
+        <!-- <a href="/" class="logo d-flex align-items-center">
             <h1 class="sitename">Lakbe Pampanga</h1>
         </a> -->
 
-                <a href="/" class="logo d-flex align-items-center">
+        <a href="/" class="logo d-flex align-items-center">
             <img src="{{ asset('img/lakbe-logo1.png') }}" alt="Lakbe Pampanga Logo" class="img-fluid">
         </a>
 
+
         <nav id="navmenu" class="navmenu">
-            <ul>
-                <li><a href="#hero" class="active">Home</a></li>
-                <li><a href="#about">About</a></li>
-                <li><a href="#features">Features</a></li>
-                <li><a href="#team">Team</a></li>
-                <li><a href="#" class="btn btn-primary btn-md px-3 py-2" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a></li>
-                <li><a href="#" class="btn btn-secondary btn-md px-3 py-2" data-bs-toggle="modal" data-bs-target="#registerModal">Register</a></li>
-            </ul>
+        <ul>
+    <li><a href="#about">About</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <button type="button" class="btn btn-custom rounded-pill btn-md px-3 py-2" 
+            data-bs-toggle="modal" data-bs-target="#loginModal">
+        Sign in
+    </button>
+</ul>
             <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
 
@@ -76,39 +98,75 @@
     </div>
 @endif
 
+<!-- MODALS -->
 
 <!-- Login Modal -->
 <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="loginModalLabel">Login Form</h5>
+            <!-- close buttonss -->
+        <div class="d-flex justify-content-end p-1">
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form method="POST" action="{{ route('login') }}">
-                    @csrf
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email:</label>
-                        <input type="text" id="email" name="email" class="form-control" placeholder="Enter your email or phone" required>
-                        @error('email')
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password:</label>
-                        <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required>
-                        @error('password')
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
-                    </div>
-                    <div class="mb-3">
-                        <input type="checkbox" id="showPassword" onclick="togglePassword()"> Show Password
-                    </div>
-                    <a href="#forgotPasswordModal" data-bs-toggle="modal" data-bs-dismiss="modal">Forgot Password?</a>
-                    <button type="submit" class="btn btn-primary w-100">Login</button>
-                </form>
+            <!-- modal header -->
+            <div class="modal-header d-flex flex-column align-items-center">
+                <!-- Logo (Centered) -->
+                <img src="{{ asset('img/lakbe-logo1.png') }}" alt="Lakbe Pampanga Logo" class="img-fluid" style="max-height: 100px;">
+
+                <!-- Title (Below the Logo, Centered) -->
+                <h5 class="modal-title mt-2 text-center" id="loginModalLabel">
+                    Step Inside – Your Adventure Awaits!
+                </h5>
             </div>
+
+
+            <div class="modal-body">
+    <form method="POST" action="{{ route('login') }}">
+        @csrf
+        <div class="mb-3">
+            <label for="email" class="form-label">Email:</label>
+            <input type="text" id="email" name="email" class="form-control" placeholder="Enter your email or phone" required>
+            @error('email')
+                <small class="text-danger">{{ $message }}</small>
+            @enderror
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Password:</label>
+            <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required>
+            @error('password')
+                <small class="text-danger">{{ $message }}</small>
+            @enderror
+        </div>
+
+        <!-- Show Password & Forgot Password Aligned in One Row -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            
+            <div>
+                <p>
+                <input type="checkbox" id="showPassword" onclick="togglePassword()"> Show Password
+                </p>
+            </div>
+            <div>
+                <p>
+                <a href="#forgotPasswordModal" data-bs-toggle="modal" 
+                data-bs-dismiss="modal">Forgot Password?</a>
+                    </p>
+            </div>
+        </div>
+
+        <!-- Login Button -->
+        <button type="submit" class="btn btn-primary w-100">Login</button>
+
+        <!-- Sign Up Link -->
+        <div class="text-center mt-3">
+        <p>    
+        <span>Don't have an account yet? </span>
+            <a href="#registerModal" data-bs-toggle="modal" data-bs-dismiss="modal">Sign up</a>
+        </p>
+        </div>
+    </form>
+</div>
+
         </div>
     </div>
 </div>
@@ -117,9 +175,12 @@
 <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="registerModalLabel">Register</h5>
+        <div class="d-flex justify-content-end p-1">
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-header">
+                <h5 class="modal-title text-center" id="registerModalLabel">Register</h5>
             </div>
             <div class="modal-body">  
               <form id="registerForm" method="POST" action="{{ route('register') }}">
@@ -215,279 +276,226 @@
   </div>
 </div>
 
-
 <!-- end of modals -->
 
-<main class="main">
+<!-- main start -->
+<main class="main container mt-5 pt-5 mb-5">
 
- <!-- Hero Section -->
- <section id="hero" class="hero section light-background">
- <img src="{{ asset('img/hero-bg-2.jpg') }}" alt="" class="hero-bg">
-  <div class="container d-flex align-items-center justify-content-center vh-100">
-    <div class="text-center" data-aos="fade-in">
-      <h1 class="hero-title">Lakbe<br>Pampanga</h1>
-      <p class="mb-5">Your Ultimate Guide to Seamless Travel and Adventures in Pampanga</p>
-      <div class="d-flex justify-content-center">
-        <a href="#about" class="btn-get-started me-3" data-bs-toggle="modal" data-bs-target="#loginModal">Start Your Adventure</a>
-      </div>
-    </div>
-  </div>
-  
-  <svg class="hero-waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 24 150 28 " preserveAspectRatio="none">
-    <defs>
-      <path id="wave-path" d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z"></path>
-    </defs>
-    <g class="wave1">
-      <use xlink:href="#wave-path" x="50" y="3"></use>
-    </g>
-    <g class="wave2">
-      <use xlink:href="#wave-path" x="50" y="0"></use>
-    </g>
-    <g class="wave3">
-      <use xlink:href="#wave-path" x="50" y="9"></use>
-    </g>
-  </svg>
-</section>
+    <!-- Hero Section -->
+    <section class="hero text-center bg-white">
+        <div>
+            <h1 class="display-3 fw-bold">Lakbe Pampanga</h1>
+            <p class="lead">Explore Pampanga’s First District with ease—find the best routes, top spots<br>and convenient jeepney rides.</p>
 
-  
+            <div class="text-center mt-4">
+                <button class="btn btn-custom rounded-pill px-4 py-2" data-bs-toggle="modal" data-bs-target="#loginModal">
+                    Start Trip
+                </button>
+            </div>
 
 
-  <!-- About to Section -->
-  <section id="about" class="details section">
-
-    <!-- Section Title -->
-    <div class="container section-title" data-aos="fade-up">
-      <h2>About Us</h2>
-      <div><span>Lakbe</span> <span class="description-title">Pampanga</span></div>
-    </div><!-- End Section Title -->
-
-    <div class="container">
-
-      <div class="row gy-4 align-items-center features-item">
-        <div class="col-md-5 d-flex align-items-center" data-aos="zoom-out" data-aos-delay="100">
-          <img src="{{ asset('img/about.webp') }}" class="img-fluid" alt="">
 
         </div>
-        <div class="col-md-7" data-aos="fade-up" data-aos-delay="100">
-          <h3>About Lakbe Pampanga</h3>
-          <p class="fst-italic">
-          Lakbe Pampanga aims to revolutionize how people explore the province by integrating a customizable itinerary planning, and to transform how residents and visitors wander the places in the province by providing options for various modes of public transportation. Lakbe Pampanga also generates an itinerary for the user whether there are activities that they want to accomplish based on the time that they set, but the user will also have the option to set a customized itinerary for their own.
-          </p>
-          <ul>
-          <li><i class="bi bi-check"></i><span> Customizable itineraries tailored to your preferences and time availability.</span></li>
-          <li><i class="bi bi-check"></i><span> Comprehensive travel options, including various modes of public transportation.</span></li>
-          <li><i class="bi bi-check"></i><span> Smart itinerary suggestions based on activities and destinations in Pampanga.</span></li>
-          <li><i class="bi bi-check"></i><span> User-friendly platform designed to enhance your travel experience.</span></li>
-          <li><i class="bi bi-check"></i><span> Seamless integration of local insights to explore hidden gems in Pampanga.</span></li>
+    </section>
+    <!-- district 1 -->
 
-          </ul>
-        </div>
-      </div><!-- Features Item -->
+    <section class="mt-5 bg-white" id="about">
+    <h2 class="text-center fw-bold mb-4">District 1</h2>
+    <!-- Informative Description -->
+    <div class="row align-items-center mt-5 mb-5">
+    <!-- Left Side: Image -->
+    <div class="col-md-6 text-center">
+        <img src="{{ asset('img/cards/district1.png') }}" alt="Pampanga's First District" class="img-fluid rounded">
     </div>
 
-  </section><!-- About Section -->
+    <!-- Right Side: Text -->
+    <div class="col-md-6 card-custom-body">
+        <h3 class="fw-bold">Discover Pampanga's First District</h3>
+        <p>
+            Pampanga's First District is a treasure trove of cultural heritage, natural wonders, and vibrant attractions. 
+            Home to Angeles City, Magalang, and Mabalacat, this district offers a blend of modern conveniences and historical charm.
+        </p>
+        <p>
+            Whether you're exploring Angeles City's lively streets, enjoying the natural beauty of Magalang and Mount Arayat, 
+            or experiencing the gateway to Clark Freeport Zone in Mabalacat, there's something for everyone here.
+        </p>
+        <div class="mt-3">
+    <a href="#" class="btn btn-custom px-4 py-2 rounded-pill" data-bs-toggle="modal" data-bs-target="#loginModal">
+        Explore Now
+    </a>
+</div>
 
-<!-- Features Section -->
-<section id="features" class="features section">
-  <div class="container">
-    <div class="row justify-content-center gy-4">
-      <!-- Feature 1 -->
-      <div class="col-lg-4 col-md-4 feature-item">
-        <div class="features-item text-center">
-          <i class="bi bi-watch" style="color: #ffbb2c;"></i>
-          <h3>Less Time-Consuming</h3>
-          <p class="justified-text">Lakbe Pampanga simplifies trip planning with automated, customizable itineraries, saving you valuable time.</p>
-        </div>
-      </div>
-      <!-- End Feature 1 -->
-
-      <!-- Feature 2 -->
-      <div class="col-lg-4 col-md-4 feature-item">
-        <div class="features-item text-center">
-          <i class="bi bi-lightbulb" style="color: #5578ff;"></i>
-          <h3>Convenient</h3>
-          <p class="justified-text">Get easy access to detailed routes and transportation options across District 1 of Pampanga—navigate effortlessly!</p>
-        </div>
-      </div>
-      <!-- End Feature 2 -->
-
-      <!-- Feature 3 -->
-      <div class="col-lg-4 col-md-4 feature-item">
-        <div class="features-item text-center">
-          <i class="bi bi-bar-chart-steps" style="color: #e80368;"></i>
-          <h3>Personalized Travel</h3>
-          <p class="justified-text">Whether you're on a tight schedule or exploring at leisure, Lakbe Pampanga tailors your itinerary for a smooth, enjoyable trip.</p>
-        </div>
-      </div>
-      <!-- End Feature 3 -->
     </div>
-  </div>
-</section>
-
-
-
-
-
-  <!-- Team Section -->
-  <section id="team" class="team section">
-
-    <!-- Section Title -->
-    <div class="container section-title" data-aos="fade-up">
-      <h2>Team</h2>
-      <div><span>Lakbe Pampanga</span> <span class="description-title">Developers</span></div>
-    </div><!-- End Section Title -->
-
-    <div class="container">
-  <div class="row gy-5">
-    <div class="col-lg-3 col-md-6" data-aos="fade-up" data-aos-delay="100">
-      <div class="member">
-      <div class="pic"><img src="{{ asset('img/team/team-1.jpg') }}" class="img-fluid" alt=""></div>
-        <div class="member-info">
-          <h4>Michael Pamintuan</h4>
-          <span>Chief Executive Officer</span>
-          <div class="social">
-            <a href=""><i class="bi bi-twitter-x"></i></a>
-            <a href=""><i class="bi bi-facebook"></i></a>
-            <a href=""><i class="bi bi-instagram"></i></a>
-            <a href=""><i class="bi bi-linkedin"></i></a>
-          </div>
-        </div>
-      </div>
-    </div><!-- End Team Member -->
-
-    <div class="col-lg-3 col-md-6" data-aos="fade-up" data-aos-delay="200">
-      <div class="member">
-      <div class="pic"><img src="{{ asset('img/team/team-2.jpg') }}" class="img-fluid" alt=""></div>
-
-        <div class="member-info">
-          <h4>River Yuan</h4>
-          <span>Product Manager</span>
-          <div class="social">
-            <a href=""><i class="bi bi-twitter-x"></i></a>
-            <a href=""><i class="bi bi-facebook"></i></a>
-            <a href=""><i class="bi bi-instagram"></i></a>
-            <a href=""><i class="bi bi-linkedin"></i></a>
-          </div>
-        </div>
-      </div>
-    </div><!-- End Team Member -->
-
-    <div class="col-lg-3 col-md-6" data-aos="fade-up" data-aos-delay="300">
-      <div class="member">
-      <div class="pic"><img src="{{ asset('img/team/team-3.jpg') }}" class="img-fluid" alt=""></div>
-        <div class="member-info">
-          <h4>Matthew Ortiz</h4>
-          <span>CTO</span>
-          <div class="social">
-            <a href=""><i class="bi bi-twitter-x"></i></a>
-            <a href=""><i class="bi bi-facebook"></i></a>
-            <a href=""><i class="bi bi-instagram"></i></a>
-            <a href=""><i class="bi bi-linkedin"></i></a>
-          </div>
-        </div>
-      </div>
-    </div><!-- End Team Member -->
-
-    <div class="col-lg-3 col-md-6" data-aos="fade-up" data-aos-delay="400">
-      <div class="member">
-      <div class="pic"><img src="{{ asset('img/team/team-3.jpg') }}" class="img-fluid" alt=""></div>
-        <div class="member-info">
-          <h4>Ulrich Oconer</h4>
-          <span>Marketing Specialist</span>
-          <div class="social">
-            <a href=""><i class="bi bi-twitter-x"></i></a>
-            <a href=""><i class="bi bi-facebook"></i></a>
-            <a href=""><i class="bi bi-instagram"></i></a>
-            <a href=""><i class="bi bi-linkedin"></i></a>
-          </div>
-        </div>
-      </div>
-    </div><!-- End Team Member -->
-  </div>
 </div>
 
 
-  </section><!-- /Team Section -->
-
-  <!-- Contact Section -->
-  <section id="contact" class="contact section">
-
-    <!-- Section Title -->
-    <div class="container section-title" data-aos="fade-up">
-      <h2>Contact</h2>
-      <div><span>Check Our</span> <span class="description-title">Contact</span></div>
-    </div><!-- End Section Title -->
-
-    <div class="container" data-aos="fade" data-aos-delay="100">
-
-      <div class="row gy-4">
-
-        <div class="col-lg-4">
-          <div class="info-item d-flex" data-aos="fade-up" data-aos-delay="200">
-            <i class="bi bi-geo-alt flex-shrink-0"></i>
-            <div>
-              <h3>Address</h3>
-              <p>A108 Adam Street, New York, NY 535022</p>
+    <div class="row">
+        <!-- Angeles -->
+        <div class="col-md-4">
+            <div class="card destination-card" data-bs-toggle="modal" data-bs-target="#angelesModal">
+                <img src="{{ asset('img/cards/angeles.webp') }}" class="card-img-top" alt="Angeles">
             </div>
-          </div><!-- End Info Item -->
-
-          <div class="info-item d-flex" data-aos="fade-up" data-aos-delay="300">
-            <i class="bi bi-telephone flex-shrink-0"></i>
-            <div>
-              <h3>Call Us</h3>
-              <p>+1 5589 55488 55</p>
-            </div>
-          </div><!-- End Info Item -->
-
-          <div class="info-item d-flex" data-aos="fade-up" data-aos-delay="400">
-            <i class="bi bi-envelope flex-shrink-0"></i>
-            <div>
-              <h3>Email Us</h3>
-              <p>info@example.com</p>
-            </div>
-          </div><!-- End Info Item -->
-
+            <h5 class="card-title text-center fw-bold">Angeles, Pampanga</h5>
         </div>
 
-        <div class="col-lg-8">
-          <form action="forms/contact.php" method="post" class="php-email-form" data-aos="fade-up" data-aos-delay="200">
-            <div class="row gy-4">
-
-              <div class="col-md-6">
-                <input type="text" name="name" class="form-control" placeholder="Your Name" required="">
-              </div>
-
-              <div class="col-md-6 ">
-                <input type="email" class="form-control" name="email" placeholder="Your Email" required="">
-              </div>
-
-              <div class="col-md-12">
-                <input type="text" class="form-control" name="subject" placeholder="Subject" required="">
-              </div>
-
-              <div class="col-md-12">
-                <textarea class="form-control" name="message" rows="6" placeholder="Message" required=""></textarea>
-              </div>
-
-              <div class="col-md-12 text-center">
-                <div class="loading">Loading</div>
-                <div class="error-message"></div>
-                <div class="sent-message">Your message has been sent. Thank you!</div>
-
-                <button type="submit">Send Message</button>
-              </div>
-
+        <!-- Magalang -->
+        <div class="col-md-4">
+            <div class="card destination-card" data-bs-toggle="modal" data-bs-target="#magalangModal">
+                <img src="{{ asset('img/cards/magalang.webp') }}" class="card-img-top" alt="Magalang">
             </div>
-          </form>
-        </div><!-- End Contact Form -->
+            <h5 class="card-title text-center fw-bold">Magalang, Pampanga</h5>
+        </div>
 
-      </div>
-
+        <!-- Mabalacat -->
+        <div class="col-md-4">
+            <div class="card destination-card" data-bs-toggle="modal" data-bs-target="#mabalacatModal">
+                <img src="{{ asset('img/cards/mabalacat.webp') }}" class="card-img-top" alt="Mabalacat">
+            </div>
+            <h5 class="card-title text-center fw-bold">Mabalacat, Pampanga</h5>
+        </div>
     </div>
 
-  </section><!-- /Contact Section -->
+</section>
 
-</main>
+
+<!-- Angeles Modal -->
+<div class="modal fade" id="angelesModal" tabindex="-1" aria-labelledby="angelesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="angelesModalLabel">Angeles, Pampanga</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="{{ asset('img/cards/angeles.webp') }}" class="img-fluid mb-3" alt="Angeles">
+                <p>Angeles City is known for its rich history, vibrant nightlife, and famous landmarks such as the Holy Rosary Parish Church and the Salakot Arch.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Magalang Modal -->
+<div class="modal fade" id="magalangModal" tabindex="-1" aria-labelledby="magalangModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="magalangModalLabel">Magalang, Pampanga</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="{{ asset('img/cards/magalang.webp') }}" class="img-fluid mb-3" alt="Magalang">
+                <p>Magalang is a peaceful town famous for its heritage sites, local delicacies, and Mount Arayat National Park, a must-visit for nature enthusiasts.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mabalacat Modal -->
+<div class="modal fade" id="mabalacatModal" tabindex="-1" aria-labelledby="mabalacatModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mabalacatModalLabel">Mabalacat, Pampanga</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="{{ asset('img/cards/mabalacat.webp') }}" class="img-fluid mb-3" alt="Mabalacat">
+                <p>Mabalacat is known for its role as the gateway to Clark Freeport Zone and its rich cultural heritage, offering a blend of modern and traditional attractions.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <!-- features -->
+    <section class="mt-1 text-center bg-white" id="features">
+    <h2 class="fw-bold mb-4">How It Works</h2>
+    <div class="row">
+        <!-- Feature 1 -->
+        <div class="col-md-4">
+            <div class="card how-it-works-card border-0 shadow-sm p-3">
+                <div class="mb-3">
+                    <i class="bi bi-map-fill" style="font-size: 2rem;"></i>
+                </div>
+                <h4>Pick a Destination</h4>
+                <p>Explore a curated list of attractions in Angeles, Mabalacat, and Magalang.</p>
+            </div>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="col-md-4">
+            <div class="card how-it-works-card border-0 shadow-sm p-3">
+                <div class="mb-3">
+                    <i class="bi bi-compass-fill" style="font-size: 2rem;"></i>
+                </div>
+                <h4>Plan Your Route</h4>
+                <p>Get the most convenient routes using jeepneys and public transportation.</p>
+            </div>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="col-md-4">
+            <div class="card how-it-works-card border-0 shadow-sm p-3">
+                <div class="mb-3">
+                    <i class="bi bi-stars" style="font-size: 2rem;"></i>
+                </div>
+                <h4>Enjoy Your Trip</h4>
+                <p>Follow your itinerary and experience the beauty of Pampanga with ease.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+    <!-- Call to Action -->
+    <section class="text-center mt-5 bg-white" id="faq">
+    <h2 class="fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion" id="faqAccordion">
+        <!-- Question 1 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                    What is Lakbe Pampanga?
+                </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
+                <div class="accordion-body">
+                    Lakbe Pampanga is a travel itinerary planner designed to help you explore Pampanga's First District, including Angeles, Mabalacat, and Magalang. It provides destinations, routes, and transportation options.
+                </div>
+            </div>
+        </div>
+
+        <!-- Question 2 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingTwo">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                    How does the itinerary creation work?
+                </button>
+            </h2>
+            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
+                <div class="accordion-body">
+                    Simply select your desired destinations, and the app will generate a personalized itinerary with routes, transportation options, and travel tips to help you make the most of your trip.
+                </div>
+            </div>
+        </div>
+
+        <!-- Question 3 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingThree">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                    Can I use Lakbe Pampanga for free?
+                </button>
+            </h2>
+            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#faqAccordion">
+                <div class="accordion-body">
+                    Yes, Lakbe Pampanga is free to use. You can explore destinations, create itineraries, and access transportation options without any cost.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+    </main>
 
 <footer id="footer" class="footer dark-background">
 
@@ -507,8 +515,11 @@
 <!-- Scroll Top -->
 <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
 
-<!-- Preloader -->
-<div id="preloader"></div>
+
+
+
+<!-- main js -->
+<script src="{{ asset('js/main.js') }}"></script>
 
 <!-- Vendor JS Files -->
 <script src="{{ asset('vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
@@ -518,8 +529,6 @@
 <script src="{{ asset('vendor/purecounter/purecounter_vanilla.js') }}"></script>
 <script src="{{ asset('vendor/swiper/swiper-bundle.min.js') }}"></script>
 
-<!-- Main JS File -->
-<script src="{{ asset('js/main.js') }}"></script>
 
 <script>
   document.addEventListener('hidden.bs.modal', function () {
@@ -564,7 +573,29 @@ function togglePassword() {
 
 </script>
 
-<!-- registration success message -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var scrollTopBtn = document.getElementById("scroll-top");
+
+        // Show button when scrolling down
+        window.addEventListener("scroll", function () {
+            if (window.scrollY > 200) { // Show button after 200px scroll
+                scrollTopBtn.style.display = "flex";
+            } else {
+                scrollTopBtn.style.display = "none";
+            }
+        });
+
+        // Scroll to top when clicked
+        scrollTopBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        });
+    });
+</script>
 
 
 </body>

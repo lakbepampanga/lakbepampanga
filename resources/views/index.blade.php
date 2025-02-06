@@ -161,6 +161,7 @@
 
         <nav id="navmenu" class="navmenu">
         <ul>
+        <li><a href="/user-home" class="{{ request()->is('user-home') ? 'active' : '' }}">Home</a></li>
     <li><a href="/index" class="{{ request()->is('index') ? 'active' : '' }}">Plan</a></li>
     <li><a href="/saved-itinerary" class="{{ request()->is('saved-itinerary') ? 'active' : '' }}">Saved Itineraries</a></li>
     <li><a href="/commuting-guide" class="{{ request()->is('commuting-guide') ? 'active' : '' }}">Commuting Guide</a></li>

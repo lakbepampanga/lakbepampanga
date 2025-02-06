@@ -29,7 +29,7 @@ class LoginController extends Controller
             }
 
             // If not admin, redirect to index
-            return redirect()->route('index')->with('success', 'Login successful!');
+            return redirect()->route('user-home')->with('success', 'Login successful!');
         }
 
         // Log the failed login attempt
@@ -48,7 +48,7 @@ class LoginController extends Controller
             return redirect()->route('admin.dashboard');
         }
         
-        return redirect('/index');
+        return redirect('user-home');
     }
 
     /**

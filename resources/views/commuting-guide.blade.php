@@ -99,6 +99,7 @@
 
         <nav id="navmenu" class="navmenu">
         <ul>
+        <li><a href="/user-home" class="{{ request()->is('user-home') ? 'active' : '' }}">Home</a></li>
     <li><a href="/index" class="{{ request()->is('index') ? 'active' : '' }}">Plan</a></li>
     <li><a href="/saved-itinerary" class="{{ request()->is('saved-itinerary') ? 'active' : '' }}">Saved Itineraries</a></li>
     <li><a href="/commuting-guide" class="{{ request()->is('commuting-guide') ? 'active' : '' }}">Commuting Guide</a></li>
@@ -115,7 +116,7 @@
     </div>
 </header>
 <!-- main -->
-<main class="main container mt-5 pt-5">
+<main class="main container mt-5 pt-5 mb-5">
     <div class="container mt-4 pt-4">
         <div class="row">
             <!-- Input Section (Left) -->
@@ -166,7 +167,7 @@
 
     
 </main>
-<!-- Report Modal -->
+
 <!-- Report Modal -->
 <div class="modal fade" id="reportModal" tabindex="-1">
     <div class="modal-dialog">
@@ -219,14 +220,15 @@
 }
 </style>
 
-<footer id="footer" class="footer dark-background w-100">
-  <div class="container-fluid text-center py-4">
-    <p>Â© <span>Copyright</span> <strong class="px-1 sitename">Lakbe Pampanga</strong> <span>All Rights Reserved</span></p>
-    <div class="credits">
-      Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> Distributed By <a href="https://themewagon.com">ThemeWagon</a>
-    </div>
-  </div>
-</footer>
+<footer id="footer" class="footer dark-background w-100 py-4 mt-auto text-center">
+        <div class="container-fluid">
+            <p>© <span>Copyright</span> <strong class="px-1 sitename">Lakbe Pampanga</strong> <span>All Rights Reserved</span></p>
+            <div class="credits">
+                Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> Distributed By <a href="https://themewagon.com">ThemeWagon</a>
+            </div>
+        </div>
+    </footer>
+
 
     <script>
         let map, markers = [], directionsRenderer;

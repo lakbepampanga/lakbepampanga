@@ -31,10 +31,15 @@ Route::post('/password/reset', [ResetPasswordController::class, 'reset'])->name(
 
 // Protected routes (require authentication)
 Route::middleware(['auth'])->group(function () {
-    // Dashboard
+    // Itinerary-Gen
     Route::get('/index', function () {
         return view('index');
     })->name('index');
+
+    // User-Homepage
+    Route::get('/user-home', function () {
+        return view('user-home');
+    })->name('user-home');
     
     // Commuting Guide
     Route::get('/commuting-guide', function () {
