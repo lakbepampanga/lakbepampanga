@@ -8,29 +8,30 @@
   --background-color: #f8f9fa; /* Soft neutral for modern look */
   --default-color: #222222; /* Dark gray for clear text */
   --heading-color: #40513B; /* Green for freshness */
-  --wave-color: #609966; /* Blue for a smooth accent */
-  --accent-color: #9DC08B; /* Golden yellow for highlights */
+  --wave-color: #609966; 
+  --accent-color: #9DC08B; 
   --surface-color: #ffffff; /* White for cards and sections */
   --footer-color: #40513B; /* Deep green for consistency */
   --footer-text: #ffffff;
   --contrast-color: #ffffff; /* Ensuring visibility on dark backgrounds */
-
+  --assets-color: #609966;
+  --assets-hover: #40513B;
   /* Navigation Menu Colors */
   --nav-color: #609966; /* White text for better contrast */
-  --nav-hover-color: #9DC08B; /* Bright yellow hover effect */
+  --nav-hover-color: #9DC08B; 
   --nav-mobile-background-color: #40513B; /* Deep green for mobile nav */
   --nav-dropdown-background-color: #f8f9fa; /* Light dropdown */
   --nav-dropdown-color: #222222; /* Dark gray for readability */
-  --nav-dropdown-hover-color: #609966; /* Blue hover effect */
+  --nav-dropdown-hover-color: #609966; 
 
   /* Button Colors */
-  --button-color: #609966; /* Blue for primary buttons */
+  --button-color: #609966; 
   --button-hover-color: #40513B; /* Green hover effect */
   --button-text-color: #ffffff; /* White text for contrast */
 
   /* Alerts and Callouts */
   --success-color: #40513B; /* Green for success messages */
-  --warning-color: #9DC08B; /* Yellow for warnings */
+  --warning-color: #9DC08B; 
   --error-color: #d9534f; /* Red for errors */
 
   /* Light Theme Presets */
@@ -395,6 +396,7 @@ html, body {
   justify-content: center;
   color: var(--heading-color);
 }
+
 .destination-card {
   transition: 0.3s;
   position: relative; /* Enable positioning for overlay */
@@ -416,6 +418,87 @@ html, body {
   object-fit: cover; /* Maintain aspect ratio */
   width: 100%; /* Ensure the modal image fills the width */
 }
+
+/* visited */
+.place-card img {
+  transition: transform 0.3s ease;
+}
+
+.place-card:hover img {
+  transform: scale(1.05); /* Zoom effect on hover */
+}
+
+.place-card h6 {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+/* scroller */
+.slider-container {
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: #dcdcdc transparent; /* For Firefox */
+}
+.slider-container::-webkit-scrollbar {
+  height: 8px;
+}
+.slider-container::-webkit-scrollbar-thumb {
+  background: #dcdcdc;
+  border-radius: 10px;
+}
+.slider-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* General scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px; /* For vertical scroll */
+  height: 6px; /* For horizontal scroll */
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1; /* Light gray background for the track */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--assets-color); /* Blue for the scrollbar */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--assets-hover); /* Darker blue on hover */
+}
+
+/* Specific styles for route slider (vertical scrolling) */
+.route-slider {
+  scrollbar-width: thin; /* Thin scrollbar for Firefox */
+  scrollbar-color: var(--assets-color) var(--background-color) ;
+}
+
+/* Specific styles for saved itineraries slider (horizontal scrolling) */
+.saved-itineraries-slider {
+  scrollbar-width: thin; /* Thin scrollbar for Firefox */
+  scrollbar-color: var(--assets-color) var(--background-color); /* Color for Firefox scrollbar */
+  overflow-x: scroll; /* Ensure horizontal scrolling is enabled */
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 8px; /* Add space for the horizontal scrollbar */
+}
+
+.saved-itineraries-slider::-webkit-scrollbar {
+  height: 6px; /* Thin horizontal scrollbar */
+}
+
+.saved-itineraries-slider::-webkit-scrollbar-thumb {
+  background: var(--assets-color);
+  border-radius: 10px;
+}
+
+.saved-itineraries-slider::-webkit-scrollbar-thumb:hover {
+  background: var(--assets-hover);
+}
+
 
 /* about */
 
@@ -476,8 +559,8 @@ html, body {
 
     /* Accordion Header When Collapsed */
     #faq .accordion-button.collapsed {
-        background-color: var(--button-color);
-        color: white; /* Dark text color */
+        background-color: white;
+        color: var(--heading-color); /* Dark text color */
     }
 
     #faq .accordion-button.collapsed:hover {

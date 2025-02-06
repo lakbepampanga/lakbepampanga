@@ -85,84 +85,191 @@
 </header>
 
 <main class="main container mt-5">
-    <!-- Welcome Section -->
-    <section class="text-center mb-5">
-        <h1 class="fw-bold">Welcome Back, {{ Auth::user()->name }}!</h1>
-        <p>Let’s plan your next adventure in Pampanga’s First District.</p>
-        <div class="d-flex justify-content-center gap-3">
-            <a href="/index" class="btn btn-primary btn-lg rounded-pill">Plan a New Itinerary</a>
-            <a href="/saved-itinerary" class="btn btn-outline-secondary btn-lg rounded-pill">View Saved Itineraries</a>
-        </div>
-    </section>
-
-    <!-- Quick Action Section -->
-    <section class="mb-5">
-        <h2 class="fw-bold text-center mb-4">Quick Actions</h2>
-        <div class="row text-center">
-            <div class="col-md-4">
-                <a href="/index" class="btn btn-custom rounded-pill px-4 py-3">
-                    <i class="bi bi-plus-circle me-2"></i> Create New Itinerary
-                </a>
-            </div>
-            <div class="col-md-4">
-                <a href="/commuting-guide" class="btn btn-custom rounded-pill px-4 py-3">
-                    <i class="bi bi-bus-front me-2"></i> Commuting Guide
-                </a>
-            </div>
-            <div class="col-md-4">
-                <a href="/saved-itinerary" class="btn btn-custom rounded-pill px-4 py-3">
-                    <i class="bi bi-bookmark-star me-2"></i> Saved Itineraries
-                </a>
+    <!-- Most Visited Places -->
+    <section class="mb-5 mt-5 bg-white " id="visited">
+    <h2 class="fw-bold text-center mb-2">Most Visited Places</h2>
+    <p class="text-center text-muted mb-4">Slide through Pampanga’s top destinations and find your next adventure.</p>
+    
+    <div class="slider-container d-flex overflow-auto gap-4 px-3">
+        <div class="place-card text-white position-relative rounded overflow-hidden flex-shrink-0" style="width: 22rem; height: 18rem;">
+            <img src="{{ asset('img/cards/angeles.webp') }}" class="img-fluid w-100 h-100 object-fit-cover" alt="Angeles">
+            <div class="position-absolute bottom-0 start-0 p-3 bg-opacity-50 bg-dark w-100">
+                <h5 class="fw-bold mb-0">Angeles, Philippines</h5>
             </div>
         </div>
-    </section>
+        <div class="place-card text-white position-relative rounded overflow-hidden flex-shrink-0" style="width: 22rem; height: 18rem;">
+            <img src="{{ asset('img/cards/magalang.webp') }}" class="img-fluid w-100 h-100 object-fit-cover" alt="Magalang">
+            <div class="position-absolute bottom-0 start-0 p-3 bg-opacity-50 bg-dark w-100">
+                <h5 class="fw-bold mb-0">Magalang, Philippines</h5>
+            </div>
+        </div>
+        <div class="place-card text-white position-relative rounded overflow-hidden flex-shrink-0" style="width: 22rem; height: 18rem;">
+            <img src="{{ asset('img/cards/mabalacat.webp') }}" class="img-fluid w-100 h-100 object-fit-cover" alt="Mabalacat">
+            <div class="position-absolute bottom-0 start-0 p-3 bg-opacity-50 bg-dark w-100">
+                <h5 class="fw-bold mb-0">Mabalacat, Philippines</h5>
+            </div>
+        </div>
+        <div class="place-card text-white position-relative rounded overflow-hidden flex-shrink-0" style="width: 22rem; height: 18rem;">
+            <img src="{{ asset('img/cards/mabalacat.webp') }}" class="img-fluid w-100 h-100 object-fit-cover" alt="Clark">
+            <div class="position-absolute bottom-0 start-0 p-3 bg-opacity-50 bg-dark w-100">
+                <h5 class="fw-bold mb-0">Coffee Cat, Angeles</h5>
+            </div>
+        </div>
+    </div>
+</section>
 
-    <!-- Featured Destinations -->
-    <section class="mb-5">
-        <h2 class="fw-bold text-center mb-4">Featured Destinations</h2>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card shadow-sm">
-                    <img src="{{ asset('img/cards/angeles.webp') }}" class="card-img-top" alt="Angeles">
-                    <div class="card-body">
-                        <h5 class="card-title">Angeles, Pampanga</h5>
-                        <p class="card-text">Explore the vibrant streets and historical landmarks of Angeles City.</p>
-                        <a href="/destinations/angeles" class="btn btn-primary btn-sm">Discover More</a>
+<section class="mb-5 bg-white p-4 rounded" id="itineraries">
+    <div class="row g-5">
+        <!-- Recently Searched Routes -->
+        <div class="col-md-6 d-flex flex-column">
+            <h3 class="fw-bold text-center mb-2">Recently Searched Routes</h3>
+            <div class="route-slider p-3 rounded shadow-sm flex-grow-1" style="max-height: 300px; overflow-y: auto;">
+                <div class="route-card p-3 rounded shadow-sm d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-1">Angeles to Clark</h6>
+                        <p class="text-muted mb-0 small">Best jeepney route: Angeles - Checkpoint - Clark Freeport Zone.</p>
                     </div>
+                    <a href="/commuting-guide" class="btn btn-outline-primary btn-sm rounded-pill">View</a>
+                </div>
+                <div class="route-card p-3 rounded shadow-sm d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-1">Magalang to Angeles</h6>
+                        <p class="text-muted mb-0 small">Recommended route: Magalang - Highway Jeepney via Dau Terminal.</p>
+                    </div>
+                    <a href="/commuting-guide" class="btn btn-outline-primary btn-sm rounded-pill">View</a>
+                </div>
+                <div class="route-card p-3 rounded shadow-sm d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-1">Mabalacat to Dau Terminal</h6>
+                        <p class="text-muted mb-0 small">Suggested route: Mabalacat Town Proper - Dau Terminal Jeepney.</p>
+                    </div>
+                    <a href="/commuting-guide" class="btn btn-outline-primary btn-sm rounded-pill">View</a>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card shadow-sm">
-                    <img src="{{ asset('img/cards/magalang.webp') }}" class="card-img-top" alt="Magalang">
-                    <div class="card-body">
-                        <h5 class="card-title">Magalang, Pampanga</h5>
-                        <p class="card-text">Immerse yourself in nature at Mount Arayat and other scenic spots.</p>
-                        <a href="/destinations/magalang" class="btn btn-primary btn-sm">Discover More</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card shadow-sm">
-                    <img src="{{ asset('img/cards/mabalacat.webp') }}" class="card-img-top" alt="Mabalacat">
-                    <div class="card-body">
-                        <h5 class="card-title">Mabalacat, Pampanga</h5>
-                        <p class="card-text">Experience the gateway to Clark and modern Pampanga.</p>
-                        <a href="/destinations/mabalacat" class="btn btn-primary btn-sm">Discover More</a>
-                    </div>
-                </div>
+            <div class="text-center mt-4">
+                <a href="/commuting-guide" class="btn btn-custom rounded-pill">See More Routes</a>
             </div>
         </div>
-    </section>
 
-    <!-- Commute Guide -->
-    <section class="mb-5">
-        <h2 class="fw-bold text-center mb-4">Your Commute Guide</h2>
-        <div class="text-center">
-            <p>Navigate Pampanga with ease. Check jeepney routes, schedules, and fares.</p>
-            <a href="/commuting-guide" class="btn btn-outline-primary rounded-pill">Explore Commute Guide</a>
+        <!-- Saved Itineraries -->
+        <div class="col-md-6 d-flex flex-column">
+            <h3 class="fw-bold text-center mb-2">Saved Itineraries</h3>
+            <div class="saved-itineraries-slider d-flex gap-3 overflow-auto p-3 rounded shadow-sm flex-grow-1">
+    <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
+        <div class="card-body d-flex flex-column justify-content-center align-items-center">
+            <h4 class="card-title fw-bold">Adventure in Angeles</h4>
+            <p class="card-text text-muted">Explore Angeles City with this 1-day itinerary.</p>
+            <a href="/saved-itinerary" class="btn btn-outline-primary btn-lg rounded-pill mt-2">View Itinerary</a>
         </div>
-    </section>
+    </div>
+    <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
+        <div class="card-body d-flex flex-column justify-content-center align-items-center">
+            <h4 class="card-title fw-bold">Magalang Escape</h4>
+            <p class="card-text text-muted">Enjoy the scenic beauty of Mount Arayat.</p>
+            <a href="/saved-itinerary" class="btn btn-outline-primary btn-lg rounded-pill mt-2">View Itinerary</a>
+        </div>
+    </div>
+    <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
+        <div class="card-body d-flex flex-column justify-content-center align-items-center">
+            <h4 class="card-title fw-bold">Clark Gateway</h4>
+            <p class="card-text text-muted">Discover Clark's top attractions in a day.</p>
+            <a href="/saved-itinerary" class="btn btn-outline-primary btn-lg rounded-pill mt-2">View Itinerary</a>
+        </div>
+    </div>
+</div>
+
+            <div class="text-center mt-4">
+                <a href="/saved-itinerary" class="btn btn-custom rounded-pill">See All Itineraries</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+
 </main>
 
+<a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+<!-- main js -->
+<script src="{{ asset('js/main.js') }}"></script>
+
+<!-- Vendor JS Files -->
+<script src="{{ asset('vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ asset('vendor/php-email-form/validate.js') }}"></script>
+<script src="{{ asset('vendor/aos/aos.js') }}"></script>
+<script src="{{ asset('vendor/glightbox/js/glightbox.min.js') }}"></script>
+<script src="{{ asset('vendor/purecounter/purecounter_vanilla.js') }}"></script>
+<script src="{{ asset('vendor/swiper/swiper-bundle.min.js') }}"></script>
+
+<script>
+    const slider = document.querySelector('.slider-container');
+
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    slider.addEventListener('mousedown', (e) => {
+        isDown = true;
+        slider.classList.add('active');
+        startX = e.pageX - slider.offsetLeft;
+        scrollLeft = slider.scrollLeft;
+    });
+
+    slider.addEventListener('mouseleave', () => {
+        isDown = false;
+        slider.classList.remove('active');
+    });
+
+    slider.addEventListener('mouseup', () => {
+        isDown = false;
+        slider.classList.remove('active');
+    });
+
+    slider.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - slider.offsetLeft;
+        const walk = (x - startX) * 2; // Scroll-fast
+        slider.scrollLeft = scrollLeft - walk;
+    });
+</script>
+
+<!-- saved itinerary slider -->
+<script>
+    const itinerarySlider = document.querySelector('.saved-itineraries-slider');
+
+let isDown = false;
+let startX;
+let scrollLeft;
+
+itinerarySlider.addEventListener('mousedown', (e) => {
+    isDown = true;
+    itinerarySlider.classList.add('active');
+    startX = e.pageX - itinerarySlider.offsetLeft;
+    scrollLeft = itinerarySlider.scrollLeft;
+});
+
+itinerarySlider.addEventListener('mouseleave', () => {
+    isDown = false;
+    itinerarySlider.classList.remove('active');
+});
+
+itinerarySlider.addEventListener('mouseup', () => {
+    isDown = false;
+    itinerarySlider.classList.remove('active');
+});
+
+itinerarySlider.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - itinerarySlider.offsetLeft;
+    const walk = (x - startX) * 2; // Adjust scroll speed
+    itinerarySlider.scrollLeft = scrollLeft - walk;
+});
+
+
+    </script>
 
 </body>

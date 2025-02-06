@@ -145,7 +145,7 @@
     </div>
 </header>
 <!-- main -->
-<main class="main container mt-5 pt-5 mb-5">
+<main class="main container mt-5 pt-5 mb-5 vh-100">
     <div class="container mt-4 pt-4">
         <div class="row">
             <!-- Input Section (Left) -->

@@ -283,20 +283,17 @@
 
     <!-- Hero Section -->
     <section class="hero text-center bg-white">
-        <div>
-            <h1 class="display-3 fw-bold">Lakbe Pampanga</h1>
-            <p class="lead">Explore Pampanga’s First District with ease—find the best routes, top spots<br>and convenient jeepney rides.</p>
+    <div>
+        <h1 class="display-3 fw-bold">Lakbe Pampanga</h1>
+        <p class="lead">Explore Pampanga’s First District with ease—find the best routes, top spots<br>and convenient jeepney rides.</p>
 
-            <div class="text-center mt-4">
-                <button class="btn btn-custom rounded-pill px-4 py-2" data-bs-toggle="modal" data-bs-target="#loginModal">
-                    Start Trip
-                </button>
-            </div>
-
-
-
+        <div class="text-center mt-4">
+            <button class="btn btn-custom rounded-pill px-4 py-2" data-bs-toggle="modal" data-bs-target="#loginModal">
+                Start Trip
+            </button>
         </div>
-    </section>
+    </div>
+</section>
     <!-- district 1 -->
 
     <section class="mt-5 bg-white" id="about">
