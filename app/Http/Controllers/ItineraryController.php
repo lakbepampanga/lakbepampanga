@@ -129,6 +129,7 @@ class ItineraryController extends Controller
                 $itineraryItem['latitude'] = $nextDestination->latitude;
                 $itineraryItem['longitude'] = $nextDestination->longitude;
                 $itineraryItem['description'] = $nextDestination->description ?? 'No description available.';
+                $itineraryItem['image_url'] = $nextDestination->image_url;
     
                 $itinerary[] = $itineraryItem;
                 $timeSpent += $travelTime + $visitTime;
@@ -290,6 +291,7 @@ private function addToItineraryWithCommute($destination, $travelTime, $visitTime
         'type' => $destination->type,
         'travel_time' => $travelTime,
         'visit_time' => $visitTime,
+        'image_url' => $destination->image_url,
         'commute_instructions' => $commuteInstructions,
     ];
 }

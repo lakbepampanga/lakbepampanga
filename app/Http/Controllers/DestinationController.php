@@ -25,8 +25,24 @@ class DestinationController extends Controller
                 $destination->latitude,
                 $destination->longitude
             );
-            $destination->distance = $distance;
-            return $destination;
+            
+            // Include the distance and image_url in the destination data
+            return [
+                'id' => $destination->id,
+                'name' => $destination->name,
+                'latitude' => $destination->latitude,
+                'longitude' => $destination->longitude,
+                'description' => $destination->description,
+                'image_url' => $destination->image_url, // This will use your accessor
+                'travel_time' => $destination->travel_time,
+                'city' => $destination->city,
+                'type' => $destination->type,
+                'priority' => $destination->priority,
+                'opening_time' => $destination->opening_time,
+                'closing_time' => $destination->closing_time,
+                'route_id' => $destination->route_id,
+                'distance' => $distance
+            ];
         })->sortBy('distance'); // Sort by nearest distance
 
         return response()->json($destinations);

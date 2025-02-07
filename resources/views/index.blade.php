@@ -142,6 +142,18 @@
     background-color: var(--accent-color);
     color: var(--contrast-color);
 }
+.card {
+    transition: transform 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.badge {
+    font-size: 0.8rem;
+    padding: 0.5em 1em;
+}
 
     </style>
 
@@ -556,40 +568,45 @@ function initAutocomplete() {
                     </div>`;
 
                     currentItineraryData.forEach((destination, index) => {
-    itineraryHTML += `
-        <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
-            <div class="row g-0">
-                <!-- Left Column: Placeholder Image -->
-                <div class="col-md-4">
-                    <img src="https://www.svgrepo.com/show/508699/landscape-placeholder.svg" 
-                         class="img-fluid rounded-start" 
-                         alt="Placeholder for ${destination.name}">
-                </div>
-                <!-- Right Column: Content -->
-                <div class="col-md-8">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h5 class="card-title">
-                                ${destination.name} (${destination.type})
-                                
-                            </h5>
-                        </div>
-                            <p class="card-text text-muted">${destination.description}</p>
-                        <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
-                        <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
-                        <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
-                        <button class="btn btn-sm btn-custom edit-destination" 
-                                    data-index="${index}"
-                                    data-lat="${destination.latitude}"
-                                    data-lng="${destination.longitude}">
-                                <i class="bi bi-pencil"></i> Change
-                            </button>
-                       
-                        
-                    </div>
+                        itineraryHTML += `
+    <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
+        <div class="row g-0">
+            <!-- Left Column: Image -->
+            <div class="col-md-4 position-relative">
+                <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+                     class="img-fluid rounded-start" 
+                     alt="${destination.name}"
+                     onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'"
+                     style="width: 100%; height: 250px; object-fit: cover;">
+                <div class="position-absolute top-0 start-0 m-2">
+                    <span class="badge ${destination.type === 'restaurant' ? 'bg-success' : 'bg-primary'} rounded-pill">
+                        <i class="bi ${destination.type === 'restaurant' ? 'bi-shop' : 'bi-geo-alt'}"></i>
+                        ${destination.type.charAt(0).toUpperCase() + destination.type.slice(1)}
+                    </span>
                 </div>
             </div>
-        </div>`;
+            <!-- Right Column: Content -->
+            <div class="col-md-8">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="card-title">
+                            ${destination.name} (${destination.type})
+                        </h5>
+                    </div>
+                    <p class="card-text text-muted">${destination.description}</p>
+                    <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
+                    <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
+                    <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+                    <button class="btn btn-sm btn-custom edit-destination" 
+                            data-index="${index}"
+                            data-lat="${destination.latitude}"
+                            data-lng="${destination.longitude}">
+                        <i class="bi bi-pencil"></i> Change
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>`;
 
     const lat = parseFloat(destination.latitude);
     const lng = parseFloat(destination.longitude);
