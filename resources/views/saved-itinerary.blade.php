@@ -71,8 +71,8 @@
                     
                     <!-- Left: Itinerary Card -->
                     <div class="card itinerary-card flex-grow-1 shadow-sm"
-                    data-itinerary="{{ json_encode($itinerary) }}" 
-                    data-map-container="map-container-{{ $itinerary->id }}">
+                        data-itinerary="{{ json_encode($itinerary) }}" 
+                        data-map-container="map-container-{{ $itinerary->id }}">
 
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-3">
@@ -132,8 +132,8 @@
 
                             <div class="d-flex justify-content-between mt-3">
                                 <form action="{{ route('itineraries.destroy', $itinerary->id) }}"
-                                      method="POST"
-                                      onsubmit="return confirm('Are you sure you want to delete this itinerary?');">
+                                    method="POST"
+                                    onsubmit="return confirm('Are you sure you want to delete this itinerary?');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger">
@@ -141,18 +141,39 @@
                                     </button>
                                 </form>
                             </div>
+                            <!-- View Map Button (Mobile Only) -->
+                            <button class="btn btn-outline-primary w-100 mt-3 d-md-none view-map-btn" 
+                                data-map-container="map-container-{{ $itinerary->id }}" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#mapModal">
+                                <i class="bi bi-map"></i> View Map
+                            </button>
                         </div>
                     </div>
 
                     <!-- Right: Map -->
-                    <div id="map-container-{{ $itinerary->id }}" class="map-container" style="width: 50%; border: 1px solid #ddd; border-radius: 8px;"></div>
-                
-                </div> <!-- Closing div for itinerary row -->
+                    <div id="map-container-{{ $itinerary->id }}" class="map-container d-none d-md-block" style="width: 50%; border: 1px solid #ddd; border-radius: 8px;"></div>
+                </div>
             @endforeach
         </div>
     @endif
 </div>
 
+ <!-- Map Modal -->
+<div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mapModalLabel">Itinerary Map</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Placeholder for the modal map -->
+                <div id="modal-map-container" class="w-100" style="height: 100vh;"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
     <!-- Report Modal -->
 <div class="modal fade custom-report-modal" id="reportModal" tabindex="-1" aria-hidden="true">
@@ -200,22 +221,24 @@
 
 @push('scripts')
 <script>
-window.onload = function() {
+document.addEventListener("DOMContentLoaded", function () {
     let maps = {};
     let markers = {};
+    let modalMap = null; // For the modal map instance
+    let modalMapContainer = document.getElementById("modal-map-container");
     let directionsService = new google.maps.DirectionsService();
     let directionsRenderers = {};
 
     // Ensure Google Maps API is loaded
-    if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+    if (typeof google === "undefined" || typeof google.maps === "undefined") {
         console.error("Google Maps API is not loaded.");
         return;
     }
 
     // Initialize maps for each itinerary
-    document.querySelectorAll('.itinerary-card').forEach(card => {
-        const itineraryDataAttr = card.getAttribute('data-itinerary');
-        const mapContainerId = card.getAttribute('data-map-container');
+    document.querySelectorAll(".itinerary-card").forEach((card) => {
+        const itineraryDataAttr = card.getAttribute("data-itinerary");
+        const mapContainerId = card.getAttribute("data-map-container");
 
         // Ensure data attributes exist
         if (!itineraryDataAttr || !mapContainerId) {
@@ -246,7 +269,7 @@ window.onload = function() {
 
         // Clear previous markers
         if (markers[containerId]) {
-            markers[containerId].forEach(marker => marker.setMap(null));
+            markers[containerId].forEach((marker) => marker.setMap(null));
         }
         markers[containerId] = [];
 
@@ -257,12 +280,12 @@ window.onload = function() {
                 center: {
                     lat: parseFloat(itineraryData.start_lat),
                     lng: parseFloat(itineraryData.start_lng),
-                }
+                },
             });
 
             directionsRenderers[containerId] = new google.maps.DirectionsRenderer({
                 map: maps[containerId],
-                suppressMarkers: true
+                suppressMarkers: true,
             });
         }
 
@@ -274,7 +297,7 @@ window.onload = function() {
                     lng: parseFloat(itineraryData.start_lng),
                 },
                 map: maps[containerId],
-                title: 'Starting Point',
+                title: "Starting Point",
             })
         );
 
@@ -294,122 +317,70 @@ window.onload = function() {
 
         // Adjust map bounds
         const bounds = new google.maps.LatLngBounds();
-        markers[containerId].forEach(marker => bounds.extend(marker.getPosition()));
+        markers[containerId].forEach((marker) =>
+            bounds.extend(marker.getPosition())
+        );
         maps[containerId].fitBounds(bounds);
     }
 
-    // Handle report modal data population
-    document.querySelectorAll('.report-instructions').forEach(button => {
-        button.addEventListener('click', function () {
-            document.getElementById('reportDestination').value = this.dataset.destination;
-            document.getElementById('reportItinerary').value = this.dataset.itineraryId;
-            document.getElementById('reportCurrentInstructions').value = this.dataset.instructions;
-        });
-    });
+    // Handle "View Map" button clicks for each itinerary
+    document.querySelectorAll(".view-map-btn").forEach((button) => {
+        button.addEventListener("click", function () {
+            const mapContainerId = this.getAttribute("data-map-container");
+            const originalMap = maps[mapContainerId];
 
-    // Handle "Mark Visited" form submission
-    document.querySelectorAll('.destination-item form').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(form);
-            const actionUrl = form.action;
-            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-            fetch(actionUrl, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': token
-                },
-                body: formData,
-                credentials: 'same-origin'
-            })
-            .then(async response => {
-                const responseText = await response.text();
-
-                if (responseText.includes('loginModal')) {
-                    alert('Your session has expired. Please log in again.');
-                    window.location.href = '/login';
-                    return;
-                }
-
-                try {
-                    const data = JSON.parse(responseText);
-                    if (data.success) {
-                        const badge = document.createElement('span');
-                        badge.className = 'badge bg-success';
-                        badge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Visited';
-                        form.replaceWith(badge);
-                    } else if (data.error) {
-                        console.error('Server error:', data.error);
-                        alert(data.error);
-                    }
-                } catch (e) {
-                    console.error('Response parsing error:', e);
-                    alert('An error occurred. Please refresh the page and try again.');
-                }
-            })
-            .catch(error => {
-                console.error('Network error:', error);
-                alert('A network error occurred. Please check your connection and try again.');
-            });
-        });
-    });
-
-    // Handle report form submission
-    document.getElementById('reportForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const formData = new FormData(this);
-        const submitButton = this.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-
-        fetch(this.action, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Thank you for your report. We will review it shortly.');
-                bootstrap.Modal.getInstance(document.getElementById('reportModal')).hide();
-                this.reset();
-            } else {
-                alert(data.error || 'An error occurred while submitting your report.');
+            if (!originalMap) {
+                console.error(`No map found for container: ${mapContainerId}`);
+                return;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while submitting your report.');
-        })
-        .finally(() => {
-            submitButton.disabled = false;
+
+            // Initialize modal map if not already created
+            if (!modalMap) {
+                modalMap = new google.maps.Map(modalMapContainer, {
+                    zoom: 13,
+                    center: originalMap.getCenter(),
+                });
+            }
+
+            // Synchronize modal map with the original map
+            modalMap.setCenter(originalMap.getCenter());
+            modalMap.setZoom(originalMap.getZoom());
+
+            // Remove old markers from the modal map
+            if (markers["modal-map"]) {
+                markers["modal-map"].forEach((marker) => marker.setMap(null));
+            }
+            markers["modal-map"] = [];
+
+            // Add all markers from the original map to the modal map
+            markers[mapContainerId].forEach((marker) => {
+                const position = marker.getPosition();
+                const title = marker.getTitle();
+
+                const modalMarker = new google.maps.Marker({
+                    position,
+                    map: modalMap,
+                    title,
+                });
+
+                markers["modal-map"].push(modalMarker);
+            });
+
+            // Adjust bounds in the modal map
+            const bounds = new google.maps.LatLngBounds();
+            markers["modal-map"].forEach((marker) =>
+                bounds.extend(marker.getPosition())
+            );
+            modalMap.fitBounds(bounds);
+
+            // Trigger map resize event to make it display properly in the modal
+            google.maps.event.trigger(modalMap, "resize");
         });
-    });
-};
-
-document.addEventListener("DOMContentLoaded", function () {
-    let reportModal = document.getElementById('reportModal');
-
-    // When the modal is fully hidden, remove the backdrop manually
-    reportModal.addEventListener('hidden.bs.modal', function () {
-        let backdrop = document.querySelector('.modal-backdrop');
-        if (backdrop) {
-            backdrop.remove(); // Remove the stuck modal backdrop
-        }
-
-        // Ensure the body is not left in a modal-open state
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
     });
 });
-
-
 </script>
+
+
 @endpush
 
 

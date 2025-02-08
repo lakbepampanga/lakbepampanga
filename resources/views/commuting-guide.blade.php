@@ -150,22 +150,22 @@
         <div class="row">
             <!-- Input Section (Left) -->
             <div class="col-md-6">
-                    <div id="input-section">
-                        <div class="mb-4">
-                            <h1 class="fw-bold text-custom">Pampanga<br>Commuting Guide</h1>
-                            <p class="text-muted">Plan your trip with ease and get the best commuting routes.</p>
-                        </div>
-                        <div class="mt-4 rounded w-75">
-                            <div class="mb-3">
-                                <label for="start" class="form-label fw-bold">Enter your location:</label>
-                                <div class="input-group">
-                                    <input type="text" id="start" class="form-control shadow-sm" placeholder="e.g., Clark Freeport Zone">
-                                    <button class="btn btn-custom" type="button" id="get-location">
-                                        <i class="bi bi-crosshair"></i>
-                                    </button>
-                                </div>
-                                <small id="location-status" class="form-text text-muted"></small>
+                <div id="input-section">
+                    <div class="mb-4">
+                        <h1 class="fw-bold text-custom">Pampanga<br>Commuting Guide</h1>
+                        <p class="text-muted">Plan your trip with ease and get the best commuting routes.</p>
+                    </div>
+                    <div class="mt-4 rounded w-75">
+                        <div class="mb-3">
+                            <label for="start" class="form-label fw-bold">Enter your location:</label>
+                            <div class="input-group">
+                                <input type="text" id="start" class="form-control shadow-sm" placeholder="e.g., Clark Freeport Zone">
+                                <button class="btn btn-custom" type="button" id="get-location">
+                                    <i class="bi bi-crosshair"></i>
+                                </button>
                             </div>
+                            <small id="location-status" class="form-text text-muted"></small>
+                        </div>
 
                         <div class="mb-3">
                             <label for="end" class="form-label fw-bold">Enter your destination:</label>
@@ -187,15 +187,37 @@
                 </div>
             </div>
 
-            <!-- Map Section (Right) -->
+            <!-- Map Section (Right) - Hidden on Mobile -->
             <div class="col-md-6">
-                <div id="map" class="w-100 rounded shadow-sm" style="height: 500px; border: 1px solid #e0e0e0;"></div>
+                <div id="map-container" class="d-none d-md-block">
+                    <div id="map" class="w-100 rounded shadow-sm" style="height: 500px; border: 1px solid #e0e0e0;"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    
+    <!-- View Map Button (Visible on Mobile Only) -->
+    <button id="view-map-btn" class="btn btn-custom rounded-pill d-md-none position-fixed start-50 translate-middle-x" style="bottom: 140px; z-index: 1050;">
+        View Map
+    </button>
+
+    <!-- Mobile Map Modal -->
+    <div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Map View</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- The same map will be loaded here for mobile view -->
+                    <div id="map-popup" class="w-100 rounded shadow-sm" style="height: 100vh;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
+
 
 <!-- Report Modal -->
 <div class="modal fade" id="reportModal" tabindex="-1">
@@ -760,6 +782,73 @@ document.addEventListener('click', function(e) {
         document.getElementById('displayEnd').textContent = currentGuideData.end;
     }
 });
+
     </script>
+
+<!-- view button scripts -->
+<script>
+    let popupMap, popupDirectionsRenderer;
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const viewMapButton = document.getElementById("view-map-btn");
+        const mapModal = document.getElementById("mapModal");
+
+        // Function to sync main map to modal map
+        function syncMapToModal() {
+            if (!popupMap) {
+                // Initialize new map inside the modal
+                popupMap = new google.maps.Map(document.getElementById("map-popup"), {
+                    center: map.getCenter(),
+                    zoom: map.getZoom(),
+                });
+
+                popupDirectionsRenderer = new google.maps.DirectionsRenderer({
+                    map: popupMap,
+                    suppressMarkers: true,
+                    polylineOptions: {
+                        strokeColor: "#FF0000",
+                        strokeWeight: 4
+                    }
+                });
+
+            } else {
+                // Ensure map resizes properly inside modal
+                google.maps.event.trigger(popupMap, "resize");
+                popupMap.setCenter(map.getCenter());
+            }
+
+            // Clear previous markers and re-add them
+            markers.forEach(marker => {
+                new google.maps.Marker({
+                    position: marker.getPosition(),
+                    title: marker.getTitle(),
+                    map: popupMap,
+                });
+            });
+
+            // Sync drawn routes from main map to modal
+            if (directionsRenderer && directionsRenderer.getDirections()) {
+                popupDirectionsRenderer.setDirections(directionsRenderer.getDirections());
+            }
+        }
+
+        // When modal is opened, sync the latest map
+        mapModal.addEventListener("shown.bs.modal", syncMapToModal);
+
+        // Open the modal when "View Map" button is clicked
+        viewMapButton.addEventListener("click", function () {
+            const mapModalInstance = new bootstrap.Modal(mapModal);
+            mapModalInstance.show();
+        });
+
+        // Also sync the map whenever a new route is generated
+        document.getElementById("generate-guide").addEventListener("click", function () {
+            setTimeout(syncMapToModal, 1000); // Wait 1s to ensure route is drawn before syncing
+        });
+    });
+</script>
+
+
+
 </body>
 </html>

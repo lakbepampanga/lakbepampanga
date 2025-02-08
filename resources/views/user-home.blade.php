@@ -120,63 +120,32 @@
 
 <section class="mb-5 bg-white p-4 rounded" id="itineraries">
     <div class="row g-5">
-        <!-- Recently Searched Routes -->
-        <div class="col-md-6 d-flex flex-column">
-            <h3 class="fw-bold text-center mb-2">Recently Searched Routes</h3>
-            <div class="route-slider p-3 rounded shadow-sm flex-grow-1" style="max-height: 300px; overflow-y: auto;">
-                <div class="route-card p-3 rounded shadow-sm d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="fw-bold mb-1">Angeles to Clark</h6>
-                        <p class="text-muted mb-0 small">Best jeepney route: Angeles - Checkpoint - Clark Freeport Zone.</p>
-                    </div>
-                    <a href="/commuting-guide" class="btn btn-outline-primary btn-sm rounded-pill">View</a>
-                </div>
-                <div class="route-card p-3 rounded shadow-sm d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="fw-bold mb-1">Magalang to Angeles</h6>
-                        <p class="text-muted mb-0 small">Recommended route: Magalang - Highway Jeepney via Dau Terminal.</p>
-                    </div>
-                    <a href="/commuting-guide" class="btn btn-outline-primary btn-sm rounded-pill">View</a>
-                </div>
-                <div class="route-card p-3 rounded shadow-sm d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="fw-bold mb-1">Mabalacat to Dau Terminal</h6>
-                        <p class="text-muted mb-0 small">Suggested route: Mabalacat Town Proper - Dau Terminal Jeepney.</p>
-                    </div>
-                    <a href="/commuting-guide" class="btn btn-outline-primary btn-sm rounded-pill">View</a>
-                </div>
-            </div>
-            <div class="text-center mt-4">
-                <a href="/commuting-guide" class="btn btn-custom rounded-pill">See More Routes</a>
-            </div>
-        </div>
-
         <!-- Saved Itineraries -->
-        <div class="col-md-6 d-flex flex-column">
+        <div class="col-md-12 d-flex flex-column">
             <h3 class="fw-bold text-center mb-2">Saved Itineraries</h3>
             <div class="saved-itineraries-slider d-flex gap-3 overflow-auto p-3 rounded shadow-sm flex-grow-1">
-    <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
-        <div class="card-body d-flex flex-column justify-content-center align-items-center">
-            <h4 class="card-title fw-bold">Adventure in Angeles</h4>
-            <p class="card-text text-muted">Explore Angeles City with this 1-day itinerary.</p>
-            <a href="/saved-itinerary" class="btn btn-outline-primary btn-lg rounded-pill mt-2">View Itinerary</a>
-        </div>
-    </div>
-    <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
-        <div class="card-body d-flex flex-column justify-content-center align-items-center">
-            <h4 class="card-title fw-bold">Magalang Escape</h4>
-            <p class="card-text text-muted">Enjoy the scenic beauty of Mount Arayat.</p>
-            <a href="/saved-itinerary" class="btn btn-outline-primary btn-lg rounded-pill mt-2">View Itinerary</a>
-        </div>
-    </div>
-    <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
-        <div class="card-body d-flex flex-column justify-content-center align-items-center">
-            <h4 class="card-title fw-bold">Clark Gateway</h4>
-            <p class="card-text text-muted">Discover Clark's top attractions in a day.</p>
-            <a href="/saved-itinerary" class="btn btn-outline-primary btn-lg rounded-pill mt-2">View Itinerary</a>
-        </div>
-    </div>
-</div>
+                <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                        <h4 class="card-title fw-bold">Adventure in Angeles</h4>
+                        <p class="card-text text-muted">Explore Angeles City with this 1-day itinerary.</p>
+                        <a href="/saved-itinerary" class="btn btn-outline-primary btn-lg rounded-pill mt-2">View Itinerary</a>
+                    </div>
+                </div>
+                <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                        <h4 class="card-title fw-bold">Magalang Escape</h4>
+                        <p class="card-text text-muted">Enjoy the scenic beauty of Mount Arayat.</p>
+                        <a href="/saved-itinerary" class="btn btn-outline-primary btn-lg rounded-pill mt-2">View Itinerary</a>
+                    </div>
+                </div>
+                <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                        <h4 class="card-title fw-bold">Clark Gateway</h4>
+                        <p class="card-text text-muted">Discover Clark's top attractions in a day.</p>
+                        <a href="/saved-itinerary" class="btn btn-outline-primary btn-lg rounded-pill mt-2">View Itinerary</a>
+                    </div>
+                </div>
+            </div>
 
             <div class="text-center mt-4">
                 <a href="/saved-itinerary" class="btn btn-custom rounded-pill">See All Itineraries</a>
@@ -184,6 +153,7 @@
         </div>
     </div>
 </section>
+
 
 
 
