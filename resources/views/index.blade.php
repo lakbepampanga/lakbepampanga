@@ -681,6 +681,7 @@ async function handleDestinationSelect(newDestination) {
             description: newDestination.description,
             latitude: newDestination.latitude,
             longitude: newDestination.longitude,
+            image_url: newDestination.image_url, // Make sure to include image_url
             travel_time: updatedItem.travel_time,
             visit_time: updatedItem.visit_time,
             commute_instructions: updatedItem.commute_instructions
@@ -703,38 +704,37 @@ async function handleDestinationSelect(newDestination) {
         currentItineraryData.forEach((destination, index) => {
             itineraryHTML += `
                 <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
-            <div class="row g-0">
-                <!-- Left Column: Placeholder Image -->
-                <div class="col-md-4">
-                    <img src="https://www.svgrepo.com/show/508699/landscape-placeholder.svg" 
-                         class="img-fluid rounded-start" 
-                         alt="Placeholder for ${destination.name}">
-                </div>
-                <!-- Right Column: Content -->
-                <div class="col-md-8">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h5 class="card-title">
-                                ${destination.name} (${destination.type})
-                                
-                            </h5>
+                    <div class="row g-0">
+                        <!-- Left Column: Image -->
+                        <div class="col-md-4">
+                            <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+                                 class="img-fluid rounded-start" 
+                                 alt="${destination.name}"
+                                 style="width: 100%; height: 250px; object-fit: cover;"
+                                 onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'">
                         </div>
-                            <p class="card-text text-muted">${destination.description}</p>
-                        <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
-                        <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
-                        <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
-                        <button class="btn btn-sm btn-custom edit-destination" 
-                                    data-index="${index}"
-                                    data-lat="${destination.latitude}"
-                                    data-lng="${destination.longitude}">
-                                <i class="bi bi-pencil"></i> Change
-                            </button>
-                       
-                        
+                        <!-- Right Column: Content -->
+                        <div class="col-md-8">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h5 class="card-title">
+                                        ${destination.name} (${destination.type})
+                                    </h5>
+                                </div>
+                                <p class="card-text text-muted">${destination.description}</p>
+                                <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
+                                <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
+                                <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+                                <button class="btn btn-sm btn-custom edit-destination" 
+                                        data-index="${index}"
+                                        data-lat="${destination.latitude}"
+                                        data-lng="${destination.longitude}">
+                                    <i class="bi bi-pencil"></i> Change
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-        </div>`;
+                </div>`;
 
             const lat = parseFloat(destination.latitude);
             const lng = parseFloat(destination.longitude);
@@ -749,9 +749,9 @@ async function handleDestinationSelect(newDestination) {
 
         // Reattach event listeners
         document.querySelector('.save-itinerary').addEventListener('click', () => {
-    console.log('Current itinerary data before saving:', currentItineraryData);
-    saveItinerary(currentItineraryData);
-});
+            console.log('Current itinerary data before saving:', currentItineraryData);
+            saveItinerary(currentItineraryData);
+        });
 
         document.querySelectorAll('.edit-destination').forEach(button => {
             button.addEventListener('click', (e) => {
@@ -923,10 +923,17 @@ async function fetchAlternativeDestinations(lat, lng) {
         container.innerHTML = destinations.map(dest => `
             <button class="list-group-item list-group-item-action" 
                     onclick="selectNewDestination(${JSON.stringify(dest).replace(/"/g, '&quot;')})">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
+                <div class="d-flex w-100">
+                    <div class="flex-shrink-0" style="width: 100px; height: 100px;">
+                        <img src="${dest.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+                             class="img-fluid rounded"
+                             alt="${dest.name}"
+                             style="width: 100px; height: 100px; object-fit: cover;"
+                             onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'">
+                    </div>
+                    <div class="ms-3 flex-grow-1">
                         <h6 class="mb-1">${dest.name}</h6>
-                        <p class="mb-1 text-muted small">${dest.description}</p>
+                        <p class="mb-1 text-muted small">${dest.description || 'No description available.'}</p>
                         <small>Type: ${dest.type}</small>
                     </div>
                 </div>
@@ -944,6 +951,8 @@ async function fetchAlternativeDestinations(lat, lng) {
 // Update the selectNewDestination function to include starting coordinates
 async function selectNewDestination(newDestination) {
     try {
+        console.log('Selected new destination:', newDestination); // Debug log
+        
         const response = await fetch('/api/update-itinerary-item', {
             method: 'POST',
             headers: {
@@ -962,20 +971,71 @@ async function selectNewDestination(newDestination) {
         if (!response.ok) throw new Error('Failed to update itinerary');
         
         const updatedItem = await response.json();
+        console.log('Received updated item:', updatedItem); // Debug log
         
         // Update currentItineraryData with the new destination
         currentItineraryData[editingIndex] = {
-            ...newDestination,
-            travel_time: updatedItem.travel_time,
-            visit_time: updatedItem.visit_time,
-            commute_instructions: updatedItem.commute_instructions
+            ...updatedItem,
+            latitude: newDestination.latitude,
+            longitude: newDestination.longitude,
+            description: newDestination.description,
+            image_url: newDestination.image_url // Make sure we keep the image URL
         };
 
-        console.log('Updated currentItineraryData:', currentItineraryData); // Debug log
+        console.log('Updated itinerary data:', currentItineraryData[editingIndex]); // Debug log
         
-        // Update the itinerary UI
-        updateItineraryItem(editingIndex, updatedItem, newDestination);
-        
+        // Update the specific card in the DOM
+        const itemElement = document.querySelector(`[data-destination-id="${editingIndex}"]`);
+        if (itemElement) {
+            const newCard = document.createElement('div');
+            newCard.className = "card mb-3 shadow-sm border-0";
+            newCard.setAttribute("data-destination-id", editingIndex);
+            
+            // Create the card HTML with the updated data
+            newCard.innerHTML = `
+                <div class="row g-0">
+                    <div class="col-md-4">
+                        <img src="${currentItineraryData[editingIndex].image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+                             class="img-fluid rounded-start" 
+                             alt="${currentItineraryData[editingIndex].name}"
+                             style="width: 100%; height: 250px; object-fit: cover;"
+                             onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'">
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h5 class="card-title">
+                                    ${currentItineraryData[editingIndex].name} (${currentItineraryData[editingIndex].type})
+                                </h5>
+                            </div>
+                            <p class="card-text text-muted">${currentItineraryData[editingIndex].description}</p>
+                            <p class="card-text"><strong>Travel Time:</strong> ${currentItineraryData[editingIndex].travel_time}</p>
+                            <p class="card-text"><strong>Time to Spend:</strong> ${currentItineraryData[editingIndex].visit_time}</p>
+                            <p class="card-text"><strong>Commute Instructions:</strong> ${currentItineraryData[editingIndex].commute_instructions}</p>
+                            <button class="btn btn-sm btn-custom edit-destination" 
+                                    data-index="${editingIndex}"
+                                    data-lat="${currentItineraryData[editingIndex].latitude}"
+                                    data-lng="${currentItineraryData[editingIndex].longitude}">
+                                <i class="bi bi-pencil"></i> Change
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+
+            // Replace the old card with the new one
+            itemElement.replaceWith(newCard);
+            
+            // Reattach event listener to the new edit button
+            newCard.querySelector('.edit-destination').addEventListener('click', (e) => {
+                const btn = e.target.closest('.edit-destination');
+                editingIndex = parseInt(btn.dataset.index);
+                fetchAlternativeDestinations(
+                    parseFloat(btn.dataset.lat),
+                    parseFloat(btn.dataset.lng)
+                );
+            });
+        }
+
         // Update map
         updateMap();
         
@@ -986,7 +1046,6 @@ async function selectNewDestination(newDestination) {
         alert('Failed to update itinerary');
     }
 }
-
 // Function to update a single itinerary item in the UI
 function updateItineraryItem(index, updatedItem, newDestination) {
     const itemElement = document.querySelector(`[data-destination-id="${index}"]`);

@@ -291,7 +291,7 @@ private function addToItineraryWithCommute($destination, $travelTime, $visitTime
         'type' => $destination->type,
         'travel_time' => $travelTime,
         'visit_time' => $visitTime,
-        'image_url' => $destination->image_url,
+        'image_url' => $destination->image_url ?? null,
         'commute_instructions' => $commuteInstructions,
     ];
 }
@@ -811,14 +811,14 @@ public function getAlternativeDestinations(Request $request)
         ]);
 
         $destinations = Destination::select(
-            '*',
+            'destinations.*', // Select all columns from destinations table
             DB::raw('(
                 6371 * acos(
                     cos(radians(?)) * cos(radians(latitude)) * 
                     cos(radians(longitude) - radians(?)) + 
                     sin(radians(?)) * sin(radians(latitude))
                 )
-            ) AS distance'),
+            ) AS distance')
         )
         ->whereNotNull('latitude')
         ->whereNotNull('longitude')
@@ -829,7 +829,14 @@ public function getAlternativeDestinations(Request $request)
         ])
         ->having('distance', '<=', $validatedData['radius'])
         ->orderBy('distance')
-        ->get();
+        ->get()
+        ->map(function ($destination) {
+            // Transform the image URL if it exists
+            if ($destination->image_url) {
+                $destination->image_url = asset('storage/' . $destination->image_url);
+            }
+            return $destination;
+        });
 
         return response()->json($destinations);
     } catch (\Exception $e) {
@@ -840,11 +847,13 @@ public function getAlternativeDestinations(Request $request)
 public function updateItineraryItem(Request $request)
 {
     try {
+        \Log::info('Received update request:', $request->all());
+
         $validatedData = $request->validate([
             'previousDestination' => 'nullable|array',
             'newDestination' => 'required|array',
             'nextDestination' => 'nullable|array',
-            'startLat' => 'required|numeric', // Add these validations
+            'startLat' => 'required|numeric',
             'startLng' => 'required|numeric'
         ]);
 
@@ -858,6 +867,19 @@ public function updateItineraryItem(Request $request)
 
         $newDestination = $validatedData['newDestination'];
         
+        \Log::info('New destination data:', ['destination' => $newDestination]);
+
+        // Create a proper destination object with all required properties
+        $destinationObject = new \stdClass();
+        $destinationObject->name = $newDestination['name'];
+        $destinationObject->type = $newDestination['type'];
+        $destinationObject->latitude = $newDestination['latitude'];
+        $destinationObject->longitude = $newDestination['longitude'];
+        $destinationObject->description = $newDestination['description'] ?? '';
+        $destinationObject->image_url = $newDestination['image_url'] ?? null;
+
+        \Log::info('Created destination object:', ['object' => $destinationObject]);
+
         // Calculate new travel times and commute instructions
         $travelTime = $this->getTravelTimeFromGoogle(
             $startLat,
@@ -869,20 +891,27 @@ public function updateItineraryItem(Request $request)
         $visitTime = $newDestination['type'] === 'restaurant' ? 40 : 20;
 
         $updatedItem = $this->addToItineraryWithCommute(
-            (object)$newDestination,
+            $destinationObject,
             $travelTime,
             $visitTime,
             $startLat,
             $startLng
         );
 
-        // Add coordinates to the response
+        // Make sure these properties are included in the response
         $updatedItem['latitude'] = $newDestination['latitude'];
         $updatedItem['longitude'] = $newDestination['longitude'];
+        $updatedItem['description'] = $newDestination['description'] ?? '';
+        $updatedItem['image_url'] = $newDestination['image_url'] ?? null;
+
+        \Log::info('Sending updated item:', ['item' => $updatedItem]);
 
         return response()->json($updatedItem);
     } catch (\Exception $e) {
-        \Log::error('Error updating itinerary item:', ['error' => $e->getMessage()]);
+        \Log::error('Error updating itinerary item:', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
         return response()->json(['error' => 'An error occurred while updating the itinerary.'], 500);
     }
 }
