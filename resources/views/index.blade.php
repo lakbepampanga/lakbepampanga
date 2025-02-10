@@ -568,6 +568,8 @@ function initAutocomplete() {
                     </div>`;
 
                     currentItineraryData.forEach((destination, index) => {
+    console.log('Destination commute instructions:', destination.commute_instructions);
+    console.log('Full destination data:', destination);
                         itineraryHTML += `
     <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
         <div class="row g-0">
@@ -596,7 +598,8 @@ function initAutocomplete() {
                     <p class="card-text text-muted">${destination.description}</p>
                     <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
                     <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
-                    <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+<p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}</p>
+
                     <button class="btn btn-sm btn-custom edit-destination" 
                             data-index="${index}"
                             data-lat="${destination.latitude}"
@@ -702,6 +705,8 @@ async function handleDestinationSelect(newDestination) {
 
         // Rebuild the itinerary display with current data
         currentItineraryData.forEach((destination, index) => {
+    console.log('Destination commute instructions:', destination.commute_instructions);
+    console.log('Full destination data:', destination);
             itineraryHTML += `
                 <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
                     <div class="row g-0">
@@ -724,8 +729,8 @@ async function handleDestinationSelect(newDestination) {
                                 <p class="card-text text-muted">${destination.description}</p>
                                 <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
                                 <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
-                                <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
-                                <button class="btn btn-sm btn-custom edit-destination" 
+<p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}</p>
+                               <button class="btn btn-sm btn-custom edit-destination" 
                                         data-index="${index}"
                                         data-lat="${destination.latitude}"
                                         data-lng="${destination.longitude}">
@@ -788,7 +793,9 @@ function updateItineraryUI() {
             </button>
         </div>`;
 
-    currentItineraryData.forEach((destination, index) => {
+   currentItineraryData.forEach((destination, index) => {
+    console.log('Destination commute instructions:', destination.commute_instructions);
+    console.log('Full destination data:', destination);
         itineraryHTML += `
             <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
             <div class="row g-0">
@@ -810,7 +817,7 @@ function updateItineraryUI() {
                             <p class="card-text text-muted">${destination.description}</p>
                         <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
                         <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
-                        <p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions}</p>
+<p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}</p>
                         <button class="btn btn-sm btn-custom edit-destination" 
                                     data-index="${index}"
                                     data-lat="${destination.latitude}"

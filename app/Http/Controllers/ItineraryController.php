@@ -248,54 +248,156 @@ class ItineraryController extends Controller
 }
 private function addToItineraryWithCommute($destination, $travelTime, $visitTime, $startLat, $startLng)
 {
+    // Calculate distance between start and destination
     $distance = $this->calculateDistance($startLat, $startLng, $destination->latitude, $destination->longitude);
     
-    if ($distance < 1) {
-        $walkingTime = ceil($distance * 15); // Estimate 15 minutes per km for walking
-        $commuteInstructions = sprintf(
-            "This destination is nearby. It's only %.2f km away. Consider walking (approximately %d minutes walk).",
-            $distance,
-            $walkingTime
-        );
-        $travelTime = $walkingTime; // Update travel time
-    } else {
-        $jeepneyInfo = $this->getJeepneyRoute($startLat, $startLng, $destination->latitude, $destination->longitude);
-
-        if ($jeepneyInfo) {
-            // Safely access the coordinates, defaulting to current/destination lat-lng
-            $startCoords = $jeepneyInfo['routes'][0]['start_stop_coords'] ?? ['latitude' => $startLat, 'longitude' => $startLng];
-            $endCoords = $jeepneyInfo['routes'][0]['end_stop_coords'] ?? ['latitude' => $destination->latitude, 'longitude' => $destination->longitude];
-
-            $travelTime = $this->getGoogleMapsTime(
-                $startCoords['latitude'],
-                $startCoords['longitude'],
-                $endCoords['latitude'],
-                $endCoords['longitude']
-            );
-
-            $commuteInstructions = sprintf(
-                "Take a %s Jeep (%s jeep) from '%s' to '%s'. Fare: ₱%.2f.",
-                $jeepneyInfo['routes'][0]['route_name'] ?? 'Unknown Route',
-                $jeepneyInfo['routes'][0]['route_color'] ?? 'N/A',
-                $jeepneyInfo['routes'][0]['start_stop'] ?? 'Unknown Stop',
-                $jeepneyInfo['routes'][0]['end_stop'] ?? 'Unknown Stop',
-                $jeepneyInfo['routes'][0]['base_fare'] ?? 0
-            );
-        } else {
-            $commuteInstructions = "No direct jeepney route available. Consider taking a tricycle.";
-        }
+    // If destination is within 500 meters, suggest walking
+    if ($distance <= 0.5) {
+        // Estimate walking time (assuming average walking speed of 5 km/h)
+        $walkingTimeMinutes = ceil(($distance * 1000) / (5000 / 60)); // Convert to minutes
+        
+        return [
+            'name' => $destination->name,
+            'type' => $destination->type,
+            'travel_time' => $walkingTimeMinutes,
+            'visit_time' => $visitTime,
+            'image_url' => $destination->image_url ?? null,
+            'commute_instructions' => [[
+                'instruction' => "This destination is nearby. You can walk there in approximately {$walkingTimeMinutes} minutes (Distance: " . number_format($distance * 1000, 0) . " meters)."
+            ]],
+            'latitude' => $destination->latitude,
+            'longitude' => $destination->longitude,
+            'description' => $destination->description ?? 'No description available.'
+        ];
     }
 
+    // Get nearby stops for start and end points
+    $nearbyStartStops = JeepneyStop::select(DB::raw('*, 
+        (6371 * acos(cos(radians(?)) * cos(radians(latitude)) 
+        * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance'))
+        ->having('distance', '<', 2)
+        ->orderBy('distance')
+        ->setBindings([$startLat, $startLng, $startLat])
+        ->get();
+
+    $nearbyEndStops = JeepneyStop::select(DB::raw('*, 
+        (6371 * acos(cos(radians(?)) * cos(radians(latitude)) 
+        * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance'))
+        ->having('distance', '<', 2)
+        ->orderBy('distance')
+        ->setBindings([$destination->latitude, $destination->longitude, $destination->latitude])
+        ->get();
+
+    if ($nearbyStartStops->isEmpty() || $nearbyEndStops->isEmpty()) {
+        return [
+            'name' => $destination->name,
+            'type' => $destination->type,
+            'travel_time' => $travelTime,
+            'visit_time' => $visitTime,
+            'image_url' => $destination->image_url ?? null,
+            'commute_instructions' => [[
+                'instruction' => "No direct jeepney route available. Consider taking a tricycle.",
+                'image_path' => null,
+                'route_name' => null,
+                'route_color' => null
+            ]],
+            'latitude' => $destination->latitude,
+            'longitude' => $destination->longitude,
+            'description' => $destination->description ?? 'No description available.'
+        ];
+    }
+
+    // Find connecting routes
+    $route = $this->findConnectingRoutes($nearbyStartStops, $nearbyEndStops);
+    
+    if ($route && !empty($route['routes'])) {
+        $routes = collect($route['routes'])->map(function($route, $index) {
+            $jeepneyRoute = JeepneyRoute::where('route_name', $route['route_name'])->first();
+            
+            return [
+                'instruction' => sprintf(
+                    "%s a %s Jeep (%s jeep) from '%s' to '%s'. Fare: ₱%.2f.",
+                    $index === 0 ? "Take" : "Then take",
+                    $route['route_name'],
+                    $route['route_color'],
+                    $route['start_stop'],
+                    $route['end_stop'],
+                    $route['base_fare']
+                ),
+                'image_path' => $jeepneyRoute ? asset('storage/' . $jeepneyRoute->image_path) : null,
+                'route_name' => $route['route_name'],
+                'route_color' => $route['route_color']
+            ];
+        })->all();
+
+        return [
+            'name' => $destination->name,
+            'type' => $destination->type,
+            'travel_time' => $travelTime,
+            'visit_time' => $visitTime,
+            'image_url' => $destination->image_url ?? null,
+            'commute_instructions' => $routes,
+            'latitude' => $destination->latitude,
+            'longitude' => $destination->longitude,
+            'description' => $destination->description ?? null
+        ];
+    }
+
+    // If no routes found, try reverse direction
+    $reverseRoute = $this->findConnectingRoutes($nearbyEndStops, $nearbyStartStops);
+    
+    if ($reverseRoute && !empty($reverseRoute['routes'])) {
+        $routes = collect($reverseRoute['routes'])->map(function($route, $index) {
+            $jeepneyRoute = JeepneyRoute::where('route_name', $route['route_name'])->first();
+            
+            return [
+                'instruction' => sprintf(
+                    "%s a %s Jeep (%s jeep) from '%s' to '%s'. Fare: ₱%.2f.",
+                    $index === 0 ? "Take" : "Then take",
+                    $route['route_name'],
+                    $route['route_color'],
+                    $route['start_stop'],
+                    $route['end_stop'],
+                    $route['base_fare']
+                ),
+                'image_path' => $jeepneyRoute ? asset('storage/' . $jeepneyRoute->image_path) : null,
+                'route_name' => $route['route_name'],
+                'route_color' => $route['route_color']
+            ];
+        })->all();
+
+        return [
+            'name' => $destination->name,
+            'type' => $destination->type,
+            'travel_time' => $travelTime,
+            'visit_time' => $visitTime,
+            'image_url' => $destination->image_url ?? null,
+            'commute_instructions' => $routes,
+            'latitude' => $destination->latitude,
+            'longitude' => $destination->longitude,
+            'description' => $destination->description ?? null
+        ];
+    }
+
+    // Fallback when no routes found
     return [
         'name' => $destination->name,
         'type' => $destination->type,
         'travel_time' => $travelTime,
         'visit_time' => $visitTime,
         'image_url' => $destination->image_url ?? null,
-        'commute_instructions' => $commuteInstructions,
+        'commute_instructions' => [[
+            'instruction' => "No direct jeepney route available. Consider taking a tricycle.",
+            'image_path' => null,
+            'route_name' => null,
+            'route_color' => null
+        ]],
+        'latitude' => $destination->latitude,
+        'longitude' => $destination->longitude,
+        'description' => $destination->description ?? 'No description available.'
     ];
-}
 
+}
 public function generateCommuteGuide(Request $request)
 {
     set_time_limit(120);
