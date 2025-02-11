@@ -86,35 +86,28 @@
 
 <main class="main container mt-5">
     <!-- Most Visited Places -->
-    <section class="mb-5 mt-5 bg-white " id="visited">
+<section class="mb-5 mt-5 bg-white" id="visited">
     <h2 class="fw-bold text-center mb-2">Most Visited Places</h2>
-    <p class="text-center text-muted mb-4">Slide through Pampanga’s top destinations and find your next adventure.</p>
+    <p class="text-center text-muted mb-4">Slide through Pampanga's top destinations and find your next adventure.</p>
     
     <div class="slider-container d-flex overflow-auto gap-4 px-3">
-        <div class="place-card text-white position-relative rounded overflow-hidden flex-shrink-0" style="width: 22rem; height: 18rem;">
-            <img src="{{ asset('img/cards/angeles.webp') }}" class="img-fluid w-100 h-100 object-fit-cover" alt="Angeles">
-            <div class="position-absolute bottom-0 start-0 p-3 bg-opacity-50 bg-dark w-100">
-                <h5 class="fw-bold mb-0">Angeles, Philippines</h5>
+        @foreach($destinationStats->take(4) as $destination)
+            <div class="place-card text-white position-relative rounded overflow-hidden flex-shrink-0" style="width: 22rem; height: 18rem;">
+                @if($destination['image'])
+                    <img src="{{ asset('storage/' . $destination['image']) }}" 
+                         class="img-fluid w-100 h-100 object-fit-cover" 
+                         alt="{{ $destination['name'] }}">
+                @else
+                    <img src="{{ asset('img/cards/default.webp') }}" 
+                         class="img-fluid w-100 h-100 object-fit-cover" 
+                         alt="{{ $destination['name'] }}">
+                @endif
+                <div class="position-absolute bottom-0 start-0 p-3 bg-opacity-50 bg-dark w-100">
+                    <h5 class="fw-bold mb-0">{{ $destination['name'] }}, Philippines</h5>
+                    <small class="text-white-50">{{ $destination['description'] }}</small>
+                </div>
             </div>
-        </div>
-        <div class="place-card text-white position-relative rounded overflow-hidden flex-shrink-0" style="width: 22rem; height: 18rem;">
-            <img src="{{ asset('img/cards/magalang.webp') }}" class="img-fluid w-100 h-100 object-fit-cover" alt="Magalang">
-            <div class="position-absolute bottom-0 start-0 p-3 bg-opacity-50 bg-dark w-100">
-                <h5 class="fw-bold mb-0">Magalang, Philippines</h5>
-            </div>
-        </div>
-        <div class="place-card text-white position-relative rounded overflow-hidden flex-shrink-0" style="width: 22rem; height: 18rem;">
-            <img src="{{ asset('img/cards/mabalacat.webp') }}" class="img-fluid w-100 h-100 object-fit-cover" alt="Mabalacat">
-            <div class="position-absolute bottom-0 start-0 p-3 bg-opacity-50 bg-dark w-100">
-                <h5 class="fw-bold mb-0">Mabalacat, Philippines</h5>
-            </div>
-        </div>
-        <div class="place-card text-white position-relative rounded overflow-hidden flex-shrink-0" style="width: 22rem; height: 18rem;">
-            <img src="{{ asset('img/cards/mabalacat.webp') }}" class="img-fluid w-100 h-100 object-fit-cover" alt="Clark">
-            <div class="position-absolute bottom-0 start-0 p-3 bg-opacity-50 bg-dark w-100">
-                <h5 class="fw-bold mb-0">Coffee Cat, Angeles</h5>
-            </div>
-        </div>
+        @endforeach
     </div>
 </section>
 
