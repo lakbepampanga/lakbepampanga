@@ -81,9 +81,16 @@ class AdminController extends Controller
     }
 
     // Destinations Management
-    public function destinations()
+    public function destinations(Request $request)
     {
-        $destinations = Destination::orderBy('name')->paginate(10);
+        $query = Destination::query();
+    
+        // Search by name
+        if ($request->has('search')) {
+            $query->where('name', 'LIKE', '%' . $request->search . '%');
+        }
+    
+        $destinations = $query->orderBy('name')->paginate(10);
         return view('admin.destinations.index', compact('destinations'));
     }
 
