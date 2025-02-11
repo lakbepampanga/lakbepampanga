@@ -115,13 +115,22 @@
                                         </div>
                                         
                                         <div class="small mt-1">
-                                            <strong>Route:</strong> {{ $destination['commute_instructions'] }}
+                                        <strong>Route:</strong> 
+@if(is_array($destination['commute_instructions']))
+    @foreach($destination['commute_instructions'] as $instruction)
+        {{ $instruction['instruction'] }}
+    @endforeach
+@else
+    {{ $destination['commute_instructions'] }}
+@endif
                                             <button type="button" 
                                                 class="btn btn-sm btn-link text-danger report-instructions" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#reportModal"
                                                 data-destination="{{ $destination['name'] }}"
-                                                data-instructions="{{ $destination['commute_instructions'] }}"
+                                                data-instructions="{{ is_array($destination['commute_instructions']) ? 
+    implode(' ', array_map(function($i) { return $i['instruction']; }, $destination['commute_instructions'])) : 
+    $destination['commute_instructions'] }}"
                                                 data-itinerary-id="{{ $itinerary->id }}">
                                                 <i class="bi bi-exclamation-triangle"></i> Report Issue
                                             </button>
@@ -375,6 +384,68 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Trigger map resize event to make it display properly in the modal
             google.maps.event.trigger(modalMap, "resize");
+        });
+    });
+});
+
+// Add this to your existing scripts section
+document.addEventListener('DOMContentLoaded', function() {
+    const visitedForms = document.querySelectorAll('.mark-visited-form');
+    
+    visitedForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value,
+                    'Accept': 'application/json',
+                },
+                body: new FormData(form)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Replace the form with a visited badge
+                    const visitedBadge = `
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle-fill"></i> Visited
+                        </span>
+                    `;
+                    form.outerHTML = visitedBadge;
+                    
+                    // Add success alert at the top of the container
+                    const alertHTML = `
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            ${data.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    `;
+                    const container = document.querySelector('.container.py-4');
+                    const existingAlert = container.querySelector('.alert');
+                    if (existingAlert) {
+                        existingAlert.remove();
+                    }
+                    container.insertAdjacentHTML('afterbegin', alertHTML);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Show error message
+                const alertHTML = `
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        An error occurred while marking the destination as visited.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+                const container = document.querySelector('.container.py-4');
+                const existingAlert = container.querySelector('.alert');
+                if (existingAlert) {
+                    existingAlert.remove();
+                }
+                container.insertAdjacentHTML('afterbegin', alertHTML);
+            });
         });
     });
 });
