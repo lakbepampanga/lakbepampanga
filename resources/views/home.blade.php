@@ -46,6 +46,34 @@
     transition: 0.3s;   /* Hover border color */
 }
 
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.custom-toast {
+    min-width: 300px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.custom-toast.show {
+    opacity: 1;
+}
+
+.toast-success {
+    border-left: 4px solid #198754;
+}
+
+.toast-error {
+    border-left: 4px solid #dc3545;
+}
+
 
 </style>
 
@@ -592,6 +620,162 @@ function togglePassword() {
             });
         });
     });
+
+    // Toast notification function
+function showToast(message, type = 'success') {
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `custom-toast toast-${type} p-3 mb-2`;
+    toast.innerHTML = `
+        <div class="d-flex align-items-center">
+            <div class="toast-body flex-grow-1">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+                ${message}
+            </div>
+            <button type="button" class="btn-close ms-2" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+
+    toastContainer.appendChild(toast);
+    toast.offsetHeight;
+    toast.classList.add('show');
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle clean up of modals
+    document.addEventListener('hidden.bs.modal', function() {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => backdrop.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    });
+
+    // Password toggle functions
+    function togglePassword() {
+        var passwordField = document.getElementById('password');
+        passwordField.type = passwordField.type === 'password' ? 'text' : 'password';
+    }
+
+    function toggleRegisterPassword() {
+        var passwordField = document.getElementById('registerPassword');
+        var confirmPasswordField = document.getElementById('confirmPassword');
+        var newType = passwordField.type === 'password' ? 'text' : 'password';
+        passwordField.type = newType;
+        confirmPasswordField.type = newType;
+    }
+
+    // Handle form submissions
+    // Login form
+// Login form
+const loginForm = document.querySelector('form[action*="login"]');
+if (loginForm) {
+    loginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        fetch(this.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(Object.fromEntries(new FormData(this)))
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Successfully logged in!', 'success');
+                // Close modal only on success
+                const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                // Redirect if needed
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                }
+            } else {
+                // Show error message but keep modal open
+                showToast(data.error || 'Invalid credentials', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Login failed. Please try again.', 'error');
+        });
+    });
+}
+
+    // Registration form
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Your registration form submission logic
+            if (this.checkValidity()) {
+                showToast('Registration successful!', 'success');
+                // Submit the form
+                this.submit();
+            } else {
+                showToast('Please fill in all required fields correctly.', 'error');
+            }
+        });
+    }
+
+    // Forgot password form
+    const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+    if (forgotPasswordForm) {
+        forgotPasswordForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Your forgot password form submission logic
+            showToast('Password reset link has been sent to your email.', 'success');
+            // Submit the form
+            this.submit();
+        });
+    }
+
+    // Show initial flash messages as toasts
+    const successMessage = document.getElementById('success-message');
+    const errorMessage = document.getElementById('error-message');
+
+    if (successMessage) {
+        showToast(successMessage.textContent, 'success');
+        successMessage.remove();
+    }
+
+    if (errorMessage) {
+        showToast(errorMessage.textContent, 'error');
+        errorMessage.remove();
+    }
+
+    // Scroll to top functionality
+    const scrollTopBtn = document.getElementById("scroll-top");
+    if (scrollTopBtn) {
+        window.addEventListener("scroll", function() {
+            scrollTopBtn.style.display = window.scrollY > 200 ? "flex" : "none";
+        });
+
+        scrollTopBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        });
+    }
+});
 </script>
 
 

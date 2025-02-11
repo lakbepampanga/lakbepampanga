@@ -168,15 +168,15 @@
                             </div>
 
                             <div class="d-flex justify-content-between mt-3">
-                                <form action="{{ route('itineraries.destroy', $itinerary->id) }}"
-                                    method="POST"
-                                    onsubmit="return confirm('Are you sure you want to delete this itinerary?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger">
-                                        <i class="bi bi-trash"></i> Delete
-                                    </button>
-                                </form>
+                            <form action="{{ route('itineraries.destroy', $itinerary->id) }}"
+    method="POST"
+    class="delete-itinerary-form">
+    @csrf
+    @method('DELETE')
+    <button type="submit" class="btn btn-sm btn-danger">
+        <i class="bi bi-trash"></i> Delete
+    </button>
+</form>
                             </div>
                             <!-- View Map Button (Mobile Only) -->
                             <button class="btn btn-outline-primary w-100 mt-3 d-md-none view-map-btn" 
@@ -490,8 +490,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-
-
 // Add this to your existing scripts section
 document.addEventListener('DOMContentLoaded', function() {
     // Set up report button click handlers
@@ -558,6 +556,67 @@ const reportForm = document.getElementById('reportForm');
     });
 });
 
+});
+
+// Add event listener for delete forms
+document.querySelectorAll('form[action*="itineraries/"]').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        if (!confirm('Are you sure you want to delete this itinerary?')) {
+            e.preventDefault();
+            return;
+        }
+        
+        e.preventDefault();
+        
+        // Create form data and append the _method field for Laravel
+        const formData = new FormData(this);
+        formData.append('_method', 'DELETE'); // Add this line for Laravel method spoofing
+
+        fetch(this.action, {
+            method: 'POST', // Keep this as POST
+            headers: {
+                'X-CSRF-TOKEN': this.querySelector('input[name="_token"]').value,
+                'Accept': 'application/json',
+            },
+            body: formData
+        })
+        .then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data && data.success) {
+                // Remove the itinerary card
+                const itineraryCard = this.closest('.d-flex.gap-4');
+                if (itineraryCard) {
+                    itineraryCard.remove();
+                }
+                showToast('Itinerary deleted successfully', 'success');
+                
+                // Check if there are no more itineraries
+                const remainingItineraries = document.querySelectorAll('.itinerary-card');
+                if (remainingItineraries.length === 0) {
+                    // Show the empty state message
+                    const container = document.querySelector('.container.py-4');
+                    container.innerHTML = `
+                        <div class="text-center">
+                            <p class="text-muted">You haven't saved any itineraries yet.</p>
+                            <a href="/index" class="btn btn-custom">Create New Itinerary</a>
+                        </div>
+                    `;
+                }
+            } else {
+                window.location.reload(); // Fallback to page reload if response is not as expected
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('An error occurred while deleting the itinerary', 'error');
+        });
+    });
 });
 </script>
 

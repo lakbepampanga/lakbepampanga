@@ -13,30 +13,68 @@ class LoginController extends Controller
     public function login(Request $request)
     {
         // Validate login credentials
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
-
-        // Attempt login
-        if (Auth::attempt($request->only('email', 'password'))) {
-            // Log the successful login for debugging
-            logger('User logged in: ' . Auth::user()->email);
-
-            // Check if user is admin and redirect accordingly
-            if (Auth::user()->role === 'admin') {
-                return redirect()->route('admin.dashboard')->with('success', 'Welcome Admin!');
+        try {
+            $request->validate([
+                'email' => 'required|email',
+                'password' => 'required',
+            ]);
+    
+            // Attempt login
+            if (Auth::attempt($request->only('email', 'password'))) {
+                // Log the successful login for debugging
+                logger('User logged in: ' . Auth::user()->email);
+    
+                // For AJAX requests
+                if ($request->wantsJson()) {
+                    // Return different responses based on user role
+                    if (Auth::user()->role === 'admin') {
+                        return response()->json([
+                            'success' => true,
+                            'redirect' => route('admin.dashboard'),
+                            'message' => 'Welcome Admin!'
+                        ]);
+                    }
+    
+                    return response()->json([
+                        'success' => true,
+                        'redirect' => route('user-home'),
+                        'message' => 'Login successful!'
+                    ]);
+                }
+    
+                // For regular form submissions
+                if (Auth::user()->role === 'admin') {
+                    return redirect()->route('admin.dashboard')->with('success', 'Welcome Admin!');
+                }
+    
+                return redirect()->route('user-home')->with('success', 'Login successful!');
             }
-
-            // If not admin, redirect to index
-            return redirect()->route('user-home')->with('success', 'Login successful!');
+    
+            // Log the failed login attempt
+            logger('Login failed for email: ' . $request->email);
+    
+            // Return error response based on request type
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Invalid email or password.'
+                ], 422);
+            }
+    
+            return back()->withErrors(['email' => 'Invalid email or password.']);
+    
+        } catch (\Exception $e) {
+            logger('Login error: ' . $e->getMessage());
+    
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'An error occurred during login. Please try again.'
+                ], 500);
+            }
+    
+            return back()->withErrors(['email' => 'An error occurred during login. Please try again.']);
         }
-
-        // Log the failed login attempt
-        logger('Login failed for email: ' . $request->email);
-
-        // Redirect back with error message
-        return back()->withErrors(['email' => 'Invalid email or password.']);
     }
 
     /**

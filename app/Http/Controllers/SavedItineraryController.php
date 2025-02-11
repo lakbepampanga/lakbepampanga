@@ -50,19 +50,33 @@ class SavedItineraryController extends Controller
         return view('saved-itinerary', compact('itineraries'));
     }
 
-    public function destroy($id)
-    {
-        try {
-            $itinerary = SavedItinerary::where('user_id', auth()->id())
-                ->findOrFail($id);
-                
-            $itinerary->delete();
+public function destroy($id)
+{
+    try {
+        $itinerary = SavedItinerary::where('user_id', auth()->id())
+            ->findOrFail($id);
             
-            return redirect()->back()
-                ->with('success', 'Itinerary deleted successfully');
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Failed to delete itinerary');
+        $itinerary->delete();
+        
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Itinerary deleted successfully'
+            ]);
         }
+        
+        return redirect()->back()
+            ->with('success', 'Itinerary deleted successfully');
+    } catch (\Exception $e) {
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to delete itinerary'
+            ], 500);
+        }
+        
+        return redirect()->back()
+            ->with('error', 'Failed to delete itinerary');
     }
+}
 }
