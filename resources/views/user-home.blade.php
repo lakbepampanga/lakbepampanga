@@ -6,7 +6,7 @@
     <title>Lakbe Pampanga</title>
    
      <!-- Favicons -->
-  <link href="{{ asset('img/favicon.png') }}" rel="icon">
+     <link href="{{ asset('img/lakbe2.png') }}" rel="icon">
 <link href="{{ asset('img/apple-touch-icon.png') }}" rel="apple-touch-icon">
 
 
@@ -44,6 +44,10 @@
     background-color: var(--button-hover-color);
     color: white;
     transition: 0.3s;   /* Hover border color */
+}
+.full-description {
+    transition: opacity 0.3s ease;
+    cursor: pointer;
 }
 
 
@@ -86,7 +90,7 @@
 
 <main class="main container mt-5">
     <!-- Most Visited Places -->
-<section class="mb-5 mt-5 bg-white" id="visited">
+    <section class="mb-5 mt-5 bg-white" id="visited">
     <h2 class="fw-bold text-center mb-2">Most Visited Places</h2>
     <p class="text-center text-muted mb-4">Slide through Pampanga's top destinations and find your next adventure.</p>
     
@@ -104,13 +108,21 @@
                 @endif
                 <div class="position-absolute bottom-0 start-0 p-3 bg-opacity-50 bg-dark w-100">
                     <h5 class="fw-bold mb-0">{{ $destination['name'] }}, Philippines</h5>
-                    <small class="text-white-50">{{ $destination['description'] }}</small>
+                    <small class="text-white-50">{{ Str::limit($destination['description'], 50) }} 
+                        <a href="javascript:void(0)" class="text-white read-more">Read more</a>
+                    </small>
+                </div>
+                <div class="full-description position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 d-none">
+                    <div class="p-4 text-white h-100 overflow-auto">
+                        <h5 class="fw-bold mb-3">{{ $destination['name'] }}, Philippines</h5>
+                        <p>{{ $destination['description'] }}</p>
+                        <small class="position-absolute bottom-0 end-0 p-3">Click anywhere to close</small>
+                    </div>
                 </div>
             </div>
         @endforeach
     </div>
 </section>
-
 <section class="mb-5 bg-white p-4 rounded" id="itineraries">
     <div class="row g-5">
         <!-- Saved Itineraries -->
@@ -197,41 +209,37 @@
         const walk = (x - startX) * 2; // Scroll-fast
         slider.scrollLeft = scrollLeft - walk;
     });
-</script>
 
-<!-- saved itinerary slider -->
-<script>
-    const itinerarySlider = document.querySelector('.saved-itineraries-slider');
+function showFullDescription(event, name, description) {
+    event.preventDefault();
+    const card = event.target.closest('.place-card');
+    const fullDescription = card.querySelector('.full-description');
+    fullDescription.style.display = 'block';
+}
 
-let isDown = false;
-let startX;
-let scrollLeft;
+function hideDescription(event, element) {
+    event.stopPropagation();
+    element.style.display = 'none';
+}
 
-itinerarySlider.addEventListener('mousedown', (e) => {
-    isDown = true;
-    itinerarySlider.classList.add('active');
-    startX = e.pageX - itinerarySlider.offsetLeft;
-    scrollLeft = itinerarySlider.scrollLeft;
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click listeners to all "Read more" links
+    document.querySelectorAll('.read-more').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const card = this.closest('.place-card');
+            const fullDescription = card.querySelector('.full-description');
+            fullDescription.classList.remove('d-none');
+        });
+    });
+
+    // Add click listeners to all full description divs
+    document.querySelectorAll('.full-description').forEach(div => {
+        div.addEventListener('click', function() {
+            this.classList.add('d-none');
+        });
+    });
 });
-
-itinerarySlider.addEventListener('mouseleave', () => {
-    isDown = false;
-    itinerarySlider.classList.remove('active');
-});
-
-itinerarySlider.addEventListener('mouseup', () => {
-    isDown = false;
-    itinerarySlider.classList.remove('active');
-});
-
-itinerarySlider.addEventListener('mousemove', (e) => {
-    if (!isDown) return;
-    e.preventDefault();
-    const x = e.pageX - itinerarySlider.offsetLeft;
-    const walk = (x - startX) * 2; // Adjust scroll speed
-    itinerarySlider.scrollLeft = scrollLeft - walk;
-});
-
 
     </script>
 
