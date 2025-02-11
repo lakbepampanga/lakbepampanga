@@ -129,31 +129,31 @@
         <div class="col-md-12 d-flex flex-column">
             <h3 class="fw-bold text-center mb-2">Saved Itineraries</h3>
             <div class="saved-itineraries-slider d-flex gap-3 overflow-auto p-3 rounded shadow-sm flex-grow-1">
-                <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <h4 class="card-title fw-bold">Adventure in Angeles</h4>
-                        <p class="card-text text-muted">Explore Angeles City with this 1-day itinerary.</p>
-                        <a href="/saved-itinerary" class="btn btn-outline-primary btn-lg rounded-pill mt-2">View Itinerary</a>
+                @if($savedItineraries->isEmpty())
+                    <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
+                        <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                            <h4 class="card-title fw-bold">No Itineraries Yet</h4>
+                            <p class="card-text text-muted">Start planning your adventure today!</p>
+                            <a href="{{ route('index') }}" class="btn btn-outline-primary btn-lg rounded-pill mt-2">Create Itinerary</a>
+                        </div>
                     </div>
-                </div>
-                <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <h4 class="card-title fw-bold">Magalang Escape</h4>
-                        <p class="card-text text-muted">Enjoy the scenic beauty of Mount Arayat.</p>
-                        <a href="/saved-itinerary" class="btn btn-outline-primary btn-lg rounded-pill mt-2">View Itinerary</a>
-                    </div>
-                </div>
-                <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <h4 class="card-title fw-bold">Clark Gateway</h4>
-                        <p class="card-text text-muted">Discover Clark's top attractions in a day.</p>
-                        <a href="/saved-itinerary" class="btn btn-outline-primary btn-lg rounded-pill mt-2">View Itinerary</a>
-                    </div>
-                </div>
+                @else
+                    @foreach($savedItineraries as $itinerary)
+                        <div class="itinerary-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
+                            <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                                <h4 class="card-title fw-bold">{{ $itinerary->name }}</h4>
+                                <p class="card-text text-muted">
+                                    {{ count($itinerary->itinerary_data) }} destinations • {{ $itinerary->duration_hours }} hours
+                                </p>
+                                <a href="{{ route('saved-itinerary') }}" class="btn btn-outline-primary btn-lg rounded-pill mt-2">View Itinerary</a>
+                            </div>
+                        </div>
+                    @endforeach
+                @endif
             </div>
 
             <div class="text-center mt-4">
-                <a href="/saved-itinerary" class="btn btn-custom rounded-pill">See All Itineraries</a>
+                <a href="{{ route('saved-itinerary') }}" class="btn btn-custom rounded-pill">See All Itineraries</a>
             </div>
         </div>
     </div>

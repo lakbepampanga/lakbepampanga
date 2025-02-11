@@ -39,6 +39,11 @@ class HomeController extends Controller
             })
             ->sortByDesc('total_visits');
 
-        return view('user-home', compact('destinationStats'));
+            $savedItineraries = \App\Models\SavedItinerary::where('user_id', auth()->id())
+        ->latest()
+        ->take(3)
+        ->get();
+
+        return view('user-home', compact('destinationStats', 'savedItineraries'));
     }
 }
