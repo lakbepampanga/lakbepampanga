@@ -449,6 +449,99 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Add this to your existing scripts section
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up report button click handlers
+    const reportButtons = document.querySelectorAll('.report-instructions');
+    reportButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Get the data from the button's data attributes
+            const destination = this.getAttribute('data-destination');
+            const instructions = this.getAttribute('data-instructions');
+            const itineraryId = this.getAttribute('data-itinerary-id');
+            
+            // Set the values in the modal form
+            document.getElementById('reportDestination').value = destination;
+            document.getElementById('reportItinerary').value = itineraryId;
+            document.getElementById('reportCurrentInstructions').value = instructions;
+        });
+    });
+
+// Handle report form submission
+// Handle report form submission
+const reportForm = document.getElementById('reportForm');
+    const reportModal = document.getElementById('reportModal');
+
+    // Add event listener for when modal is hidden
+    reportModal.addEventListener('hidden.bs.modal', function () {
+        // Clean up modal-related styles and classes
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+    });
+
+    reportForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        fetch(this.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                'Accept': 'application/json',
+            },
+            body: new FormData(this)
+        })
+        .then(response => response.json())
+        .then(data => {
+            const modal = bootstrap.Modal.getInstance(reportModal);
+            modal.hide();
+            
+            // Show success/error message
+            const alertHTML = `
+                <div class="alert alert-${data.success ? 'success' : 'danger'} alert-dismissible fade show" role="alert">
+                    ${data.success ? data.message : data.error}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            const container = document.querySelector('.container.py-4');
+            const existingAlert = container.querySelector('.alert');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+            container.insertAdjacentHTML('afterbegin', alertHTML);
+            
+            // Reset form if successful
+            if (data.success) {
+                this.reset();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            
+            const modal = bootstrap.Modal.getInstance(reportModal);
+            modal.hide();
+            
+            // Show error message
+            const alertHTML = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    An error occurred while submitting the report.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            const container = document.querySelector('.container.py-4');
+            const existingAlert = container.querySelector('.alert');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+            container.insertAdjacentHTML('afterbegin', alertHTML);
+        });
+    });
+});
 </script>
 
 
