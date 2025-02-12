@@ -53,7 +53,7 @@
                         <div class="col-md-6">
                             <input type="file" class="form-control" id="route_image" name="route_image" 
                                    accept="image/*">
-                            <div class="form-text">Accepted formats: JPG, PNG, GIF. Max size: 2MB</div>
+                            <div class="form-text">Accepted formats: JPG, PNG, GIF, WEBP, SVG. Max size: 2MB</div>
                         </div>
                         <div class="col-md-6">
                             @if($route->image_path)

@@ -50,7 +50,7 @@
                     <label for="route_image" class="form-label">Route Image</label>
                     <input type="file" class="form-control" id="route_image" name="route_image" 
                            accept="image/*">
-                    <div class="form-text">Accepted formats: JPG, PNG, GIF. Max size: 2MB</div>
+                    <div class="form-text">Accepted formats: JPG, PNG, GIF, WEBP, SVG. Max size: 2MB</div>
                     
                     <!-- Image Preview -->
                     <div id="imagePreview" class="mt-2" style="display: none;">

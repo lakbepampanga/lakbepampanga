@@ -39,7 +39,7 @@
         })->name('index');
 
         // User-Homepage
-        Route::get('/user-home', [HomeController::class, 'index'])->name('user-home');
+            Route::get('/user-home', [HomeController::class, 'index'])->name('user-home');
 
         // Commuting Guide
         Route::get('/commuting-guide', function () {

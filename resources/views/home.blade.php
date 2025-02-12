@@ -740,7 +740,7 @@ if (loginForm) {
         forgotPasswordForm.addEventListener('submit', function(e) {
             e.preventDefault();
             // Your forgot password form submission logic
-            showToast('Password reset link has been sent to your email.', 'success');
+            showToast('Password reset link has been sent to your email. Check spam messages', 'success');
             // Submit the form
             this.submit();
         });

@@ -79,4 +79,6 @@ public function destroy($id)
             ->with('error', 'Failed to delete itinerary');
     }
 }
+
+
 }
