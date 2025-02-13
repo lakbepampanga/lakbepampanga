@@ -111,6 +111,118 @@
         background-color: #f8f9fa;
     }
 
+    .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loading-content {
+    background: white;
+    padding: 2.5rem 3rem;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    min-width: 300px;
+}
+
+.spinner-ring {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--button-color);
+    border-radius: 50%;
+    margin: 0 auto 1.5rem;
+    animation: spin 0.8s linear infinite;
+}
+
+.loading-text-container {
+    text-align: center;
+}
+
+.loading-title {
+    color: #333;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+    padding: 0;
+    display: inline-block;
+}
+
+.loading-dots {
+    display: inline-block;
+    margin-left: 2px;
+}
+
+.loading-dots .dot {
+    display: inline-block;
+    animation: dots 1.4s infinite;
+    font-size: 1.2rem;
+    line-height: 1;
+    color: var(--button-color);
+}
+
+.loading-dots .dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.loading-dots .dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+.loading-subtext {
+    margin: 0.8rem 0 0 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes dots {
+    0%, 20% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(-5px);
+        opacity: 0.5;
+    }
+    80%, 100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .loading-content {
+        min-width: auto;
+        width: 85%;
+        padding: 2rem;
+    }
+    
+    .spinner-ring {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .loading-title {
+        font-size: 1.1rem;
+    }
+}
+
 
     </style>
 </head>
@@ -146,6 +258,20 @@
 </header>
 <!-- main -->
 <main class="main container mt-5 pt-5 mb-5 vh-100">
+<div id="loading-spinner" class="loading-overlay" style="display: none;">
+    <div class="loading-content">
+        <div class="spinner-ring"></div>
+        <div class="loading-text-container">
+            <h3 class="loading-title">Generating your commute guide</h3>
+            <div class="loading-dots">
+                <span class="dot">.</span>
+                <span class="dot">.</span>
+                <span class="dot">.</span>
+            </div>
+            <p class="loading-subtext">This may take a few moments</p>
+        </div>
+    </div>
+</div>
     <div class="container mt-4 pt-4">
         <div class="row">
             <!-- Input Section (Left) -->
@@ -445,6 +571,9 @@ function initializeAutocomplete() {
         return;
     }
 
+    document.getElementById('loading-spinner').style.display = 'flex';
+
+
     fetch('/api/commute-guide', {
         method: 'POST',
         headers: {
@@ -455,6 +584,9 @@ function initializeAutocomplete() {
     })
     .then(response => response.json())
     .then(data => {
+
+        document.getElementById('loading-spinner').style.display = 'none';
+
         if (data.error) {
             alert(data.error);
             return;
@@ -578,6 +710,8 @@ const guideHTML = `
         }
     })
     .catch(error => {
+        document.getElementById('loading-spinner').style.display = 'none';
+
         console.error("Error fetching commute guide:", error);
         alert("An error occurred while generating the commute guide.");
     });
