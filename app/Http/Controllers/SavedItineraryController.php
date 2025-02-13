@@ -80,5 +80,33 @@ public function destroy($id)
     }
 }
 
+public function update(Request $request, $id)
+{
+    try {
+        $itinerary = SavedItinerary::where('user_id', auth()->id())
+            ->findOrFail($id);
+            
+        $validated = $request->validate([
+            'name' => 'required|string|max:255'
+        ]);
+        
+        $itinerary->update([
+            'name' => $validated['name']
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Itinerary name updated successfully',
+            'name' => $validated['name']
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Itinerary update error: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'error' => 'Failed to update itinerary name'
+        ], 500);
+    }
+}
 
 }

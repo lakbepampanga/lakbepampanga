@@ -54,6 +54,7 @@
         
         // Saved Itineraries
         Route::get('/saved-itinerary', [SavedItineraryController::class, 'index'])->name('saved-itinerary');
+        Route::put('/itineraries/{id}', [SavedItineraryController::class, 'update'])->name('itineraries.update');
         Route::delete('/itineraries/{itinerary}', [SavedItineraryController::class, 'destroy'])->name('itineraries.destroy');
         
         // Destination visits

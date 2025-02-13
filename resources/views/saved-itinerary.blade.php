@@ -74,6 +74,60 @@
 .toast-error {
     border-left: 4px solid #dc3545;
 }
+
+.editable-title .edit-title-btn {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.editable-title:hover .edit-title-btn {
+    opacity: 1;
+}
+
+.edit-title-form .input-group {
+    max-width: 300px;
+}
+
+.editable-title .edit-title-btn {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    vertical-align: middle;
+}
+
+.editable-title:hover .edit-title-btn {
+    opacity: 0.7;
+}
+
+.editable-title .edit-title-btn:hover {
+    opacity: 1;
+}
+
+.editable-title .card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.edit-title-form .input-group {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.edit-title-form .form-control:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+}
+
+.edit-title-form .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 34px;
+    padding: 0;
+}
+
+.edit-title-form .btn i {
+    font-size: 1rem;
+}
 </style>
 
 <main class="main container mt-5 pt-5">
@@ -103,10 +157,41 @@
                         data-map-container="map-container-{{ $itinerary->id }}">
 
                         <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <h5 class="card-title">{{ $itinerary->name }}</h5>
-                                <small class="text-muted">{{ $itinerary->created_at->format('M d, Y') }}</small>
-                            </div>
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="editable-title" data-itinerary-id="{{ $itinerary->id }}">
+    <div class="d-flex align-items-center mb-0">
+        <h5 class="card-title mb-0 me-2">
+            <span class="itinerary-name">{{ $itinerary->name }}</span>
+            <button class="btn btn-link btn-sm edit-title-btn p-0 ms-1" title="Edit title">
+                <i class="bi bi-pencil-fill text-muted" style="font-size: 0.8rem;"></i>
+            </button>
+        </h5>
+    </div>
+    
+    <form class="edit-title-form d-none">
+        @csrf
+        <div class="input-group input-group-sm mt-2" style="max-width: 300px;">
+            <input 
+                type="text" 
+                name="name" 
+                class="form-control shadow-none" 
+                value="{{ $itinerary->name }}" 
+                required
+                placeholder="Enter itinerary name"
+            >
+            <button type="submit" class="btn btn-primary px-3">
+                <i class="bi bi-check-lg"></i>
+            </button>
+            <button type="button" class="btn btn-outline-secondary cancel-edit px-3">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    </form>
+</div>
+
+
+    <small class="text-muted">{{ $itinerary->created_at->format('M d, Y') }}</small>
+</div>
 
                             <p class="mb-2"><strong>Duration:</strong> {{ $itinerary->duration_hours }} hours</p>
 
@@ -144,21 +229,21 @@
                                         
                                         <div class="small mt-1">
                                         <strong>Route:</strong> 
-@if(is_array($destination['commute_instructions']))
-    @foreach($destination['commute_instructions'] as $instruction)
-        {{ $instruction['instruction'] }}
-    @endforeach
-@else
-    {{ $destination['commute_instructions'] }}
-@endif
+                                        @if(is_array($destination['commute_instructions']))
+                                            @foreach($destination['commute_instructions'] as $instruction)
+                                                {{ $instruction['instruction'] }}
+                                            @endforeach
+                                        @else
+                                            {{ $destination['commute_instructions'] }}
+                                        @endif
                                             <button type="button" 
                                                 class="btn btn-sm btn-link text-danger report-instructions" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#reportModal"
                                                 data-destination="{{ $destination['name'] }}"
                                                 data-instructions="{{ is_array($destination['commute_instructions']) ? 
-    implode(' ', array_map(function($i) { return $i['instruction']; }, $destination['commute_instructions'])) : 
-    $destination['commute_instructions'] }}"
+                                                implode(' ', array_map(function($i) { return $i['instruction']; }, $destination['commute_instructions'])) : 
+                                                $destination['commute_instructions'] }}"
                                                 data-itinerary-id="{{ $itinerary->id }}">
                                                 <i class="bi bi-exclamation-triangle"></i> Report Issue
                                             </button>
@@ -169,14 +254,14 @@
 
                             <div class="d-flex justify-content-between mt-3">
                             <form action="{{ route('itineraries.destroy', $itinerary->id) }}"
-    method="POST"
-    class="delete-itinerary-form">
-    @csrf
-    @method('DELETE')
-    <button type="submit" class="btn btn-sm btn-danger">
-        <i class="bi bi-trash"></i> Delete
-    </button>
-</form>
+                                method="POST"
+                                class="delete-itinerary-form">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </form>
                             </div>
                             <!-- View Map Button (Mobile Only) -->
                             <button class="btn btn-outline-primary w-100 mt-3 d-md-none view-map-btn" 
@@ -615,6 +700,79 @@ document.querySelectorAll('form[action*="itineraries/"]').forEach(form => {
         .catch(error => {
             console.error('Error:', error);
             showToast('An error occurred while deleting the itinerary', 'error');
+        });
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle edit button clicks
+    document.querySelectorAll('.edit-title-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const titleContainer = this.closest('.editable-title');
+            const form = titleContainer.querySelector('.edit-title-form');
+            const titleDisplay = titleContainer.querySelector('.itinerary-name');
+            
+            // Show form, hide display
+            form.classList.remove('d-none');
+            titleDisplay.parentElement.classList.add('d-none');
+            
+            // Focus input
+            form.querySelector('input').focus();
+        });
+    });
+    
+    // Handle cancel button clicks
+    document.querySelectorAll('.cancel-edit').forEach(button => {
+        button.addEventListener('click', function() {
+            const titleContainer = this.closest('.editable-title');
+            const form = titleContainer.querySelector('.edit-title-form');
+            const titleDisplay = titleContainer.querySelector('.itinerary-name');
+            
+            // Hide form, show display
+            form.classList.add('d-none');
+            titleDisplay.parentElement.classList.remove('d-none');
+        });
+    });
+    
+    // Handle form submissions
+    document.querySelectorAll('.edit-title-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const titleContainer = this.closest('.editable-title');
+            const itineraryId = titleContainer.dataset.itineraryId;
+            const input = this.querySelector('input[name="name"]');
+            const titleDisplay = titleContainer.querySelector('.itinerary-name');
+            const csrfToken = this.querySelector('input[name="_token"]').value;
+            
+            fetch(`/itineraries/${itineraryId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: new URLSearchParams({
+                    '_method': 'PUT',
+                    'name': input.value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    titleDisplay.textContent = input.value; // Use the input value directly
+                    form.classList.add('d-none');
+                    titleDisplay.parentElement.classList.remove('d-none');
+                    showToast('Itinerary name updated successfully', 'success');
+                } else {
+                    showToast(data.error || 'Failed to update itinerary name', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred while updating the itinerary name', 'error');
+            });
         });
     });
 });
