@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="geolocation 'self'">
+
     <title>Pampanga Commuting Guide</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACtmc6ZSEVHBJLkk9wtiRj5ssvW1RDh4s&libraries=places,geometry,directions"></script>
      <!-- Favicons -->
-  <link href="{{ asset('img/favicon.png') }}" rel="icon">
+     <link href="{{ asset('img/lakbe2.png') }}" rel="icon">
 <link href="{{ asset('img/apple-touch-icon.png') }}" rel="apple-touch-icon">
 
 
@@ -62,28 +64,6 @@
     transition: 0.3s;   /* Hover border color */
 }
 
-/* Google Places Autocomplete styling */
-.pac-container {
-    border-radius: 0 0 8px 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--accent-color);
-    margin-top: 2px;
-}
-
-.pac-item {
-    padding: 8px 12px;
-    font-family: var(--font-primary);
-}
-
-.pac-item:hover {
-    background-color: var(--surface-color);
-}
-
-.pac-item-selected {
-    background-color: var(--accent-color);
-    color: var(--contrast-color);
-    
-}
 
     .instruction-step {
         border-left: 4px solid #0d6efd;
@@ -257,7 +237,8 @@
     </div>
 </header>
 <!-- main -->
-<main class="main container mt-5 pt-5 mb-5 vh-100">
+<main class="main container mt-5 pt-5 mb-5">
+
 <div id="loading-spinner" class="loading-overlay" style="display: none;">
     <div class="loading-content">
         <div class="spinner-ring"></div>
@@ -305,12 +286,13 @@
                 </div>
 
                 <!-- Commute Guide Results -->
-                <div id="result-section" style="display: none;">
-                    <div id="commute-guide" class="p-3 rounded"></div>
+                <div id="result-section" style="display:none;">
+                    <div id="commute-guide" class="p-3 rounded bg-light border shadow-sm"></div>
                     <div class="mt-3 text-center">
-                        <button id="back-button" class="btn btn-secondary px-4">Back</button>
+                        <button id="back-button" class="btn btn-secondary btn-lg px-4">Back</button>
                     </div>
                 </div>
+
             </div>
 
             <!-- Map Section (Right) - Hidden on Mobile -->
@@ -323,9 +305,12 @@
     </div>
 
     <!-- View Map Button (Visible on Mobile Only) -->
-    <button id="view-map-btn" class="btn btn-custom rounded-pill d-md-none position-fixed start-50 translate-middle-x" style="bottom: 140px; z-index: 1050;">
-        View Map
-    </button>
+    <button id="view-map-btn" 
+        class="btn btn-custom rounded-pill d-md-none position-fixed" 
+        style="bottom: 200px; right: 20px; z-index: 1050;">
+    <i class="bi bi-map"></i> View Map
+</button>
+
 
     <!-- Mobile Map Modal -->
     <div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
@@ -397,14 +382,14 @@
 }
 </style>
 
-<footer id="footer" class="footer dark-background w-100 py-4 mt-auto text-center">
-        <div class="container-fluid">
-            <p>© <span>Copyright</span> <strong class="px-1 sitename">Lakbe Pampanga</strong> <span>All Rights Reserved</span></p>
-            <div class="credits">
-                Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> Distributed By <a href="https://themewagon.com">ThemeWagon</a>
-            </div>
-        </div>
-    </footer>
+<footer id="footer" class="footer dark-background w-100">
+  <div class="container-fluid text-center py-4">
+    <p>© <span>Copyright</span> <strong class="px-1 sitename">Lakbe Pampanga</strong> <span>All Rights Reserved</span></p>
+    <div class="credits">
+      Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> Distributed By <a href="https://themewagon.com">ThemeWagon</a>
+    </div>
+  </div>
+</footer>
 
 
     <script>
@@ -421,7 +406,7 @@
                 map: map,
                 suppressMarkers: true, // We'll add our own custom markers
                 polylineOptions: {
-                    strokeColor: '#FF0000',
+                    strokeColor: '#0d6efd',
                     strokeOpacity: 0.8,
                     strokeWeight: 4
                 }
@@ -584,9 +569,7 @@ function initializeAutocomplete() {
     })
     .then(response => response.json())
     .then(data => {
-
         document.getElementById('loading-spinner').style.display = 'none';
-
         if (data.error) {
             alert(data.error);
             return;
@@ -599,29 +582,77 @@ function initializeAutocomplete() {
 let instructionsHtml = '';
 if (Array.isArray(data.commute_instructions)) {
     instructionsHtml = data.commute_instructions.map((instruction, index) => `
-        <div class="instruction-step p-3 bg-light rounded mb-3">
-            <div class="d-flex align-items-start">
-                <span class="step-number me-3 px-2 py-1 rounded-circle bg-primary text-white">
-                    ${index + 1}
-                </span>
-                <div class="instruction-content w-100">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="route-info">
-                            <p class="mb-2 instruction-text">${instruction.instruction}</p>
-
-                        </div>
-                        ${instruction.image_path ? `
-                            <div class="route-image ms-3">
-                                <img src="${instruction.image_path}" 
-                                     alt="${instruction.route_name}" 
-                                     class="img-fluid rounded" 
-                                     style="max-width: 120px; height: auto;">
-                            </div>
-                        ` : ''}
+        <!-- Web View (Hidden on Mobile) -->
+        <style>
+            @media (max-width: 768px) {
+    .instruction-step {
+        flex-direction: column !important;
+    }
+    .route-image {
+        order: 2; /* Moves the image below the text */
+        margin-top: 10px;
+        text-align: center;
+    }
+    .instruction-text {
+        order: 1;
+    }
+        </style>
+<!-- Web View (Hidden on Mobile) -->
+<div class="instruction-step p-3 bg-light rounded mb-3 d-none d-md-block">
+    <div class="d-flex align-items-start">
+        <span class="step-number me-3 px-2 py-1 rounded-circle text-white">
+            ${index + 1}
+        </span>
+        <div class="instruction-content w-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <p class="mb-2 instruction-text">${instruction.instruction}</p>
+                ${instruction.image_path ? `
+                    <div class="route-image ms-3">
+                        <img src="${instruction.image_path}" 
+                             alt="${instruction.route_name}" 
+                             class="img-fluid rounded clickable-image uniform-image"
+                             onclick="openImageModal('${instruction.image_path}')">
                     </div>
-                </div>
+                ` : ''}
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Mobile View (Hidden on Desktop) -->
+<div class="instruction-step p-3 bg-light rounded mb-3 d-block d-md-none">
+    <div class="d-flex flex-column">
+        <div class="d-flex align-items-start">
+            <span class="step-number me-3 px-2 py-1 rounded-circle text-white">
+                ${index + 1}
+            </span>
+            <div class="instruction-content w-100">
+                <p class="mb-2 instruction-text">${instruction.instruction}</p>
+            </div>
+        </div>
+        ${instruction.image_path ? `
+            <div class="text-center mt-2">
+                <img src="${instruction.image_path}" 
+                     alt="${instruction.route_name}" 
+                     class="img-fluid rounded clickable-image uniform-image"
+                     onclick="openImageModal('${instruction.image_path}')">
+            </div>
+        ` : ''}
+    </div>
+</div>
+
+<!-- Bootstrap Modal for Image Popup -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <img id="popupImage" src="" class="img-fluid rounded uniform-image" alt="Expanded Image">
+            </div>
+        </div>
+    </div>
+</div>
+
+
     `).join('');
 } else {
     // Your existing else block for non-array instructions
@@ -645,30 +676,45 @@ if (Array.isArray(data.commute_instructions)) {
 // Display the commute guide results
 const guideHTML = `
     <style>
-        .instruction-step {
-            transition: all 0.3s ease;
-            border-left: 4px solid #0d6efd;
-        }
-        .instruction-step:hover {
-            transform: translateX(5px);
-        }
-        .step-number {
-            min-width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        .instruction-text {
-            color: #424242;
-            line-height: 1.5;
-        }
-        .info-icon {
-            color: #0d6efd;
-        }
-    </style>
+    .instruction-step {
+        transition: all 0.3s ease;
+        border-left: 4px solid var(--assets-color); /* Blue left border for visual emphasis */
+        padding: 15px; /* Add padding for spacing inside the step */
+        background-color: #f8f9fa; /* Light gray background for better readability */
+        border-radius: 6px; /* Slight rounding for better aesthetics */
+        margin-bottom: 15px; /* Space between steps */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    }
+    .instruction-step:hover {
+        transform: translateX(5px); /* Shift the step slightly to the right on hover */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Slightly stronger shadow on hover */
+    }
+    .step-number {
+        min-width: 36px; /* Increase size for better visibility */
+        height: 36px; /* Ensure a perfect circle */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 16px; /* Increase font size */
+        color: #ffffff; /* White text for contrast */
+        background-color: var(--assets-color); /* Primary blue background */
+        border-radius: 50%; /* Make it a circle */
+        margin-right: 15px; /* Add space between number and text */
+    }
+    .instruction-text {
+        color: #495057; /* Darker gray for better contrast */
+        line-height: 1.7; /* Improved readability */
+        font-size: 15px; /* Slightly larger font */
+        margin: 0; /* Remove unnecessary margins */
+    }
+    .info-icon {
+        color: var(--assets-color); /* Match the theme with blue icons */
+        font-size: 20px; /* Ensure icon is noticeable */
+        margin-right: 10px; /* Add space between icon and text */
+    }
+</style>
+
 
     <h2 class="fw-bold text-center mb-4">Commute Guide</h2>
     <div class="card shadow-sm border-0 mb-3">
@@ -711,7 +757,6 @@ const guideHTML = `
     })
     .catch(error => {
         document.getElementById('loading-spinner').style.display = 'none';
-
         console.error("Error fetching commute guide:", error);
         alert("An error occurred while generating the commute guide.");
     });
@@ -940,7 +985,7 @@ document.addEventListener('click', function(e) {
                     map: popupMap,
                     suppressMarkers: true,
                     polylineOptions: {
-                        strokeColor: "#FF0000",
+                        strokeColor: "#0d6efd",
                         strokeWeight: 4
                     }
                 });
@@ -982,6 +1027,14 @@ document.addEventListener('click', function(e) {
     });
 </script>
 
+<!-- JavaScript to Load Clicked Image into Modal -->
+<script>
+    function openImageModal(imagePath) {
+        document.getElementById("popupImage").src = imagePath;
+        var myModal = new bootstrap.Modal(document.getElementById("imageModal"));
+        myModal.show();
+    }
+</script>
 
 
 </body>
