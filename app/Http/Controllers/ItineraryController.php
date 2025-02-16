@@ -1053,6 +1053,7 @@ public function updateItineraryItem(Request $request)
         $destinationObject->longitude = $newDestination['longitude'];
         $destinationObject->description = $newDestination['description'] ?? '';
         $destinationObject->image_url = $newDestination['image_url'] ?? null;
+        $destinationObject->id = $newDestination['id'] ?? null; // Add ID if available
 
         \Log::info('Created destination object:', ['object' => $destinationObject]);
 
@@ -1073,6 +1074,29 @@ public function updateItineraryItem(Request $request)
             $startLat,
             $startLng
         );
+
+        // Ensure commute instructions are properly formatted
+        if (isset($updatedItem['commute_instructions']) && is_array($updatedItem['commute_instructions'])) {
+            $updatedItem['commute_instructions'] = array_map(function($instruction) {
+                // If instruction is already a string, return it as is
+                if (is_string($instruction)) {
+                    return $instruction;
+                }
+                
+                // If instruction is an object/array, format it properly
+                if (isset($instruction['instruction'])) {
+                    return [
+                        'instruction' => $instruction['instruction'],
+                        'image_path' => $instruction['image_path'] ?? null,
+                        'route_name' => $instruction['route_name'] ?? null,
+                        'route_color' => $instruction['route_color'] ?? null
+                    ];
+                }
+                
+                // Fallback case
+                return is_array($instruction) ? json_encode($instruction) : (string)$instruction;
+            }, $updatedItem['commute_instructions']);
+        }
 
         // Make sure these properties are included in the response
         $updatedItem['latitude'] = $newDestination['latitude'];

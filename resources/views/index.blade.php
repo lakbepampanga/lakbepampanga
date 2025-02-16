@@ -36,7 +36,8 @@
   <script src="{{ asset('js/main.js') }}"></script>
     <style>
      
-        
+
+
 .btn-custom{
     background-color: var(--button-color); /* Desired background color */
     color: var(--button-text-color);
@@ -48,9 +49,7 @@
     transition: 0.3s;   /* Hover border color */
 }
 
-        #itinerary {
-            margin-top: 20px;
-        }
+    
         #itinerary ul {
             list-style-type: none;
             padding: 0;
@@ -62,6 +61,32 @@
             margin-top: 20px;
         }
 
+ /* Prevent scrolling inside the modal */
+    #mapModal .modal-dialog {
+        height: 100dvh; /* Dynamic viewport height to prevent extra scrolling */
+        margin: 0;
+        max-width: 100vw;
+    }
+
+    #mapModal .modal-content {
+        height: 100dvh; /* Prevents scrolling inside the modal */
+        display: flex;
+        flex-direction: column;
+    }
+
+    #mapModal .modal-body {
+        flex-grow: 1;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden; /* Prevents scrolling inside modal */
+    }
+
+    #map-popup {
+        width: 100%;
+        height: 100%;
+    }
 
 /* Form Styling */
 
@@ -350,47 +375,43 @@
     <div class="row">
         <!-- Itinerary Section (Left) -->
         <div class="col-md-6">
-            <div id="itinerary" class="p-3 bg-light rounded shadow-sm" style="height: 500px; overflow-y: auto;">
-                <h5 class="fw-bold mb-3">Your Itinerary</h5>
-                
-                <div id="itinerary-content">
-                    @if(isset($itinerary) && count($itinerary) > 0)
-                        @foreach($itinerary as $index => $item)
-                            <div class="card mb-3 shadow-sm border-0" data-destination-id="{{ $index }}">
-                                <div class="row g-0">
-                                    <!-- Left Column: Placeholder Image -->
-                                    <div class="col-md-4">
-                                        <img src="https://placehold.co/100x300" 
-                                             class="img-fluid rounded-start" 
-                                             alt="Placeholder for {{ $item->name }}">
-                                    </div>
-                                    <!-- Right Column: Destination Content -->
-                                    <div class="col-md-8">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <h5 class="card-title">{{ $item->name }} ({{ $item->type }})</h5>
-                                                <button class="btn btn-sm btn-outline-primary edit-destination" 
-                                                        data-index="{{ $index }}"
-                                                        data-lat="{{ $item->latitude }}"
-                                                        data-lng="{{ $item->longitude }}">
-                                                    <i class="bi bi-pencil"></i> Change
-                                                </button>
-                                            </div>
-                                            <p class="card-text text-muted">{{ $item->description }}</p>
-                                            <p class="card-text"><strong>Travel Time:</strong> {{ $item->travel_time }}</p>
-                                            <p class="card-text"><strong>Time to Spend:</strong> {{ $item->visit_time }}</p>
-                                            <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->commute_instructions }}</p>
-                                        </div>
-                                    </div>
-                                </div>
+    <div id="itinerary" class="p-3 bg-light rounded shadow-sm" style="height: 500px; overflow-y: auto;">
+        <h5 class="fw-bold mb-3">Your Itinerary</h5>
+
+        <div id="itinerary-content" class="row row-cols-1 g-3">
+            @if(isset($itinerary) && count($itinerary) > 0)
+                @foreach($itinerary as $index => $item)
+                    <div class="col">
+                        <div class="card shadow-sm border-0 h-100">
+                            <!-- Image on Top -->
+                            <img src="https://placehold.co/250x150"
+                                 class="card-img-top rounded"
+                                 alt="Placeholder for {{ $item->name }}">
+
+                            <!-- Details Below -->
+                            <div class="card-body text-center">
+                                <h5 class="card-title">{{ $item->name }} ({{ $item->type }})</h5>
+                                <p class="card-text text-muted">{{ $item->description }}</p>
+                                <p class="card-text"><strong>Travel Time:</strong> {{ $item->travel_time }}</p>
+                                <p class="card-text"><strong>Time to Spend:</strong> {{ $item->visit_time }}</p>
+                                <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->commute_instructions }}</p>
+                                <button class="btn btn-sm btn-outline-primary edit-destination"
+                                        data-index="{{ $index }}"
+                                        data-lat="{{ $item->latitude }}"
+                                        data-lng="{{ $item->longitude }}">
+                                    <i class="bi bi-pencil"></i> Change
+                                </button>
                             </div>
-                        @endforeach
-                    @else
-                        <p class="text-muted">Your generated itinerary will appear here.</p>
-                    @endif
-                </div>
-            </div>
+                        </div>
+                    </div>
+                @endforeach
+            @else
+                <p class="text-muted text-center">Your generated itinerary will appear here.</p>
+            @endif
         </div>
+    </div>
+</div>
+
 
         <!-- Map Section (Right) -->
         <div class="col-md-6">
@@ -401,9 +422,9 @@
     </div>
 
     <!-- View Map Button (Visible on Mobile Only) -->
-    <button id="view-map-btn" class="btn btn-custom rounded-pill d-md-none position-fixed start-50 translate-middle-x" style="bottom: 140px; z-index: 1050;">
-    View Map
-</button>
+<!--    <button id="view-map-btn" class="btn btn-custom rounded-pill d-md-none position-fixed">-->
+<!--    Map View-->
+<!--</button>-->
 
 </div>
 
@@ -428,7 +449,20 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Choose Alternative Destination</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="ms-auto d-flex gap-2 align-items-center">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-custom alt-filter-btn" data-filter="all">
+                            <i class="bi bi-grid"></i> All
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary alt-filter-btn" data-filter="landmark">
+                            <i class="bi bi-geo-alt"></i> Landmarks
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary alt-filter-btn" data-filter="restaurant">
+                            <i class="bi bi-shop"></i> Restaurants
+                        </button>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
             </div>
             <div class="modal-body">
                 <div id="alternative-destinations" class="list-group">
@@ -441,14 +475,14 @@
 
     </main>
 
-    <footer id="footer" class="footer dark-background w-100">
+    <!-- <footer id="footer" class="footer dark-background w-100">
   <div class="container-fluid text-center py-4">
     <p>© <span>Copyright</span> <strong class="px-1 sitename">Lakbe Pampanga</strong> <span>All Rights Reserved</span></p>
     <div class="credits">
       Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> Distributed By <a href="https://themewagon.com">ThemeWagon</a>
     </div>
   </div>
-</footer>
+</footer> -->
 
 
     <!-- scripts -->
@@ -691,55 +725,70 @@ function initAutocomplete() {
 
                 // Generate itinerary HTML
                 let itineraryHTML = `
-                    <div class="text-center mb-3">
-                        <button class="btn btn-custom save-itinerary">
-                            <i class="bi bi-save"></i> Save Itinerary
-                        </button>
-                    </div>`;
+    <div class="text-center mb-3">
+        <button class="btn btn-custom save-itinerary">
+            <i class="bi bi-save"></i> Save Itinerary
+        </button>
+        <button id="view-map-btn-dynamic" class="btn btn-custom rounded-pill d-md-none position-fixed start-50 translate-middle-x" style="bottom: 20px; z-index: 10;">
+    View Map
+</button>
+    </div>
+`;
 
                     currentItineraryData.forEach((destination, index) => {
     console.log('Destination commute instructions:', destination.commute_instructions);
     console.log('Full destination data:', destination);
                         itineraryHTML += `
-    <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
-        <div class="row g-0">
-            <!-- Left Column: Image -->
-            <div class="col-md-4 position-relative">
-                <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
-                     class="img-fluid rounded-start" 
-                     alt="${destination.name}"
-                     onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'"
-                     style="width: 100%; height: 250px; object-fit: cover;">
-                <div class="position-absolute top-0 start-0 m-2">
-                    <span class="badge ${destination.type === 'restaurant' ? 'bg-success' : 'bg-primary'} rounded-pill">
-                        <i class="bi ${destination.type === 'restaurant' ? 'bi-shop' : 'bi-geo-alt'}"></i>
-                        ${destination.type.charAt(0).toUpperCase() + destination.type.slice(1)}
-                    </span>
-                </div>
-            </div>
-            <!-- Right Column: Content -->
-            <div class="col-md-8">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h5 class="card-title">
-                            ${destination.name} (${destination.type})
-                        </h5>
-                    </div>
-                    <p class="card-text text-muted">${destination.description}</p>
-                    <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
-                    <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
-<p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}</p>
+    <div class="card mb-3 shadow-sm border-0 position-relative" data-destination-id="${index}">
+    <!-- Image on Top -->
+    <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+         class="card-img-top img-fluid rounded"
+         alt="${destination.name}"
+         onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'"
+         style="width: 100%; height: 250px; object-fit: cover;">
 
-                    <button class="btn btn-sm btn-custom edit-destination" 
-                            data-index="${index}"
-                            data-lat="${destination.latitude}"
-                            data-lng="${destination.longitude}">
-                        <i class="bi bi-pencil"></i> Change
-                    </button>
-                </div>
+    <!-- Badge (Type Indicator) -->
+    <div class="position-absolute top-0 start-0 m-2">
+        <span class="badge ${destination.type === 'restaurant' ? 'bg-success' : 'bg-primary'} rounded-pill">
+            <i class="bi ${destination.type === 'restaurant' ? 'bi-shop' : 'bi-geo-alt'}"></i>
+            ${destination.type.charAt(0).toUpperCase() + destination.type.slice(1)}
+        </span>
+    </div>
+
+    <!-- Details Below -->
+    <div class="card-body text-center">
+        <h5 class="card-title fw-bold">${destination.name} (${destination.type})</h5>
+        <p class="card-text text-muted">${destination.description}</p>
+
+        <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mt-2">
+            <p class="card-text">
+                <i class="bi bi-clock-fill text-primary"></i> 
+                <strong>Travel Time:</strong> ${destination.travel_time} minutes
+            </p>
+            <p class="card-text">
+                <i class="bi bi-hourglass-split text-warning"></i> 
+                <strong>Time to Spend:</strong> ${destination.visit_time} minutes
+            </p>
+        </div>
+
+        <div class="card-text commute-instructions-container mt-2">
+            <i class="bi bi-geo-alt-fill text-danger"></i> 
+            <strong>Commute Instructions:</strong>
+            <div class="commute-instructions mt-2">
+                ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}
             </div>
         </div>
-    </div>`;
+
+        <button class="btn btn-sm btn-custom edit-destination mt-3" 
+                data-index="${index}"
+                data-lat="${destination.latitude}"
+                data-lng="${destination.longitude}">
+            <i class="bi bi-pencil"></i> Change
+        </button>
+    </div>
+</div>
+
+`;
 
     const lat = parseFloat(destination.latitude);
     const lng = parseFloat(destination.longitude);
@@ -838,38 +887,38 @@ async function handleDestinationSelect(newDestination) {
     console.log('Destination commute instructions:', destination.commute_instructions);
     console.log('Full destination data:', destination);
             itineraryHTML += `
-                <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
-                    <div class="row g-0">
-                        <!-- Left Column: Image -->
-                        <div class="col-md-4">
-                            <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
-                                 class="img-fluid rounded-start" 
-                                 alt="${destination.name}"
-                                 style="width: 100%; height: 250px; object-fit: cover;"
-                                 onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'">
-                        </div>
-                        <!-- Right Column: Content -->
-                        <div class="col-md-8">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <h5 class="card-title">
-                                        ${destination.name} (${destination.type})
-                                    </h5>
-                                </div>
-                                <p class="card-text text-muted">${destination.description}</p>
-                                <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
-                                <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
-<p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}</p>
-                               <button class="btn btn-sm btn-custom edit-destination" 
-                                        data-index="${index}"
-                                        data-lat="${destination.latitude}"
-                                        data-lng="${destination.longitude}">
-                                    <i class="bi bi-pencil"></i> Change
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
+                <div class="card mb-3 shadow-sm border-0 text-center" data-destination-id="${index}">
+    <!-- Image on Top -->
+    <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+         class="card-img-top img-fluid rounded"
+         alt="${destination.name}"
+         style="width: 100%; height: 250px; object-fit: cover;"
+         onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'">
+
+    <!-- Details Below -->
+    <div class="card-body">
+        <h5 class="card-title fw-bold">${destination.name} (${destination.type})</h5>
+        <p class="card-text text-muted">${destination.description}</p>
+        
+        <div class="d-flex justify-content-center gap-3">
+            <p class="card-text"><i class="bi bi-clock-fill text-primary"></i> <strong>Travel Time:</strong> ${destination.travel_time}</p>
+            <p class="card-text"><i class="bi bi-hourglass-split text-warning"></i> <strong>Time to Spend:</strong> ${destination.visit_time}</p>
+        </div>
+        
+        <p class="card-text"><i class="bi bi-geo-alt-fill text-danger"></i> <strong>Commute Instructions:</strong> 
+            ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}
+        </p>
+
+        <button class="btn btn-sm btn-custom edit-destination mt-2" 
+                data-index="${index}"
+                data-lat="${destination.latitude}"
+                data-lng="${destination.longitude}">
+            <i class="bi bi-pencil"></i> Change
+        </button>
+    </div>
+</div>
+
+`;
 
             const lat = parseFloat(destination.latitude);
             const lng = parseFloat(destination.longitude);
@@ -927,39 +976,37 @@ function updateItineraryUI() {
     console.log('Destination commute instructions:', destination.commute_instructions);
     console.log('Full destination data:', destination);
         itineraryHTML += `
-            <div class="card mb-3 shadow-sm border-0" data-destination-id="${index}">
-            <div class="row g-0">
-                <!-- Left Column: Placeholder Image -->
-                <div class="col-md-4">
-                    <img src="https://www.svgrepo.com/show/508699/landscape-placeholder.svg" 
-                         class="img-fluid rounded-start" 
-                         alt="Placeholder for ${destination.name}">
-                </div>
-                <!-- Right Column: Content -->
-                <div class="col-md-8">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h5 class="card-title">
-                                ${destination.name} (${destination.type})
-                                
-                            </h5>
-                        </div>
-                            <p class="card-text text-muted">${destination.description}</p>
-                        <p class="card-text"><strong>Travel Time:</strong> ${destination.travel_time}</p>
-                        <p class="card-text"><strong>Time to Spend:</strong> ${destination.visit_time}</p>
-<p class="card-text"><strong>Commute Instructions:</strong> ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}</p>
-                        <button class="btn btn-sm btn-custom edit-destination" 
-                                    data-index="${index}"
-                                    data-lat="${destination.latitude}"
-                                    data-lng="${destination.longitude}">
-                                <i class="bi bi-pencil"></i> Change
-                            </button>
-                       
-                        
-                    </div>
-                </div>
-            </div>
-        </div>`;
+            <div class="card mb-3 shadow-sm border-0 text-center" data-destination-id="${index}">
+    <!-- Image on Top -->
+    <img src="https://www.svgrepo.com/show/508699/landscape-placeholder.svg" 
+         class="card-img-top img-fluid rounded" 
+         alt="Placeholder for ${destination.name}"
+         style="width: 100%; height: 250px; object-fit: cover;">
+
+    <!-- Details Below -->
+    <div class="card-body">
+        <h5 class="card-title fw-bold">${destination.name} (${destination.type})</h5>
+        <p class="card-text text-muted">${destination.description}</p>
+        
+        <div class="d-flex justify-content-center gap-3">
+            <p class="card-text"><i class="bi bi-clock-fill text-primary"></i> <strong>Travel Time:</strong> ${destination.travel_time}</p>
+            <p class="card-text"><i class="bi bi-hourglass-split text-warning"></i> <strong>Time to Spend:</strong> ${destination.visit_time}</p>
+        </div>
+        
+        <p class="card-text"><i class="bi bi-geo-alt-fill text-danger"></i> <strong>Commute Instructions:</strong> 
+            ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}
+        </p>
+
+        <button class="btn btn-sm btn-custom edit-destination mt-2" 
+                data-index="${index}"
+                data-lat="${destination.latitude}"
+                data-lng="${destination.longitude}">
+            <i class="bi bi-pencil"></i> Change
+        </button>
+    </div>
+</div>
+
+`;
     });
 
     document.getElementById('itinerary-content').innerHTML = itineraryHTML;
@@ -1057,25 +1104,59 @@ async function fetchAlternativeDestinations(lat, lng) {
         
         const destinations = await response.json();
         const container = document.getElementById('alternative-destinations');
-        container.innerHTML = destinations.map(dest => `
-            <button class="list-group-item list-group-item-action" 
-                    onclick="selectNewDestination(${JSON.stringify(dest).replace(/"/g, '&quot;')})">
-                <div class="d-flex w-100">
-                    <div class="flex-shrink-0" style="width: 100px; height: 100px;">
-                        <img src="${dest.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
-                             class="img-fluid rounded"
-                             alt="${dest.name}"
-                             style="width: 100px; height: 100px; object-fit: cover;"
-                             onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'">
+        
+        // Function to render destinations
+        const renderDestinations = (destinationsToShow) => {
+            container.innerHTML = destinationsToShow.map(dest => `
+                <button class="list-group-item list-group-item-action" 
+                        onclick="selectNewDestination(${JSON.stringify(dest).replace(/"/g, '&quot;')})"
+                        data-type="${dest.type}">
+                    <div class="d-flex w-100">
+                        <div class="flex-shrink-0" style="width: 100px; height: 100px;">
+                            <img src="${dest.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+                                 class="img-fluid rounded"
+                                 alt="${dest.name}"
+                                 style="width: 100px; height: 100px; object-fit: cover;"
+                                 onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'">
+                        </div>
+                        <div class="ms-3 flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h6 class="mb-1">${dest.name}</h6>
+                                <span class="badge ${dest.type === 'restaurant' ? 'bg-success' : 'bg-primary'} rounded-pill">
+                                    <i class="bi ${dest.type === 'restaurant' ? 'bi-shop' : 'bi-geo-alt'}"></i>
+                                    ${dest.type.charAt(0).toUpperCase() + dest.type.slice(1)}
+                                </span>
+                            </div>
+                            <p class="mb-1 text-muted small">${dest.description || 'No description available.'}</p>
+                        </div>
                     </div>
-                    <div class="ms-3 flex-grow-1">
-                        <h6 class="mb-1">${dest.name}</h6>
-                        <p class="mb-1 text-muted small">${dest.description || 'No description available.'}</p>
-                        <small>Type: ${dest.type}</small>
-                    </div>
-                </div>
-            </button>
-        `).join('');
+                </button>
+            `).join('');
+        };
+
+        // Initial render
+        renderDestinations(destinations);
+
+        // Add filter button event listeners
+        document.querySelectorAll('.alt-filter-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Update button styles
+                document.querySelectorAll('.alt-filter-btn').forEach(btn => {
+                    btn.classList.remove('btn-custom');
+                    btn.classList.add('btn-outline-secondary');
+                });
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-custom');
+
+                // Filter destinations
+                const filterValue = this.dataset.filter;
+                const filteredDestinations = filterValue === 'all' 
+                    ? destinations 
+                    : destinations.filter(dest => dest.type === filterValue);
+
+                renderDestinations(filteredDestinations);
+            });
+        });
 
         alternativesModal.show();
     } catch (error) {
@@ -1088,8 +1169,6 @@ async function fetchAlternativeDestinations(lat, lng) {
 // Update the selectNewDestination function to include starting coordinates
 async function selectNewDestination(newDestination) {
     try {
-        console.log('Selected new destination:', newDestination); // Debug log
-        
         const response = await fetch('/api/update-itinerary-item', {
             method: 'POST',
             headers: {
@@ -1108,19 +1187,55 @@ async function selectNewDestination(newDestination) {
         if (!response.ok) throw new Error('Failed to update itinerary');
         
         const updatedItem = await response.json();
-        console.log('Received updated item:', updatedItem); // Debug log
         
-        // Update currentItineraryData with the new destination
+        // Update currentItineraryData with the new destination and commute instructions
         currentItineraryData[editingIndex] = {
             ...updatedItem,
+            name: newDestination.name,
+            type: newDestination.type,
+            description: newDestination.description,
             latitude: newDestination.latitude,
             longitude: newDestination.longitude,
-            description: newDestination.description,
-            image_url: newDestination.image_url // Make sure we keep the image URL
+            image_url: newDestination.image_url
         };
 
-        console.log('Updated itinerary data:', currentItineraryData[editingIndex]); // Debug log
-        
+        if (updatedItem.subsequent_updates) {
+            updatedItem.subsequent_updates.forEach((update, index) => {
+                const targetIndex = editingIndex + index + 1;
+                if (targetIndex < currentItineraryData.length) {
+                    currentItineraryData[targetIndex] = {
+                        ...currentItineraryData[targetIndex],
+                        travel_time: update.travel_time,
+                        visit_time: update.visit_time,
+                        commute_instructions: update.commute_instructions
+                    };
+                }
+            });
+
+        // Format commute instructions
+        let commuteInstructionsHtml = '';
+        if (Array.isArray(updatedItem.commute_instructions)) {
+    commuteInstructionsHtml = updatedItem.commute_instructions.map(instruction => {
+        if (typeof instruction === 'string') {
+            return `<div class="commute-step">
+                <span class="instruction-text">${instruction}</span>
+            </div>`;
+        }
+        if (instruction.instruction) {
+            return `<div class="commute-step">
+                ${instruction.route_name ? 
+                    `<span ${instruction.route_color}">
+                        ${instruction.route_name}
+                    </span>` 
+                    : ''
+                }
+                <span class="instruction-text">${instruction.instruction}</span>
+            </div>`;
+        }
+        return '';
+    }).filter(Boolean).join('');
+}
+
         // Update the specific card in the DOM
         const itemElement = document.querySelector(`[data-destination-id="${editingIndex}"]`);
         if (itemElement) {
@@ -1128,36 +1243,49 @@ async function selectNewDestination(newDestination) {
             newCard.className = "card mb-3 shadow-sm border-0";
             newCard.setAttribute("data-destination-id", editingIndex);
             
-            // Create the card HTML with the updated data
             newCard.innerHTML = `
-                <div class="row g-0">
-                    <div class="col-md-4">
-                        <img src="${currentItineraryData[editingIndex].image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
-                             class="img-fluid rounded-start" 
-                             alt="${currentItineraryData[editingIndex].name}"
-                             style="width: 100%; height: 250px; object-fit: cover;"
-                             onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'">
-                    </div>
-                    <div class="col-md-8">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <h5 class="card-title">
-                                    ${currentItineraryData[editingIndex].name} (${currentItineraryData[editingIndex].type})
-                                </h5>
-                            </div>
-                            <p class="card-text text-muted">${currentItineraryData[editingIndex].description}</p>
-                            <p class="card-text"><strong>Travel Time:</strong> ${currentItineraryData[editingIndex].travel_time}</p>
-                            <p class="card-text"><strong>Time to Spend:</strong> ${currentItineraryData[editingIndex].visit_time}</p>
-                            <p class="card-text"><strong>Commute Instructions:</strong> ${currentItineraryData[editingIndex].commute_instructions}</p>
-                            <button class="btn btn-sm btn-custom edit-destination" 
-                                    data-index="${editingIndex}"
-                                    data-lat="${currentItineraryData[editingIndex].latitude}"
-                                    data-lng="${currentItineraryData[editingIndex].longitude}">
-                                <i class="bi bi-pencil"></i> Change
-                            </button>
-                        </div>
-                    </div>
-                </div>`;
+                <div class="card mb-3 shadow-sm border-0 text-center" data-destination-id="${editingIndex}">
+    <!-- Image on Top -->
+    <img src="${newDestination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+         class="card-img-top img-fluid rounded"
+         alt="${newDestination.name}"
+         style="width: 100%; height: 250px; object-fit: cover;"
+         onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'">
+    
+    <!-- Details Below -->
+    <div class="card-body">
+        <h5 class="card-title fw-bold">${newDestination.name} (${newDestination.type})</h5>
+        <p class="card-text text-muted">${newDestination.description}</p>
+        
+        <div class="d-flex flex-column flex-md-row justify-content-center gap-3">
+            <p class="card-text">
+                <i class="bi bi-clock-fill text-primary"></i> 
+                <strong>Travel Time:</strong> ${updatedItem.travel_time} minutes
+            </p>
+            <p class="card-text">
+                <i class="bi bi-hourglass-split text-warning"></i> 
+                <strong>Time to Spend:</strong> ${updatedItem.visit_time} minutes
+            </p>
+        </div>
+
+        <div class="card-text commute-instructions-container mt-2">
+            <i class="bi bi-geo-alt-fill text-danger"></i> 
+            <strong>Commute Instructions:</strong>
+            <div class="commute-instructions mt-2">
+                ${commuteInstructionsHtml}
+            </div>
+        </div>
+
+        <button class="btn btn-sm btn-custom edit-destination mt-3" 
+                data-index="${editingIndex}"
+                data-lat="${newDestination.latitude}"
+                data-lng="${newDestination.longitude}">
+            <i class="bi bi-pencil"></i> Change
+        </button>
+    </div>
+</div>
+
+`;
 
             // Replace the old card with the new one
             itemElement.replaceWith(newCard);
@@ -1178,6 +1306,7 @@ async function selectNewDestination(newDestination) {
         
         alternativesModal.hide();
         editingIndex = null;
+
     } catch (error) {
         console.error('Error:', error);
         alert('Failed to update itinerary');
@@ -1193,34 +1322,49 @@ function updateItineraryItem(index, updatedItem, newDestination) {
         newCard.className = "card mb-3 border-0";
         newCard.setAttribute("data-destination-id", index);
         newCard.innerHTML = `
-            <div class="row g-0">
-                <!-- Left Column: Placeholder Image -->
-                <div class="col-md-4">
-                    <img src="https://www.svgrepo.com/show/508699/landscape-placeholder.svg" 
-                         class="img-fluid rounded-start" 
-                         alt="Placeholder for ${newDestination.name}">
-                </div>
-                <!-- Right Column: Content -->
-                <div class="col-md-8">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h5 class="card-title">
-                                ${newDestination.name} (${newDestination.type})
-                            </h5>
-                        </div>
-                         <p class="card-text text-muted">${newDestination.description}</p>
-                <p class="card-text"><strong>Travel Time:</strong> ${updatedItem.travel_time}</p>
-                <p class="card-text"><strong>Time to Spend:</strong> ${updatedItem.visit_time}</p>
-                <p class="card-text"><strong>Commute Instructions:</strong> ${updatedItem.commute_instructions}</p>
-                        <button class="btn btn-sm btn-custom edit-destination" 
-                                data-index="${index}"
-                                data-lat="${newDestination.latitude}"
-                                data-lng="${newDestination.longitude}">
-                            <i class="bi bi-pencil"></i> Change
-                        </button>
-                    </div>
-                </div>
+            <div class="card mb-3 shadow-sm border-0 text-center">
+    <!-- Image on Top (Both Mobile & Desktop) -->
+    <img src="${newDestination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+         class="card-img-top img-fluid rounded"
+         alt="Placeholder for ${newDestination.name}"
+         onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'"
+         style="width: 100%; height: 250px; object-fit: cover;">
+
+    <!-- Details Below -->
+    <div class="card-body">
+        <h5 class="card-title fw-bold">${newDestination.name} (${newDestination.type})</h5>
+        <p class="card-text text-muted">${newDestination.description}</p>
+
+        <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mt-2">
+            <p class="card-text">
+                <i class="bi bi-clock-fill text-primary"></i> 
+                <strong>Travel Time:</strong> ${updatedItem.travel_time} minutes
+            </p>
+            <p class="card-text">
+                <i class="bi bi-hourglass-split text-warning"></i> 
+                <strong>Time to Spend:</strong> ${updatedItem.visit_time} minutes
+            </p>
+        </div>
+
+        <div class="card-text commute-instructions-container mt-2">
+            <i class="bi bi-geo-alt-fill text-danger"></i> 
+            <strong>Commute Instructions:</strong>
+            <div class="commute-instructions mt-2">
+                ${updatedItem.commute_instructions}
             </div>
+        </div>
+
+        <button class="btn btn-sm btn-custom edit-destination mt-3" 
+                data-index="${index}"
+                data-lat="${newDestination.latitude}"
+                data-lng="${newDestination.longitude}">
+            <i class="bi bi-pencil"></i> Change
+        </button>
+    </div>
+</div>
+
+
+
         `;
 
         // Replace the old card with the new card
@@ -1300,6 +1444,16 @@ function updateMap() {
         });
     });
 </script>
+
+<script>
+    // Attach event listener to the dynamically created "View Map" button
+document.addEventListener("click", function (event) {
+    if (event.target && event.target.id === "view-map-btn-dynamic") {
+        const mapModal = new bootstrap.Modal(document.getElementById("mapModal"));
+        mapModal.show();
+    }
+});
+    </script>
 
 </body>
 </html>
