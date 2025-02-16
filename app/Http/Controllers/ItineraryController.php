@@ -1108,7 +1108,7 @@ public function saveItinerary(Request $request)
 
         $savedItinerary = \App\Models\SavedItinerary::create([
             'user_id' => auth()->id(),
-            'name' => 'Itinerary ' . now()->format('Y-m-d H:i'),
+            'name' => 'Itinerary ' . now()->format('Y-m-d'),
             'itinerary_data' => $validatedData['itinerary_data'],
             'start_lat' => $validatedData['start_lat'],
             'start_lng' => $validatedData['start_lng'],
