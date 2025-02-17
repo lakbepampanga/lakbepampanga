@@ -1180,130 +1180,135 @@ async function selectNewDestination(newDestination) {
                 newDestination: newDestination,
                 nextDestination: editingIndex < currentItineraryData.length - 1 ? currentItineraryData[editingIndex + 1] : null,
                 startLat: userLat,
-                startLng: userLng
+                startLng: userLng,
+                currentIndex: editingIndex,
+                fullItinerary: currentItineraryData
             }),
         });
 
         if (!response.ok) throw new Error('Failed to update itinerary');
         
-        const updatedItem = await response.json();
+        const result = await response.json();
         
-        // Update currentItineraryData with the new destination and commute instructions
-        currentItineraryData[editingIndex] = {
-            ...updatedItem,
-            name: newDestination.name,
-            type: newDestination.type,
-            description: newDestination.description,
-            latitude: newDestination.latitude,
-            longitude: newDestination.longitude,
-            image_url: newDestination.image_url
-        };
-
-        if (updatedItem.subsequent_updates) {
-            updatedItem.subsequent_updates.forEach((update, index) => {
-                const targetIndex = editingIndex + index + 1;
+        if (result.success) {
+            // Update the itinerary data starting from the changed destination
+            for (let i = 0; i < result.updatedDestinations.length; i++) {
+                const targetIndex = result.currentIndex + i;
                 if (targetIndex < currentItineraryData.length) {
-                    currentItineraryData[targetIndex] = {
-                        ...currentItineraryData[targetIndex],
-                        travel_time: update.travel_time,
-                        visit_time: update.visit_time,
-                        commute_instructions: update.commute_instructions
-                    };
+                    currentItineraryData[targetIndex] = result.updatedDestinations[i];
                 }
+            }
+
+            // Clear previous markers and routes
+            clearMap();
+
+            const pathCoordinates = [{ lat: userLat, lng: userLng }];
+
+            // Rebuild the itinerary display
+            let itineraryHTML = `
+                <div class="text-center mb-3">
+                    <button class="btn btn-custom save-itinerary">
+                        <i class="bi bi-save"></i> Save Itinerary
+                    </button>
+                    <button id="view-map-btn-dynamic" class="btn btn-custom rounded-pill d-md-none position-fixed start-50 translate-middle-x" style="bottom: 20px; z-index: 10;">
+                        View Map
+                    </button>
+                </div>`;
+
+            currentItineraryData.forEach((destination, index) => {
+                // Add marker and coordinates for the map
+                const lat = parseFloat(destination.latitude);
+                const lng = parseFloat(destination.longitude);
+                
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
+                    pathCoordinates.push({ lat, lng });
+                }
+
+                // Generate HTML for each destination card
+                itineraryHTML += `
+                    <div class="card mb-3 shadow-sm border-0 position-relative" data-destination-id="${index}">
+                        <!-- Image -->
+                        <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+                             class="card-img-top img-fluid rounded"
+                             alt="${destination.name}"
+                             onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'"
+                             style="width: 100%; height: 250px; object-fit: cover;">
+
+                        <!-- Type Badge -->
+                        <div class="position-absolute top-0 start-0 m-2">
+                            <span class="badge ${destination.type === 'restaurant' ? 'bg-success' : 'bg-primary'} rounded-pill">
+                                <i class="bi ${destination.type === 'restaurant' ? 'bi-shop' : 'bi-geo-alt'}"></i>
+                                ${destination.type.charAt(0).toUpperCase() + destination.type.slice(1)}
+                            </span>
+                        </div>
+
+                        <!-- Details -->
+                        <div class="card-body text-center">
+                            <h5 class="card-title fw-bold">${destination.name}</h5>
+                            <p class="card-text text-muted">${destination.description}</p>
+
+                            <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mt-2">
+                                <p class="card-text">
+                                    <i class="bi bi-clock-fill text-primary"></i> 
+                                    <strong>Travel Time:</strong> ${destination.travel_time} minutes
+                                </p>
+                                <p class="card-text">
+                                    <i class="bi bi-hourglass-split text-warning"></i> 
+                                    <strong>Time to Spend:</strong> ${destination.visit_time} minutes
+                                </p>
+                            </div>
+
+                            <div class="card-text commute-instructions-container mt-2">
+                                <i class="bi bi-geo-alt-fill text-danger"></i> 
+                                <strong>Commute Instructions:</strong>
+                                <div class="commute-instructions mt-2">
+                                    ${Array.isArray(destination.commute_instructions) 
+                                        ? destination.commute_instructions.map(instruction => 
+                                            typeof instruction === 'string' 
+                                                ? instruction 
+                                                : instruction.instruction
+                                          ).join(' ')
+                                        : ''}
+                                </div>
+                            </div>
+
+                            <button class="btn btn-sm btn-custom edit-destination mt-3" 
+                                    data-index="${index}"
+                                    data-lat="${destination.latitude}"
+                                    data-lng="${destination.longitude}">
+                                <i class="bi bi-pencil"></i> Change
+                            </button>
+                        </div>
+                    </div>`;
             });
 
-        // Format commute instructions
-        let commuteInstructionsHtml = '';
-        if (Array.isArray(updatedItem.commute_instructions)) {
-    commuteInstructionsHtml = updatedItem.commute_instructions.map(instruction => {
-        if (typeof instruction === 'string') {
-            return `<div class="commute-step">
-                <span class="instruction-text">${instruction}</span>
-            </div>`;
-        }
-        if (instruction.instruction) {
-            return `<div class="commute-step">
-                ${instruction.route_name ? 
-                    `<span ${instruction.route_color}">
-                        ${instruction.route_name}
-                    </span>` 
-                    : ''
-                }
-                <span class="instruction-text">${instruction.instruction}</span>
-            </div>`;
-        }
-        return '';
-    }).filter(Boolean).join('');
-}
+            // Update the DOM
+            document.getElementById('itinerary-content').innerHTML = itineraryHTML;
 
-        // Update the specific card in the DOM
-        const itemElement = document.querySelector(`[data-destination-id="${editingIndex}"]`);
-        if (itemElement) {
-            const newCard = document.createElement('div');
-            newCard.className = "card mb-3 shadow-sm border-0";
-            newCard.setAttribute("data-destination-id", editingIndex);
-            
-            newCard.innerHTML = `
-                <div class="card mb-3 shadow-sm border-0 text-center" data-destination-id="${editingIndex}">
-    <!-- Image on Top -->
-    <img src="${newDestination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
-         class="card-img-top img-fluid rounded"
-         alt="${newDestination.name}"
-         style="width: 100%; height: 250px; object-fit: cover;"
-         onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'">
-    
-    <!-- Details Below -->
-    <div class="card-body">
-        <h5 class="card-title fw-bold">${newDestination.name} (${newDestination.type})</h5>
-        <p class="card-text text-muted">${newDestination.description}</p>
-        
-        <div class="d-flex flex-column flex-md-row justify-content-center gap-3">
-            <p class="card-text">
-                <i class="bi bi-clock-fill text-primary"></i> 
-                <strong>Travel Time:</strong> ${updatedItem.travel_time} minutes
-            </p>
-            <p class="card-text">
-                <i class="bi bi-hourglass-split text-warning"></i> 
-                <strong>Time to Spend:</strong> ${updatedItem.visit_time} minutes
-            </p>
-        </div>
-
-        <div class="card-text commute-instructions-container mt-2">
-            <i class="bi bi-geo-alt-fill text-danger"></i> 
-            <strong>Commute Instructions:</strong>
-            <div class="commute-instructions mt-2">
-                ${commuteInstructionsHtml}
-            </div>
-        </div>
-
-        <button class="btn btn-sm btn-custom edit-destination mt-3" 
-                data-index="${editingIndex}"
-                data-lat="${newDestination.latitude}"
-                data-lng="${newDestination.longitude}">
-            <i class="bi bi-pencil"></i> Change
-        </button>
-    </div>
-</div>
-
-`;
-
-            // Replace the old card with the new one
-            itemElement.replaceWith(newCard);
-            
-            // Reattach event listener to the new edit button
-            newCard.querySelector('.edit-destination').addEventListener('click', (e) => {
-                const btn = e.target.closest('.edit-destination');
-                editingIndex = parseInt(btn.dataset.index);
-                fetchAlternativeDestinations(
-                    parseFloat(btn.dataset.lat),
-                    parseFloat(btn.dataset.lng)
-                );
+            // Reattach event listeners
+            document.querySelector('.save-itinerary').addEventListener('click', () => {
+                saveItinerary(currentItineraryData);
             });
+
+            document.querySelectorAll('.edit-destination').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.edit-destination');
+                    editingIndex = parseInt(btn.dataset.index);
+                    fetchAlternativeDestinations(
+                        parseFloat(btn.dataset.lat),
+                        parseFloat(btn.dataset.lng)
+                    );
+                });
+            });
+
+            // Update the map
+            if (pathCoordinates.length > 1) {
+                drawRoute(pathCoordinates);
+            }
+            updateMapBounds();
         }
 
-        // Update map
-        updateMap();
-        
         alternativesModal.hide();
         editingIndex = null;
 

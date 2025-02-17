@@ -1030,83 +1030,114 @@ public function updateItineraryItem(Request $request)
             'newDestination' => 'required|array',
             'nextDestination' => 'nullable|array',
             'startLat' => 'required|numeric',
-            'startLng' => 'required|numeric'
+            'startLng' => 'required|numeric',
+            'currentIndex' => 'required|integer',
+            'fullItinerary' => 'required|array'
         ]);
 
-        $startLat = $validatedData['previousDestination'] 
-            ? $validatedData['previousDestination']['latitude']
-            : $validatedData['startLat'];
-            
-        $startLng = $validatedData['previousDestination']
-            ? $validatedData['previousDestination']['longitude']
-            : $validatedData['startLng'];
+        $fullItinerary = $validatedData['fullItinerary'];
+        $currentIndex = $validatedData['currentIndex'];
+        $updatedDestinations = [];
 
-        $newDestination = $validatedData['newDestination'];
-        
-        \Log::info('New destination data:', ['destination' => $newDestination]);
+        // Start with user's location
+        $previousLat = $validatedData['startLat'];
+        $previousLng = $validatedData['startLng'];
 
-        // Create a proper destination object with all required properties
-        $destinationObject = new \stdClass();
-        $destinationObject->name = $newDestination['name'];
-        $destinationObject->type = $newDestination['type'];
-        $destinationObject->latitude = $newDestination['latitude'];
-        $destinationObject->longitude = $newDestination['longitude'];
-        $destinationObject->description = $newDestination['description'] ?? '';
-        $destinationObject->image_url = $newDestination['image_url'] ?? null;
-        $destinationObject->id = $newDestination['id'] ?? null; // Add ID if available
+        // Create destination object for the new destination
+        $newDestObj = new \stdClass();
+        $newDestObj->name = $validatedData['newDestination']['name'];
+        $newDestObj->type = $validatedData['newDestination']['type'];
+        $newDestObj->latitude = $validatedData['newDestination']['latitude'];
+        $newDestObj->longitude = $validatedData['newDestination']['longitude'];
+        $newDestObj->description = $validatedData['newDestination']['description'] ?? '';
+        $newDestObj->image_url = $validatedData['newDestination']['image_url'] ?? null;
+        $newDestObj->id = $validatedData['newDestination']['id'] ?? null;
 
-        \Log::info('Created destination object:', ['object' => $destinationObject]);
-
-        // Calculate new travel times and commute instructions
+        // First, update the changed destination
         $travelTime = $this->getTravelTimeFromGoogle(
-            $startLat,
-            $startLng,
-            $newDestination['latitude'],
-            $newDestination['longitude']
+            $previousLat,
+            $previousLng,
+            $newDestObj->latitude,
+            $newDestObj->longitude
         );
 
-        $visitTime = $newDestination['type'] === 'restaurant' ? 40 : 20;
+        $visitTime = $newDestObj->type === 'restaurant' ? 40 : 20;
 
         $updatedItem = $this->addToItineraryWithCommute(
-            $destinationObject,
+            $newDestObj,
             $travelTime,
             $visitTime,
-            $startLat,
-            $startLng
+            $previousLat,
+            $previousLng
         );
 
-        // Ensure commute instructions are properly formatted
-        if (isset($updatedItem['commute_instructions']) && is_array($updatedItem['commute_instructions'])) {
-            $updatedItem['commute_instructions'] = array_map(function($instruction) {
-                // If instruction is already a string, return it as is
-                if (is_string($instruction)) {
-                    return $instruction;
-                }
-                
-                // If instruction is an object/array, format it properly
-                if (isset($instruction['instruction'])) {
-                    return [
-                        'instruction' => $instruction['instruction'],
-                        'image_path' => $instruction['image_path'] ?? null,
-                        'route_name' => $instruction['route_name'] ?? null,
-                        'route_color' => $instruction['route_color'] ?? null
-                    ];
-                }
-                
-                // Fallback case
-                return is_array($instruction) ? json_encode($instruction) : (string)$instruction;
-            }, $updatedItem['commute_instructions']);
+        // Add the first updated item
+        $updatedDestinations[] = array_merge(
+            (array)$newDestObj,
+            [
+                'travel_time' => $updatedItem['travel_time'],
+                'visit_time' => $updatedItem['visit_time'],
+                'commute_instructions' => $updatedItem['commute_instructions']
+            ]
+        );
+
+        // Update subsequent destinations
+        $previousLat = $newDestObj->latitude;
+        $previousLng = $newDestObj->longitude;
+
+        // Loop through remaining destinations and update their commute instructions
+        for ($i = $currentIndex + 1; $i < count($fullItinerary); $i++) {
+            $currentDest = $fullItinerary[$i];
+            
+            // Create destination object for current item
+            $destObj = new \stdClass();
+            $destObj->name = $currentDest['name'];
+            $destObj->type = $currentDest['type'];
+            $destObj->latitude = $currentDest['latitude'];
+            $destObj->longitude = $currentDest['longitude'];
+            $destObj->description = $currentDest['description'] ?? '';
+            $destObj->image_url = $currentDest['image_url'] ?? null;
+            $destObj->id = $currentDest['id'] ?? null;
+
+            // Calculate new travel times and commute instructions
+            $travelTime = $this->getTravelTimeFromGoogle(
+                $previousLat,
+                $previousLng,
+                $destObj->latitude,
+                $destObj->longitude
+            );
+
+            $visitTime = $destObj->type === 'restaurant' ? 40 : 20;
+
+            $updatedItem = $this->addToItineraryWithCommute(
+                $destObj,
+                $travelTime,
+                $visitTime,
+                $previousLat,
+                $previousLng
+            );
+
+            // Add to updated destinations array
+            $updatedDestinations[] = array_merge(
+                (array)$destObj,
+                [
+                    'travel_time' => $updatedItem['travel_time'],
+                    'visit_time' => $updatedItem['visit_time'],
+                    'commute_instructions' => $updatedItem['commute_instructions']
+                ]
+            );
+
+            // Update previous coordinates for next iteration
+            $previousLat = $destObj->latitude;
+            $previousLng = $destObj->longitude;
         }
 
-        // Make sure these properties are included in the response
-        $updatedItem['latitude'] = $newDestination['latitude'];
-        $updatedItem['longitude'] = $newDestination['longitude'];
-        $updatedItem['description'] = $newDestination['description'] ?? '';
-        $updatedItem['image_url'] = $newDestination['image_url'] ?? null;
+        return response()->json([
+            'success' => true,
+            'currentIndex' => $currentIndex,
+            'updatedDestinations' => $updatedDestinations
+        ]);
 
-        \Log::info('Sending updated item:', ['item' => $updatedItem]);
-
-        return response()->json($updatedItem);
     } catch (\Exception $e) {
         \Log::error('Error updating itinerary item:', [
             'error' => $e->getMessage(),
