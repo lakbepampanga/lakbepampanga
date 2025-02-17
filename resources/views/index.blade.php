@@ -291,6 +291,20 @@
         font-size: 1.1rem;
     }
 }
+
+.interest-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .interest-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .interest-card.selected {
+        background-color: var(--button-color) !important;
+        color: white;
+    }
     </style>
 
 </head>
@@ -367,6 +381,96 @@
             <button id="generate-itinerary" class="btn btn-custom rounded-pill w-auto">Generate Itinerary</button>
         </div>
     </div>
+
+    <!-- Add this after your hours input in the form -->
+<div id="interests-section" class="mb-4" style="display: none;">
+<h5 class="text-center mb-4">What interests you? (Optional)</h5>
+<p class="text-muted text-center mb-3">Select interests to customize your itinerary, or leave empty for a mixed experience</p>
+    
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3">
+        <div class="col">
+            <div class="interest-card card h-100 border-0 shadow-sm" data-type="landmark">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-building-fill fs-3 mb-2"></i>
+                    <p class="card-text small mb-0">Historical Landmarks</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="interest-card card h-100 border-0 shadow-sm" data-type="restaurant">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-shop fs-3 mb-2"></i>
+                    <p class="card-text small mb-0">Food & Dining</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="interest-card card h-100 border-0 shadow-sm" data-type="museum">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-bank fs-3 mb-2"></i>
+                    <p class="card-text small mb-0">Museums & Art</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="interest-card card h-100 border-0 shadow-sm" data-type="shopping">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-bag fs-3 mb-2"></i>
+                    <p class="card-text small mb-0">Shopping</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="interest-card card h-100 border-0 shadow-sm" data-type="nature">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-tree fs-3 mb-2"></i>
+                    <p class="card-text small mb-0">Nature & Outdoors</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="interest-card card h-100 border-0 shadow-sm" data-type="religious">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-building fs-3 mb-2"></i>
+                    <p class="card-text small mb-0">Religious Sites</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="interest-card card h-100 border-0 shadow-sm" data-type="entertainment">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-film fs-3 mb-2"></i>
+                    <p class="card-text small mb-0">Entertainment</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="interest-card card h-100 border-0 shadow-sm" data-type="cultural">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-people fs-3 mb-2"></i>
+                    <p class="card-text small mb-0">Cultural Sites</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="interest-card card h-100 border-0 shadow-sm" data-type="park">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-flower1 fs-3 mb-2"></i>
+                    <p class="card-text small mb-0">Parks & Recreation</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="interest-card card h-100 border-0 shadow-sm" data-type="market">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-shop-window fs-3 mb-2"></i>
+                    <p class="card-text small mb-0">Local Markets</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 </div>
 
@@ -489,6 +593,8 @@
     <script>
     let map, userLat, userLng, markers = [], initialMarker = null, directionsService, directionsRenderer;
     let currentItineraryData = [];
+    let selectedInterests = [];
+
     // Initialize Google Map
     function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
@@ -687,14 +793,20 @@ function initAutocomplete() {
     // Update this part in your existing script section in the blade template
     document.getElementById('generate-itinerary').addEventListener('click', () => {
     const hours = document.getElementById('hours').value;
+    const selectedInterests = Array.from(document.querySelectorAll('.interest-card.selected'))
+        .map(card => card.dataset.type);
 
     if (!hours || hours <= 0) {
         alert("Please enter a valid number of hours.");
         return;
     }
 
-    document.getElementById('loading-spinner').style.display = 'flex';
+    // if (selectedInterests.length === 0) {
+    //     alert("Please select at least one interest.");
+    //     return;
+    // }
 
+    document.getElementById('loading-spinner').style.display = 'flex';
 
     fetch('/api/generate-itinerary', {
         method: 'POST',
@@ -706,132 +818,178 @@ function initAutocomplete() {
             latitude: userLat,
             longitude: userLng,
             hours: hours,
+            interests: selectedInterests, // This can now be empty
             selected_location: null,
         }),
     })
-        .then((response) => response.json())
-        .then((data) => {
-            document.getElementById('loading-spinner').style.display = 'none';
+    .then((response) => response.json())
+    .then((data) => {
+        document.getElementById('loading-spinner').style.display = 'none';
 
-            if (Array.isArray(data)) {
-                // Initialize currentItineraryData
-                currentItineraryData = [...data];
+        if (Array.isArray(data)) {
+            // Initialize currentItineraryData
+            currentItineraryData = [...data];
 
-                // Clear previous map markers/routes
-                clearMap(); 
+            // Clear previous map markers/routes
+            clearMap(); 
 
-                // Setup path coordinates starting with user location
-                const pathCoordinates = [{ lat: userLat, lng: userLng }]; 
+            // Setup path coordinates starting with user location
+            const pathCoordinates = [{ lat: userLat, lng: userLng }]; 
 
-                // Generate itinerary HTML
-                let itineraryHTML = `
-    <div class="text-center mb-3">
-        <button class="btn btn-custom save-itinerary">
-            <i class="bi bi-save"></i> Save Itinerary
-        </button>
-        <button id="view-map-btn-dynamic" class="btn btn-custom rounded-pill d-md-none position-fixed start-50 translate-middle-x" style="bottom: 20px; z-index: 10;">
-    View Map
-</button>
-    </div>
-`;
+            // Generate itinerary HTML
+            let itineraryHTML = `
+                <div class="text-center mb-3">
+                    <button class="btn btn-custom save-itinerary">
+                        <i class="bi bi-save"></i> Save Itinerary
+                    </button>
+                    <button id="view-map-btn-dynamic" class="btn btn-custom rounded-pill d-md-none position-fixed start-50 translate-middle-x" style="bottom: 20px; z-index: 10;">
+                        View Map
+                    </button>
+                </div>
+            `;
 
-                    currentItineraryData.forEach((destination, index) => {
-    console.log('Destination commute instructions:', destination.commute_instructions);
-    console.log('Full destination data:', destination);
-                        itineraryHTML += `
-    <div class="card mb-3 shadow-sm border-0 position-relative" data-destination-id="${index}">
-    <!-- Image on Top -->
-    <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
-         class="card-img-top img-fluid rounded"
-         alt="${destination.name}"
-         onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'"
-         style="width: 100%; height: 250px; object-fit: cover;">
+            currentItineraryData.forEach((destination, index) => {
+                // Get appropriate badge color and icon based on destination type
+                const typeConfig = {
+                    restaurant: { color: 'bg-success', icon: 'bi-shop' },
+                    museum: { color: 'bg-info', icon: 'bi-bank' },
+                    shopping: { color: 'bg-warning', icon: 'bi-bag' },
+                    nature: { color: 'bg-success', icon: 'bi-tree' },
+                    religious: { color: 'bg-primary', icon: 'bi-building' },
+                    entertainment: { color: 'bg-danger', icon: 'bi-film' },
+                    cultural: { color: 'bg-secondary', icon: 'bi-people' },
+                    park: { color: 'bg-success', icon: 'bi-flower1' },
+                    market: { color: 'bg-warning', icon: 'bi-shop-window' },
+                    landmark: { color: 'bg-primary', icon: 'bi-geo-alt' }
+                };
 
-    <!-- Badge (Type Indicator) -->
-    <div class="position-absolute top-0 start-0 m-2">
-        <span class="badge ${destination.type === 'restaurant' ? 'bg-success' : 'bg-primary'} rounded-pill">
-            <i class="bi ${destination.type === 'restaurant' ? 'bi-shop' : 'bi-geo-alt'}"></i>
-            ${destination.type.charAt(0).toUpperCase() + destination.type.slice(1)}
-        </span>
-    </div>
+                const type = typeConfig[destination.type] || { color: 'bg-primary', icon: 'bi-geo-alt' };
 
-    <!-- Details Below -->
-    <div class="card-body text-center">
-        <h5 class="card-title fw-bold">${destination.name} (${destination.type})</h5>
-        <p class="card-text text-muted">${destination.description}</p>
+                itineraryHTML += `
+                    <div class="card mb-3 shadow-sm border-0 position-relative" data-destination-id="${index}">
+                        <!-- Image on Top -->
+                        <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+                             class="card-img-top img-fluid rounded"
+                             alt="${destination.name}"
+                             onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'"
+                             style="width: 100%; height: 250px; object-fit: cover;">
 
-        <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mt-2">
-            <p class="card-text">
-                <i class="bi bi-clock-fill text-primary"></i> 
-                <strong>Travel Time:</strong> ${destination.travel_time} minutes
-            </p>
-            <p class="card-text">
-                <i class="bi bi-hourglass-split text-warning"></i> 
-                <strong>Time to Spend:</strong> ${destination.visit_time} minutes
-            </p>
-        </div>
+                        <!-- Badge (Type Indicator) -->
+                        <div class="position-absolute top-0 start-0 m-2">
+                            <span class="badge ${type.color} rounded-pill">
+                                <i class="bi ${type.icon}"></i>
+                                ${destination.type.charAt(0).toUpperCase() + destination.type.slice(1)}
+                            </span>
+                        </div>
 
-        <div class="card-text commute-instructions-container mt-2">
-            <i class="bi bi-geo-alt-fill text-danger"></i> 
-            <strong>Commute Instructions:</strong>
-            <div class="commute-instructions mt-2">
-                ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}
-            </div>
-        </div>
+                        <!-- Details Below -->
+                        <div class="card-body text-center">
+                            <h5 class="card-title fw-bold">${destination.name}</h5>
+                            <p class="card-text text-muted">${destination.description}</p>
 
-        <button class="btn btn-sm btn-custom edit-destination mt-3" 
-                data-index="${index}"
-                data-lat="${destination.latitude}"
-                data-lng="${destination.longitude}">
-            <i class="bi bi-pencil"></i> Change
-        </button>
-    </div>
-</div>
+                            <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mt-2">
+                                <p class="card-text">
+                                    <i class="bi bi-clock-fill text-primary"></i> 
+                                    <strong>Travel Time:</strong> ${destination.travel_time} minutes
+                                </p>
+                                <p class="card-text">
+                                    <i class="bi bi-hourglass-split text-warning"></i> 
+                                    <strong>Time to Spend:</strong> ${destination.visit_time} minutes
+                                </p>
+                            </div>
 
-`;
+                            ${destination.average_price ? `
+                                <p class="card-text">
+                                    <i class="bi bi-currency-dollar text-success"></i>
+                                    <strong>Average Price:</strong> ₱${destination.average_price}
+                                </p>
+                            ` : ''}
 
-    const lat = parseFloat(destination.latitude);
-    const lng = parseFloat(destination.longitude);
+                            ${destination.family_friendly ? `
+                                <p class="card-text">
+                                    <i class="bi bi-people-fill text-info"></i>
+                                    Family Friendly
+                                </p>
+                            ` : ''}
 
-    if (!isNaN(lat) && !isNaN(lng)) {
-        addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
-        pathCoordinates.push({ lat: lat, lng: lng });
-    }
-});
+                            <div class="card-text commute-instructions-container mt-2">
+                                <i class="bi bi-geo-alt-fill text-danger"></i> 
+                                <strong>Commute Instructions:</strong>
+                                <div class="commute-instructions mt-2">
+                                    ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}
+                                </div>
+                            </div>
 
+                            <button class="btn btn-sm btn-custom edit-destination mt-3" 
+                                    data-index="${index}"
+                                    data-lat="${destination.latitude}"
+                                    data-lng="${destination.longitude}">
+                                <i class="bi bi-pencil"></i> Change
+                            </button>
+                        </div>
+                    </div>
+                `;
 
-                // Update the DOM
-                document.getElementById('itinerary-content').innerHTML = itineraryHTML;
+                const lat = parseFloat(destination.latitude);
+                const lng = parseFloat(destination.longitude);
 
-                // Add event listeners
-                document.querySelector('.save-itinerary').addEventListener('click', () => {
-    console.log('Current itinerary data before saving:', currentItineraryData);
-    saveItinerary(currentItineraryData);
-});
-
-                document.querySelectorAll('.edit-destination').forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const index = parseInt(e.target.closest('.edit-destination').dataset.index);
-                        const lat = parseFloat(e.target.closest('.edit-destination').dataset.lat);
-                        const lng = parseFloat(e.target.closest('.edit-destination').dataset.lng);
-                        editingIndex = index; // Set the global editingIndex
-                        fetchAlternativeDestinations(lat, lng);
-                    });
-                });
-
-                // Draw the route using Google Directions Service
-                if (pathCoordinates.length > 1) {
-                    drawRoute(pathCoordinates);
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    addMarker(lat, lng, `${index + 1}. ${destination.name}`, index + 1);
+                    pathCoordinates.push({ lat: lat, lng: lng });
                 }
+            });
 
-                // Adjust map to fit all markers
-                updateMapBounds();
+            // Update the DOM
+            document.getElementById('itinerary-content').innerHTML = itineraryHTML;
+
+            // Add event listeners
+            document.querySelector('.save-itinerary').addEventListener('click', () => {
+                console.log('Current itinerary data before saving:', currentItineraryData);
+                saveItinerary(currentItineraryData);
+            });
+
+            document.querySelectorAll('.edit-destination').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.edit-destination');
+                    const index = parseInt(btn.dataset.index);
+                    const lat = parseFloat(btn.dataset.lat);
+                    const lng = parseFloat(btn.dataset.lng);
+                    editingIndex = index;
+                    fetchAlternativeDestinations(lat, lng);
+                });
+            });
+
+            // Draw the route using Google Directions Service
+            if (pathCoordinates.length > 1) {
+                drawRoute(pathCoordinates);
             }
-        })
-        .catch((error) => {
-            console.error("Error:", error);
-            alert("An error occurred while generating the itinerary.");
-        });
+
+            // Adjust map to fit all markers
+            updateMapBounds();
+        }
+    })
+    .catch((error) => {
+        console.error("Error:", error);
+        document.getElementById('loading-spinner').style.display = 'none';
+        alert("An error occurred while generating the itinerary.");
+    });
+});
+
+// Add interest selection functionality
+document.querySelectorAll('.interest-card').forEach(card => {
+    card.addEventListener('click', function() {
+        this.classList.toggle('selected');
+    });
+});
+
+// Show interests section when hours are entered
+document.getElementById('hours').addEventListener('input', function() {
+    const interestsSection = document.getElementById('interests-section');
+    if (this.value > 0) {
+        interestsSection.style.display = 'block';
+    } else {
+        interestsSection.style.display = 'none';
+    }
 });
 
 // Add this where you handle destination selection

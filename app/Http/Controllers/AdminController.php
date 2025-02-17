@@ -16,6 +16,22 @@ use App\Models\ItineraryCompletion;  // Add this line
 
 class AdminController extends Controller
 {
+    private function getValidDestinationTypes()
+    {
+        return [
+            'landmark',
+            'restaurant',
+            'museum',
+            'shopping',
+            'nature',
+            'religious',
+            'entertainment',
+            'cultural',
+            'park',
+            'market'
+        ];
+    }
+
     public function dashboard()
     {
         $stats = [
@@ -101,6 +117,7 @@ class AdminController extends Controller
     }
 
 
+    // Update the storeDestination method
     public function storeDestination(Request $request)
     {
         $validated = $request->validate([
@@ -110,14 +127,19 @@ class AdminController extends Controller
             'description' => 'nullable|string',
             'travel_time' => 'required|integer|min:1',
             'city' => 'required|in:Angeles,Mabalacat,Magalang',
-            'type' => 'required|in:landmark,restaurant',
+            'type' => 'required|in:' . implode(',', $this->getValidDestinationTypes()),
             'priority' => 'required|integer|min:1',
             'opening_time' => 'nullable|date_format:H:i',
             'closing_time' => 'nullable|date_format:H:i',
             'route_id' => 'nullable|exists:jeepney_routes,id',
-            c,
+            'image' => 'nullable|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            // New fields
+            'category_tags' => 'nullable|string|max:255',
+            'average_price' => 'nullable|numeric|min:0',
+            'family_friendly' => 'boolean',
+            'recommended_visit_time' => 'nullable|integer|min:1'
         ]);
-    
+
         // Create destination data array
         $destinationData = [
             'name' => $validated['name'],
@@ -128,20 +150,24 @@ class AdminController extends Controller
             'city' => $validated['city'],
             'type' => $validated['type'],
             'priority' => $validated['priority'],
-            'opening_time' => $validated['opening_time'] ?? null,  // Handle null case
-            'closing_time' => $validated['closing_time'] ?? null,  // Handle null case
-            'route_id' => $validated['route_id'] ?? null,         // Handle null case
+            'opening_time' => $validated['opening_time'] ?? null,
+            'closing_time' => $validated['closing_time'] ?? null,
+            'route_id' => $validated['route_id'] ?? null,
+            // New fields
+            'category_tags' => $validated['category_tags'] ?? null,
+            'average_price' => $validated['average_price'] ?? null,
+            'family_friendly' => $request->has('family_friendly'),
+            'recommended_visit_time' => $validated['recommended_visit_time'] ?? null
         ];
-    
+
         // Handle image upload
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('destinations', 'public');
             $destinationData['image'] = $path;
         }
-    
-        // Create the destination with explicit data
+
         Destination::create($destinationData);
-    
+
         return redirect()->route('admin.destinations.index')
             ->with('success', 'Destination created successfully.');
     }
@@ -161,14 +187,19 @@ class AdminController extends Controller
             'description' => 'nullable|string',
             'travel_time' => 'required|integer',
             'city' => 'required|in:Angeles,Mabalacat,Magalang',
-            'type' => 'required|in:landmark,restaurant',
+            'type' => 'required|in:' . implode(',', $this->getValidDestinationTypes()),
             'priority' => 'required|integer|min:1',
             'opening_time' => 'nullable|date_format:H:i',
             'closing_time' => 'nullable|date_format:H:i',
             'route_id' => 'nullable|exists:jeepney_routes,id',
-            'image' => 'nullable|mimes:jpeg,png,jpg,gif,svg,webp|max:2048', // Validate image
+            'image' => 'nullable|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            // New fields
+            'category_tags' => 'nullable|string|max:255',
+            'average_price' => 'nullable|numeric|min:0',
+            'family_friendly' => 'boolean',
+            'recommended_visit_time' => 'nullable|integer|min:1'
         ]);
-    
+
         // Handle image upload
         if ($request->hasFile('image')) {
             // Delete the old image if it exists
@@ -177,10 +208,14 @@ class AdminController extends Controller
             }
             $validated['image'] = $request->file('image')->store('destinations', 'public');
         }
-    
+
+        // Handle family_friendly checkbox
+        $validated['family_friendly'] = $request->has('family_friendly');
+
         $destination->update($validated);
-    
-        return redirect()->route('admin.destinations.index')->with('success', 'Destination updated successfully.');
+
+        return redirect()->route('admin.destinations.index')
+            ->with('success', 'Destination updated successfully.');
     }
     
 

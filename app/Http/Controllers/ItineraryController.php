@@ -22,102 +22,171 @@ class ItineraryController extends Controller
     public function generateItinerary(Request $request)
     {
         try {
-            // Increase timeout limit for this specific request
             set_time_limit(120);
             
             $validatedData = $request->validate([
                 'latitude' => 'required|numeric',
                 'longitude' => 'required|numeric',
                 'hours' => 'required|integer|min:1',
-                'selected_location' => 'nullable|string',
+                'interests' => 'array',
+                'interests.*' => 'string|in:landmark,restaurant,museum,shopping,nature,religious,entertainment,cultural,park,market'
             ]);
     
             $latitude = $validatedData['latitude'];
             $longitude = $validatedData['longitude'];
             $availableTime = $validatedData['hours'] * 60;
-    
-            // Cache key based on input parameters
-            $cacheKey = "itinerary_{$latitude}_{$longitude}_{$availableTime}";
             
-            // Try to get cached itinerary first
+            // Get user selected interests, excluding restaurants (will be handled separately)
+            $interests = !empty($validatedData['interests']) 
+                ? array_diff($validatedData['interests'], ['restaurant'])
+                : [
+                    'landmark',
+                    'museum',
+                    'shopping',
+                    'nature',
+                    'religious',
+                    'entertainment',
+                    'cultural',
+                    'park',
+                    'market'
+                ];
+    
+            $cacheKey = "itinerary_{$latitude}_{$longitude}_{$availableTime}_" . implode('_', $interests);
+            
             if ($cachedItinerary = Cache::get($cacheKey)) {
                 return response()->json($cachedItinerary);
             }
     
-            // Fetch destinations with pagination and distance calculation
-            $destinations = Destination::select(
-                    '*',
-                    DB::raw('(
-                        6371 * acos(
-                            cos(radians(?)) * cos(radians(latitude)) * 
-                            cos(radians(longitude) - radians(?)) + 
-                            sin(radians(?)) * sin(radians(latitude))
-                        )
-                    ) AS distance'),
-                )
-                ->whereNotNull('latitude')
-                ->whereNotNull('longitude')
-                ->setBindings([$latitude, $longitude, $latitude])
-                ->having('distance', '<=', 20) // Limit to destinations within 20km
-                ->orderBy('distance')
-                ->limit(50) // Limit the number of destinations to process
-                ->get();
+            // Get regular destinations
+            $regularDestinations = Destination::select(
+                '*',
+                DB::raw("(
+                    6371 * acos(
+                        cos(radians($latitude)) * cos(radians(latitude)) *
+                        cos(radians(longitude) - radians($longitude)) +
+                        sin(radians($latitude)) * sin(radians(latitude))
+                    )
+                ) AS distance")
+            )
+            ->whereIn('type', $interests)
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->havingRaw('distance <= 20')
+            ->orderBy('distance')
+            ->get();
     
-            if ($destinations->isEmpty()) {
-                return response()->json(['error' => 'No destinations available with valid coordinates.'], 400);
+            // Get restaurants separately
+            $restaurants = Destination::select(
+                '*',
+                DB::raw("(
+                    6371 * acos(
+                        cos(radians($latitude)) * cos(radians(latitude)) *
+                        cos(radians(longitude) - radians($longitude)) +
+                        sin(radians($latitude)) * sin(radians(latitude))
+                    )
+                ) AS distance")
+            )
+            ->where('type', 'restaurant')
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->havingRaw('distance <= 20')
+            ->orderBy('distance')
+            ->get();
+    
+            if ($regularDestinations->isEmpty()) {
+                return response()->json(['error' => 'No destinations available in this area.'], 400);
             }
     
             $itinerary = [];
             $timeSpent = 0;
-            $foodStopsAdded = 0;
-            $landmarkCount = 0;
-            $maxLandmarksBeforeFoodStop = 3;
-            $maxFoodStops = floor($availableTime / 240);
+            $lastFoodStop = 0;
             $currentLat = $latitude;
             $currentLng = $longitude;
+            
+            // Type distribution for non-restaurant destinations
+            $typeDistribution = [
+                'landmark' => ['max' => 2, 'count' => 0],
+                'museum' => ['max' => 1, 'count' => 0],
+                'shopping' => ['max' => 1, 'count' => 0],
+                'nature' => ['max' => 1, 'count' => 0],
+                'religious' => ['max' => 1, 'count' => 0],
+                'entertainment' => ['max' => 1, 'count' => 0],
+                'cultural' => ['max' => 1, 'count' => 0],
+                'park' => ['max' => 1, 'count' => 0],
+                'market' => ['max' => 1, 'count' => 0]
+            ];
     
-            // Pre-calculate travel times for optimization
+            // Pre-calculate travel times for all destinations
             $travelTimes = [];
-            foreach ($destinations as $destination) {
-                $travelTime = $this->getTravelTimeFromGoogle(
+            foreach ($regularDestinations as $destination) {
+                $travelTimes[$destination->id] = $this->getTravelTimeFromGoogle(
                     $currentLat,
                     $currentLng,
                     $destination->latitude,
                     $destination->longitude
                 );
-                $travelTimes[$destination->id] = $travelTime;
+            }
+            foreach ($restaurants as $restaurant) {
+                $travelTimes[$restaurant->id] = $this->getTravelTimeFromGoogle(
+                    $currentLat,
+                    $currentLng,
+                    $restaurant->latitude,
+                    $restaurant->longitude
+                );
             }
     
-            while ($timeSpent < $availableTime && $destinations->isNotEmpty()) {
-                $cluster = $this->getClusterOfDestinations($currentLat, $currentLng, $destinations, 5.0);
-                
-                if ($cluster->isEmpty()) {
-                    break;
+            while ($timeSpent < $availableTime && ($regularDestinations->isNotEmpty() || $restaurants->isNotEmpty())) {
+                // Check if it's time for a food stop (every 4 hours)
+                $needFoodStop = ($timeSpent - $lastFoodStop) >= 240 && $restaurants->isNotEmpty();
+    
+                if ($needFoodStop) {
+                    // Find nearest restaurant
+                    $cluster = $this->getClusterOfDestinations($currentLat, $currentLng, $restaurants, 5.0);
+                    if ($cluster->isNotEmpty()) {
+                        $nextDestination = $this->findClosestDestination($currentLat, $currentLng, $cluster);
+                        $restaurants = $restaurants->reject(fn($d) => $d->id === $nextDestination->id);
+                    } else {
+                        $needFoodStop = false; // No restaurants nearby, continue with regular destinations
+                    }
                 }
     
-                $shouldAddFoodStop = $foodStopsAdded < $maxFoodStops && $landmarkCount >= $maxLandmarksBeforeFoodStop;
-                
-                $filteredCluster = $cluster->filter(function ($destination) use ($shouldAddFoodStop) {
-                    return $shouldAddFoodStop ? $destination->type === 'restaurant' : $destination->type === 'landmark';
-                });
+                if (!$needFoodStop) {
+                    $cluster = $this->getClusterOfDestinations($currentLat, $currentLng, $regularDestinations, 5.0);
+                    if ($cluster->isEmpty()) break;
     
-                if ($filteredCluster->isEmpty()) {
-                    break;
+                    // Filter by type distribution
+                    $filteredCluster = $cluster->filter(function ($destination) use ($typeDistribution) {
+                        return !isset($typeDistribution[$destination->type]) ||
+                               $typeDistribution[$destination->type]['count'] < $typeDistribution[$destination->type]['max'];
+                    });
+    
+                    if ($filteredCluster->isEmpty()) {
+                        $filteredCluster = $cluster;
+                    }
+    
+                    $nextDestination = $this->findClosestDestination($currentLat, $currentLng, $filteredCluster);
+                    if (!$nextDestination) break;
+    
+                    $regularDestinations = $regularDestinations->reject(fn($d) => $d->id === $nextDestination->id);
                 }
     
-                $nextDestination = $this->findClosestDestination($currentLat, $currentLng, $filteredCluster);
-                
-                if (!$nextDestination) {
-                    break;
-                }
+                if (!isset($nextDestination)) break;
     
                 $travelTime = $travelTimes[$nextDestination->id];
-                $visitTime = $nextDestination->type === 'restaurant' ? 40 : 20;
+                $visitTime = $nextDestination->recommended_visit_time ?? 
+                            ($nextDestination->type === 'restaurant' ? 40 : 20);
     
-                if ($timeSpent + $travelTime + $visitTime > $availableTime) {
-                    break;
+                if ($timeSpent + $travelTime + $visitTime > $availableTime) break;
+    
+                // Update type count and food stop tracking
+                if (isset($typeDistribution[$nextDestination->type])) {
+                    $typeDistribution[$nextDestination->type]['count']++;
+                }
+                if ($nextDestination->type === 'restaurant') {
+                    $lastFoodStop = $timeSpent + $travelTime + $visitTime;
                 }
     
+                // Add to itinerary
                 $itineraryItem = $this->addToItineraryWithCommute(
                     $nextDestination,
                     $travelTime,
@@ -126,34 +195,32 @@ class ItineraryController extends Controller
                     $currentLng
                 );
     
+                // Add additional details
                 $itineraryItem['latitude'] = $nextDestination->latitude;
                 $itineraryItem['longitude'] = $nextDestination->longitude;
                 $itineraryItem['description'] = $nextDestination->description ?? 'No description available.';
                 $itineraryItem['image_url'] = $nextDestination->image_url;
+                $itineraryItem['category_tags'] = $nextDestination->category_tags;
+                $itineraryItem['average_price'] = $nextDestination->average_price;
+                $itineraryItem['family_friendly'] = $nextDestination->family_friendly;
     
                 $itinerary[] = $itineraryItem;
                 $timeSpent += $travelTime + $visitTime;
                 
                 $currentLat = $nextDestination->latitude;
                 $currentLng = $nextDestination->longitude;
-                
-                $destinations = $destinations->reject(fn($d) => $d->id === $nextDestination->id);
-    
-                if ($nextDestination->type === 'restaurant') {
-                    $foodStopsAdded++;
-                    $landmarkCount = 0;
-                } else {
-                    $landmarkCount++;
-                }
             }
     
-            // Cache the result for 1 hour
             Cache::put($cacheKey, $itinerary, 3600);
     
             return response()->json($itinerary);
     
         } catch (\Exception $e) {
-            \Log::error('Error Generating Itinerary:', ['error' => $e->getMessage()]);
+            \Log::error('Error Generating Itinerary:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
             return response()->json(['error' => 'An error occurred while generating the itinerary.'], 500);
         }
     }
