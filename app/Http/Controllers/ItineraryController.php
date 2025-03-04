@@ -745,8 +745,11 @@ private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxCo
 {
     if ($depth >= $maxConnections) return null;
     
-    // Add timeout check to prevent execution time limit issues
+    // Cache for frequently accessed data
     static $startTime;
+    static $routeCache = [];
+    static $stopCache = [];
+    
     if ($depth === 0) {
         $startTime = microtime(true);
     } elseif (microtime(true) - $startTime > 30) {
@@ -754,14 +757,13 @@ private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxCo
         return null;
     }
 
-    // Early optimization: Check if we already have a workable path
+    // Keep your original early optimization check
     if ($depth > 0 && count($currentPath) >= 2) {
         $lastSegment = end($currentPath);
         $endStopCoords = $nearbyEndStops->first();
         $lastSegmentEndLat = $lastSegment['end_stop_coords']['latitude'];
         $lastSegmentEndLng = $lastSegment['end_stop_coords']['longitude'];
         
-        // If we're close enough to the destination, return the current path
         $distanceToEnd = $this->calculateDistance(
             $lastSegmentEndLat,
             $lastSegmentEndLng,
@@ -780,53 +782,59 @@ private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxCo
     foreach ($nearbyStartStops as $startStop) {
         if (in_array($startStop->jeepney_route_id, $visitedRoutes)) continue;
 
-        // If this is the first iteration (depth = 0), check if there are better routes nearby
-        // This preserves your existing logic for small distances
+        // Your original better routes nearby check at depth 0
         if ($depth == 0) {
-            // Look for nearby stops of routes that go directly to the destination
             foreach ($nearbyEndStops as $endStop) {
-                $nearbyBetterStops = JeepneyStop::where('jeepney_route_id', $endStop->jeepney_route_id)
-                    ->select('*')
-                    ->selectRaw('(
-                        6371 * acos(
-                            cos(radians(?)) * cos(radians(latitude)) * 
-                            cos(radians(longitude) - radians(?)) + 
-                            sin(radians(?)) * sin(radians(latitude))
-                        )
-                    ) as distance', [$startStop->latitude, $startStop->longitude, $startStop->latitude])
-                    ->havingRaw('distance < ?', [0.3])
-                    ->orderBy('distance')
-                    ->first();
+                $cacheKey = "better_stops_{$startStop->latitude}_{$startStop->longitude}_{$endStop->jeepney_route_id}";
+                
+                if (!isset($stopCache[$cacheKey])) {
+                    $stopCache[$cacheKey] = JeepneyStop::where('jeepney_route_id', $endStop->jeepney_route_id)
+                        ->select('*')
+                        ->selectRaw('(
+                            6371 * acos(
+                                cos(radians(?)) * cos(radians(latitude)) * 
+                                cos(radians(longitude) - radians(?)) + 
+                                sin(radians(?)) * sin(radians(latitude))
+                            )
+                        ) as distance', [$startStop->latitude, $startStop->longitude, $startStop->latitude])
+                        ->havingRaw('distance < ?', [0.3])
+                        ->orderBy('distance')
+                        ->first();
+                }
+                
+                $nearbyBetterStops = $stopCache[$cacheKey];
 
-                if ($nearbyBetterStops) {
-                    if ($nearbyBetterStops->order_in_route < $endStop->order_in_route) {
-                        $route = JeepneyRoute::find($nearbyBetterStops->jeepney_route_id);
-                        if ($route) {
-                            $distance = $this->calculateDistance(
-                                $nearbyBetterStops->latitude,
-                                $nearbyBetterStops->longitude,
-                                $endStop->latitude,
-                                $endStop->longitude
-                            );
-                            return [
-                                'type' => 'connecting',
-                                'routes' => [[
-                                    'route_name' => $route->route_name,
-                                    'route_color' => $route->route_color,
-                                    'start_stop' => $nearbyBetterStops->stop_name,
-                                    'end_stop' => $endStop->stop_name,
-                                    'start_stop_coords' => [
-                                        'latitude' => $nearbyBetterStops->latitude,
-                                        'longitude' => $nearbyBetterStops->longitude
-                                    ],
-                                    'end_stop_coords' => [
-                                        'latitude' => $endStop->latitude,
-                                        'longitude' => $endStop->longitude
-                                    ],
-                                    'fare' => $this->calculateFare($distance)
-                                ]]
-                            ];
-                        }
+                if ($nearbyBetterStops && $nearbyBetterStops->order_in_route < $endStop->order_in_route) {
+                    if (!isset($routeCache[$nearbyBetterStops->jeepney_route_id])) {
+                        $routeCache[$nearbyBetterStops->jeepney_route_id] = JeepneyRoute::find($nearbyBetterStops->jeepney_route_id);
+                    }
+                    $route = $routeCache[$nearbyBetterStops->jeepney_route_id];
+                    
+                    if ($route) {
+                        $distance = $this->calculateDistance(
+                            $nearbyBetterStops->latitude,
+                            $nearbyBetterStops->longitude,
+                            $endStop->latitude,
+                            $endStop->longitude
+                        );
+                        return [
+                            'type' => 'connecting',
+                            'routes' => [[
+                                'route_name' => $route->route_name,
+                                'route_color' => $route->route_color,
+                                'start_stop' => $nearbyBetterStops->stop_name,
+                                'end_stop' => $endStop->stop_name,
+                                'start_stop_coords' => [
+                                    'latitude' => $nearbyBetterStops->latitude,
+                                    'longitude' => $nearbyBetterStops->longitude
+                                ],
+                                'end_stop_coords' => [
+                                    'latitude' => $endStop->latitude,
+                                    'longitude' => $endStop->longitude
+                                ],
+                                'fare' => $this->calculateFare($distance)
+                            ]]
+                        ];
                     }
                 }
             }
@@ -837,15 +845,15 @@ private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxCo
             'route_id' => $startStop->jeepney_route_id
         ]);
 
-        // 1. First check direct routes - this should take priority
+        // Direct route check with caching
         foreach ($nearbyEndStops as $endStop) {
             if ($endStop->jeepney_route_id === $startStop->jeepney_route_id) {
-                $totalStops = JeepneyStop::where('jeepney_route_id', $startStop->jeepney_route_id)
-                    ->count();
-
-                // Check direction
                 if ($startStop->order_in_route < $endStop->order_in_route) {
-                    $route = JeepneyRoute::find($startStop->jeepney_route_id);
+                    if (!isset($routeCache[$startStop->jeepney_route_id])) {
+                        $routeCache[$startStop->jeepney_route_id] = JeepneyRoute::find($startStop->jeepney_route_id);
+                    }
+                    $route = $routeCache[$startStop->jeepney_route_id];
+                    
                     $distance = $this->calculateDistance(
                         $startStop->latitude,
                         $startStop->longitude,
@@ -877,38 +885,36 @@ private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxCo
             }
         }
 
-        // 3. For transfer points - limit the number to consider
-        $endStopCoords = $nearbyEndStops->first();
-        
-        // Limit the number of transfers we consider to prevent execution timeouts
-        $maxTransfersToConsider = ($depth == 0) ? 5 : 3;
-        
-        // First try to find transfer points that connect directly to the end route
+        // Your original direct transfers logic with caching
         $directTransfers = [];
-        if ($depth == 0) { // Only search for direct transfers on first iteration
+        if ($depth == 0) {
             foreach ($nearbyEndStops as $endStop) {
-                // Find possible intersection points between the start route and the end route
-                $possibleTransfers = JeepneyStop::whereRaw('EXISTS (
-                    SELECT 1 FROM jeepney_stops AS js2 
-                    WHERE js2.jeepney_route_id = ?
-                    AND ABS(js2.latitude - jeepney_stops.latitude) < 0.001
-                    AND ABS(js2.longitude - jeepney_stops.longitude) < 0.001
-                )', [$endStop->jeepney_route_id])
-                ->where('jeepney_route_id', $startStop->jeepney_route_id)
-                ->where('order_in_route', '>', $startStop->order_in_route) // Ensure we're moving forward on the route
-                ->limit(2)
-                ->get();
+                $cacheKey = "transfers_{$startStop->jeepney_route_id}_{$endStop->jeepney_route_id}";
+                
+                if (!isset($stopCache[$cacheKey])) {
+                    $stopCache[$cacheKey] = JeepneyStop::whereRaw('EXISTS (
+                        SELECT 1 FROM jeepney_stops AS js2 
+                        WHERE js2.jeepney_route_id = ?
+                        AND ABS(js2.latitude - jeepney_stops.latitude) < 0.001
+                        AND ABS(js2.longitude - jeepney_stops.longitude) < 0.001
+                    )', [$endStop->jeepney_route_id])
+                    ->where('jeepney_route_id', $startStop->jeepney_route_id)
+                    ->where('order_in_route', '>', $startStop->order_in_route)
+                    ->limit(2)
+                    ->get();
+                }
+                
+                $possibleTransfers = $stopCache[$cacheKey];
                 
                 if ($possibleTransfers->isNotEmpty()) {
                     $directTransfers = array_merge($directTransfers, $possibleTransfers->all());
                 }
             }
         }
-        
-        // If we found direct connection points, prioritize those
+
+        // Process direct transfers with caching
         if (!empty($directTransfers)) {
             foreach ($directTransfers as $transfer) {
-                // Find the corresponding stop on the end route
                 foreach ($nearbyEndStops as $endStop) {
                     $transferPoint = JeepneyStop::where('jeepney_route_id', $endStop->jeepney_route_id)
                         ->whereRaw('ABS(latitude - ?) < 0.001', [$transfer->latitude])
@@ -916,9 +922,15 @@ private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxCo
                         ->first();
                     
                     if ($transferPoint && $transferPoint->order_in_route < $endStop->order_in_route) {
-                        // We found a good direct transfer point
-                        $currentRoute = JeepneyRoute::find($startStop->jeepney_route_id);
-                        $nextRoute = JeepneyRoute::find($endStop->jeepney_route_id);
+                        if (!isset($routeCache[$startStop->jeepney_route_id])) {
+                            $routeCache[$startStop->jeepney_route_id] = JeepneyRoute::find($startStop->jeepney_route_id);
+                        }
+                        $currentRoute = $routeCache[$startStop->jeepney_route_id];
+
+                        if (!isset($routeCache[$endStop->jeepney_route_id])) {
+                            $routeCache[$endStop->jeepney_route_id] = JeepneyRoute::find($endStop->jeepney_route_id);
+                        }
+                        $nextRoute = $routeCache[$endStop->jeepney_route_id];
                         
                         $segment1 = [
                             'route_name' => $currentRoute->route_name,
@@ -970,25 +982,29 @@ private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxCo
                 }
             }
         }
-        
-        // If no direct transfer points found, look for general transfer points
-        $transfers = JeepneyStop::select('*')
-            ->whereNotIn('jeepney_route_id', array_merge($visitedRoutes, [$startStop->jeepney_route_id]))
-            ->whereRaw('(6371 * acos(
-                cos(radians(?)) * cos(radians(latitude)) * 
-                cos(radians(longitude) - radians(?)) + 
-                sin(radians(?)) * sin(radians(latitude))
-            )) < 0.5', [$startStop->latitude, $startStop->longitude, $startStop->latitude])
-            ->orderByRaw('(
-                POW(latitude - ?, 2) + POW(longitude - ?, 2)
-            )', [$endStopCoords->latitude, $endStopCoords->longitude])
-            ->limit($maxTransfersToConsider)
-            ->get();
 
-        // Analyze if the transfers make sense
-        // For each transfer, check if it actually gets us closer to the destination
+        // Your original transfer points logic with caching
+        $endStopCoords = $nearbyEndStops->first();
+        $maxTransfersToConsider = ($depth == 0) ? 5 : 3;
+        
+        $cacheKey = "transfers_{$startStop->latitude}_{$startStop->longitude}_{$depth}";
+        if (!isset($stopCache[$cacheKey])) {
+            $stopCache[$cacheKey] = JeepneyStop::select('*')
+                ->whereNotIn('jeepney_route_id', array_merge($visitedRoutes, [$startStop->jeepney_route_id]))
+                ->whereRaw('(6371 * acos(
+                    cos(radians(?)) * cos(radians(latitude)) * 
+                    cos(radians(longitude) - radians(?)) + 
+                    sin(radians(?)) * sin(radians(latitude))
+                )) < 0.5', [$startStop->latitude, $startStop->longitude, $startStop->latitude])
+                ->orderByRaw('(
+                    POW(latitude - ?, 2) + POW(longitude - ?, 2)
+                )', [$endStopCoords->latitude, $endStopCoords->longitude])
+                ->limit($maxTransfersToConsider)
+                ->get();
+        }
+        $transfers = $stopCache[$cacheKey];
+
         foreach ($transfers as $transfer) {
-            // Skip transfers that don't make progress toward destination
             $currentDistanceToEnd = $this->calculateDistance(
                 $startStop->latitude,
                 $startStop->longitude,
@@ -1003,12 +1019,15 @@ private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxCo
                 $endStopCoords->longitude
             );
             
-            // Skip transfers that don't get us at least 25% closer to destination 
             if ($transferDistanceToEnd > $currentDistanceToEnd * 0.75) {
                 continue;
             }
 
-            $currentRoute = JeepneyRoute::find($startStop->jeepney_route_id);
+            if (!isset($routeCache[$startStop->jeepney_route_id])) {
+                $routeCache[$startStop->jeepney_route_id] = JeepneyRoute::find($startStop->jeepney_route_id);
+            }
+            $currentRoute = $routeCache[$startStop->jeepney_route_id];
+            
             $distance = $this->calculateDistance(
                 $startStop->latitude,
                 $startStop->longitude,
