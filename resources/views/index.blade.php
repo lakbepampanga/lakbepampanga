@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+6<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -36,7 +36,14 @@
   <script src="{{ asset('js/main.js') }}"></script>
     <style>
      
+/* footer */
 
+/* Hide footer on mobile devices */
+@media screen and (max-width: 768px) {
+  #footer {
+    display: none;
+  }
+}
 
 .btn-custom{
     background-color: var(--button-color); /* Desired background color */
@@ -305,6 +312,50 @@
         background-color: var(--button-color) !important;
         color: white;
     }
+    
+    .alt-filter-btn {
+    white-space: nowrap;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.alt-filter-btn.btn-custom {
+    background-color: var(--button-color);
+    color: white;
+}
+
+.alt-filter-btn.active {
+    background-color: var(--button-color) !important;
+    color: white !important;
+    border-color: var(--button-color) !important;
+}
+
+.btn-group {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.list-group-item {
+    transition: all 0.2s ease-in-out;
+}
+
+.list-group-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+    .modal-header {
+        flex-direction: column;
+        align-items: start;
+    }
+    
+    .btn-group {
+        width: 100%;
+        justify-content: start;
+        margin-bottom: 1rem;
+    }
+}
     </style>
 
 </head>
@@ -377,17 +428,15 @@
         <label for="hours" class="form-label fw-bold">How many hours do you have for travel?</label>
         <input type="number" id="hours" class="form-control shadow-sm mb-3 rounded-pill" min="1" max="12" placeholder="Enter hours">
         
-        <div class="text-center">
-            <button id="generate-itinerary" class="btn btn-custom rounded-pill w-auto">Generate Itinerary</button>
-        </div>
+
     </div>
 
     <!-- Add this after your hours input in the form -->
-<div id="interests-section" class="mb-4" style="display: none;">
+<!-- <div id="interests-section" class="mb-4" style="display: none;">
 <h5 class="text-center mb-4">What interests you? (Optional)</h5>
 <p class="text-muted text-center mb-3">Select interests to customize your itinerary, or leave empty for a mixed experience</p>
     
-    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3">
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3 mt-5 mb-5">
         <div class="col">
             <div class="interest-card card h-100 border-0 shadow-sm" data-type="landmark">
                 <div class="card-body text-center py-3">
@@ -468,14 +517,18 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
+            <div class="text-center">
+            <button id="generate-itinerary" class="btn btn-custom rounded-pill w-auto">Generate Itinerary</button>
+        </div>
 </div>
+
 
 
 </div>
 
 <!-- Maps and Itinerary -->
-<div class="container mt-4">
+<div class="container mt-4 mb-5">
     <div class="row">
         <!-- Itinerary Section (Left) -->
         <div class="col-md-6">
@@ -526,9 +579,9 @@
     </div>
 
     <!-- View Map Button (Visible on Mobile Only) -->
-<!--    <button id="view-map-btn" class="btn btn-custom rounded-pill d-md-none position-fixed">-->
-<!--    Map View-->
-<!--</button>-->
+   <!-- <button id="view-map-btn" class="btn btn-custom rounded-pill d-md-none position-fixed">
+ Map View
+</button> -->
 
 </div>
 
@@ -548,6 +601,7 @@
 </div>
 
 <!-- Add a modal for alternative destinations -->
+<!-- Modal for Alternative Destinations -->
 <div class="modal fade" id="alternativeDestinationsModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -564,6 +618,30 @@
                         <button class="btn btn-sm btn-outline-secondary alt-filter-btn" data-filter="restaurant">
                             <i class="bi bi-shop"></i> Restaurants
                         </button>
+                        <button class="btn btn-sm btn-outline-secondary alt-filter-btn" data-filter="museum">
+                            <i class="bi bi-bank"></i> Museums
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary alt-filter-btn" data-filter="shopping">
+                            <i class="bi bi-bag"></i> Shopping
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary alt-filter-btn" data-filter="nature">
+                            <i class="bi bi-tree"></i> Nature
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary alt-filter-btn" data-filter="religious">
+                            <i class="bi bi-building"></i> Religious
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary alt-filter-btn" data-filter="entertainment">
+                            <i class="bi bi-film"></i> Entertainment
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary alt-filter-btn" data-filter="cultural">
+                            <i class="bi bi-people"></i> Cultural
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary alt-filter-btn" data-filter="park">
+                            <i class="bi bi-flower1"></i> Parks
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary alt-filter-btn" data-filter="market">
+                            <i class="bi bi-shop-window"></i> Markets
+                        </button>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -579,14 +657,14 @@
 
     </main>
 
-    <!-- <footer id="footer" class="footer dark-background w-100">
-  <div class="container-fluid text-center py-4">
+    <footer id="footer" class="footer dark-background">
+
+  <div class="container copyright text-center mt-4">
     <p>© <span>Copyright</span> <strong class="px-1 sitename">Lakbe Pampanga</strong> <span>All Rights Reserved</span></p>
-    <div class="credits">
-      Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> Distributed By <a href="https://themewagon.com">ThemeWagon</a>
-    </div>
+    
   </div>
-</footer> -->
+
+</footer>
 
 
     <!-- scripts -->

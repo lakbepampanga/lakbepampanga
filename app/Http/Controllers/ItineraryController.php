@@ -19,211 +19,180 @@ use App\Models\DestinationVisit;  // Add this line
 class ItineraryController extends Controller
 {
     
-    public function generateItinerary(Request $request)
-    {
-        try {
-            set_time_limit(120);
-            
-            $validatedData = $request->validate([
-                'latitude' => 'required|numeric',
-                'longitude' => 'required|numeric',
-                'hours' => 'required|integer|min:1',
-                'interests' => 'array',
-                'interests.*' => 'string|in:landmark,restaurant,museum,shopping,nature,religious,entertainment,cultural,park,market'
-            ]);
-    
-            $latitude = $validatedData['latitude'];
-            $longitude = $validatedData['longitude'];
-            $availableTime = $validatedData['hours'] * 60;
-            
-            // Get user selected interests, excluding restaurants (will be handled separately)
-            $interests = !empty($validatedData['interests']) 
-                ? array_diff($validatedData['interests'], ['restaurant'])
-                : [
-                    'landmark',
-                    'museum',
-                    'shopping',
-                    'nature',
-                    'religious',
-                    'entertainment',
-                    'cultural',
-                    'park',
-                    'market'
-                ];
-    
-            $cacheKey = "itinerary_{$latitude}_{$longitude}_{$availableTime}_" . implode('_', $interests);
-            
-            if ($cachedItinerary = Cache::get($cacheKey)) {
-                return response()->json($cachedItinerary);
-            }
-    
-            // Get regular destinations
-            $regularDestinations = Destination::select(
-                '*',
-                DB::raw("(
-                    6371 * acos(
-                        cos(radians($latitude)) * cos(radians(latitude)) *
-                        cos(radians(longitude) - radians($longitude)) +
-                        sin(radians($latitude)) * sin(radians(latitude))
-                    )
-                ) AS distance")
-            )
-            ->whereIn('type', $interests)
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->havingRaw('distance <= 20')
-            ->orderBy('distance')
-            ->get();
-    
-            // Get restaurants separately
-            $restaurants = Destination::select(
-                '*',
-                DB::raw("(
-                    6371 * acos(
-                        cos(radians($latitude)) * cos(radians(latitude)) *
-                        cos(radians(longitude) - radians($longitude)) +
-                        sin(radians($latitude)) * sin(radians(latitude))
-                    )
-                ) AS distance")
-            )
-            ->where('type', 'restaurant')
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->havingRaw('distance <= 20')
-            ->orderBy('distance')
-            ->get();
-    
-            if ($regularDestinations->isEmpty()) {
-                return response()->json(['error' => 'No destinations available in this area.'], 400);
-            }
-    
-            $itinerary = [];
-            $timeSpent = 0;
-            $lastFoodStop = 0;
-            $currentLat = $latitude;
-            $currentLng = $longitude;
-            
-            // Type distribution for non-restaurant destinations
-            $typeDistribution = [
-                'landmark' => ['max' => 2, 'count' => 0],
-                'museum' => ['max' => 1, 'count' => 0],
-                'shopping' => ['max' => 1, 'count' => 0],
-                'nature' => ['max' => 1, 'count' => 0],
-                'religious' => ['max' => 1, 'count' => 0],
-                'entertainment' => ['max' => 1, 'count' => 0],
-                'cultural' => ['max' => 1, 'count' => 0],
-                'park' => ['max' => 1, 'count' => 0],
-                'market' => ['max' => 1, 'count' => 0]
-            ];
-    
-            // Pre-calculate travel times for all destinations
-            $travelTimes = [];
-            foreach ($regularDestinations as $destination) {
-                $travelTimes[$destination->id] = $this->getTravelTimeFromGoogle(
-                    $currentLat,
-                    $currentLng,
-                    $destination->latitude,
-                    $destination->longitude
-                );
-            }
-            foreach ($restaurants as $restaurant) {
-                $travelTimes[$restaurant->id] = $this->getTravelTimeFromGoogle(
-                    $currentLat,
-                    $currentLng,
-                    $restaurant->latitude,
-                    $restaurant->longitude
-                );
-            }
-    
-            while ($timeSpent < $availableTime && ($regularDestinations->isNotEmpty() || $restaurants->isNotEmpty())) {
-                // Check if it's time for a food stop (every 4 hours)
-                $needFoodStop = ($timeSpent - $lastFoodStop) >= 240 && $restaurants->isNotEmpty();
-    
-                if ($needFoodStop) {
-                    // Find nearest restaurant
-                    $cluster = $this->getClusterOfDestinations($currentLat, $currentLng, $restaurants, 5.0);
-                    if ($cluster->isNotEmpty()) {
-                        $nextDestination = $this->findClosestDestination($currentLat, $currentLng, $cluster);
-                        $restaurants = $restaurants->reject(fn($d) => $d->id === $nextDestination->id);
-                    } else {
-                        $needFoodStop = false; // No restaurants nearby, continue with regular destinations
-                    }
-                }
-    
-                if (!$needFoodStop) {
-                    $cluster = $this->getClusterOfDestinations($currentLat, $currentLng, $regularDestinations, 5.0);
-                    if ($cluster->isEmpty()) break;
-    
-                    // Filter by type distribution
-                    $filteredCluster = $cluster->filter(function ($destination) use ($typeDistribution) {
-                        return !isset($typeDistribution[$destination->type]) ||
-                               $typeDistribution[$destination->type]['count'] < $typeDistribution[$destination->type]['max'];
-                    });
-    
-                    if ($filteredCluster->isEmpty()) {
-                        $filteredCluster = $cluster;
-                    }
-    
-                    $nextDestination = $this->findClosestDestination($currentLat, $currentLng, $filteredCluster);
-                    if (!$nextDestination) break;
-    
-                    $regularDestinations = $regularDestinations->reject(fn($d) => $d->id === $nextDestination->id);
-                }
-    
-                if (!isset($nextDestination)) break;
-    
-                $travelTime = $travelTimes[$nextDestination->id];
-                $visitTime = $nextDestination->recommended_visit_time ?? 
-                            ($nextDestination->type === 'restaurant' ? 40 : 20);
-    
-                if ($timeSpent + $travelTime + $visitTime > $availableTime) break;
-    
-                // Update type count and food stop tracking
-                if (isset($typeDistribution[$nextDestination->type])) {
-                    $typeDistribution[$nextDestination->type]['count']++;
-                }
-                if ($nextDestination->type === 'restaurant') {
-                    $lastFoodStop = $timeSpent + $travelTime + $visitTime;
-                }
-    
-                // Add to itinerary
-                $itineraryItem = $this->addToItineraryWithCommute(
-                    $nextDestination,
-                    $travelTime,
-                    $visitTime,
-                    $currentLat,
-                    $currentLng
-                );
-    
-                // Add additional details
-                $itineraryItem['latitude'] = $nextDestination->latitude;
-                $itineraryItem['longitude'] = $nextDestination->longitude;
-                $itineraryItem['description'] = $nextDestination->description ?? 'No description available.';
-                $itineraryItem['image_url'] = $nextDestination->image_url;
-                $itineraryItem['category_tags'] = $nextDestination->category_tags;
-                $itineraryItem['average_price'] = $nextDestination->average_price;
-                $itineraryItem['family_friendly'] = $nextDestination->family_friendly;
-    
-                $itinerary[] = $itineraryItem;
-                $timeSpent += $travelTime + $visitTime;
-                
-                $currentLat = $nextDestination->latitude;
-                $currentLng = $nextDestination->longitude;
-            }
-    
-            Cache::put($cacheKey, $itinerary, 3600);
-    
-            return response()->json($itinerary);
-    
-        } catch (\Exception $e) {
-            \Log::error('Error Generating Itinerary:', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
-            ]);
-            return response()->json(['error' => 'An error occurred while generating the itinerary.'], 500);
+public function generateItinerary(Request $request)
+{
+    try {
+        set_time_limit(120);
+        
+        $validatedData = $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+            'hours' => 'required|integer|min:1',
+            'selected_location' => 'nullable|string',
+        ]);
+
+        $latitude = $validatedData['latitude'];
+        $longitude = $validatedData['longitude'];
+        $availableTime = $validatedData['hours'] * 60;
+
+        // Cache key based on input parameters
+        $cacheKey = "itinerary_{$latitude}_{$longitude}_{$availableTime}";
+        
+        if ($cachedItinerary = Cache::get($cacheKey)) {
+            return response()->json($cachedItinerary);
         }
+
+        // Fetch all destinations with distance calculation
+        $destinations = Destination::select(
+            '*',
+            DB::raw('(
+                6371 * acos(
+                    cos(radians(?)) * cos(radians(latitude)) * 
+                    cos(radians(longitude) - radians(?)) + 
+                    sin(radians(?)) * sin(radians(latitude))
+                )
+            ) AS distance'),
+        )
+        ->whereNotNull('latitude')
+        ->whereNotNull('longitude')
+        ->setBindings([$latitude, $longitude, $latitude])
+        ->having('distance', '<=', 20)
+        ->orderBy('distance')
+        ->get();
+
+        if ($destinations->isEmpty()) {
+            return response()->json(['error' => 'No destinations available with valid coordinates.'], 400);
+        }
+
+        $itinerary = [];
+        $timeSpent = 0;
+        $foodStopsAdded = 0;
+        $landmarkCount = 0;
+        $maxLandmarksBeforeFoodStop = 3; // Force food stop after every 3 landmarks
+        $maxFoodStops = floor($availableTime / 240); // One food stop every 4 hours
+        $currentLat = $latitude;
+        $currentLng = $longitude;
+
+        // Pre-calculate travel times for optimization
+        $travelTimes = [];
+        foreach ($destinations as $destination) {
+            $travelTime = $this->getTravelTimeFromGoogle(
+                $currentLat,
+                $currentLng,
+                $destination->latitude,
+                $destination->longitude
+            );
+            $travelTimes[$destination->id] = $travelTime;
+        }
+
+        while ($timeSpent < $availableTime && $destinations->isNotEmpty()) {
+            // Get cluster of nearby destinations
+            $cluster = $this->getClusterOfDestinations($currentLat, $currentLng, $destinations, 5.0);
+            
+            if ($cluster->isEmpty()) {
+                break;
+            }
+
+            // Determine if we need a food stop
+            $shouldAddFoodStop = $foodStopsAdded < $maxFoodStops && 
+                               ($landmarkCount >= $maxLandmarksBeforeFoodStop || 
+                                $timeSpent >= ($foodStopsAdded + 1) * 240);
+            
+            // Filter cluster based on whether we need a food stop
+            $filteredCluster = $cluster->filter(function ($destination) use ($shouldAddFoodStop) {
+                return $shouldAddFoodStop ? 
+                       $destination->type === 'restaurant' : 
+                       $destination->type !== 'restaurant';
+            });
+
+            if ($filteredCluster->isEmpty()) {
+                // If we can't find appropriate destination in current cluster, expand search
+                $filteredCluster = $destinations->filter(function ($destination) use ($shouldAddFoodStop) {
+                    return $shouldAddFoodStop ? 
+                           $destination->type === 'restaurant' : 
+                           $destination->type !== 'restaurant';
+                });
+                
+                if ($filteredCluster->isEmpty()) {
+                    // If still no appropriate destinations, continue with any type
+                    $filteredCluster = $cluster;
+                }
+            }
+
+            if ($filteredCluster->isEmpty()) {
+                break;
+            }
+
+            $nextDestination = $this->findClosestDestination($currentLat, $currentLng, $filteredCluster);
+            
+            if (!$nextDestination) {
+                break;
+            }
+
+            $travelTime = $travelTimes[$nextDestination->id];
+            $visitTime = $nextDestination->type === 'restaurant' ? 60 : 30;
+
+            if ($timeSpent + $travelTime + $visitTime > $availableTime) {
+                break;
+            }
+
+            // Create itinerary item
+            $itineraryItem = $this->addToItineraryWithCommute(
+                $nextDestination,
+                $travelTime,
+                $visitTime,
+                $currentLat,
+                $currentLng
+            );
+
+            // Add additional details
+            $itineraryItem['latitude'] = $nextDestination->latitude;
+            $itineraryItem['longitude'] = $nextDestination->longitude;
+            $itineraryItem['description'] = $nextDestination->description ?? 'No description available.';
+            $itineraryItem['image_url'] = $nextDestination->image_url;
+
+            $itinerary[] = $itineraryItem;
+            $timeSpent += $travelTime + $visitTime;
+            
+            // Update current position
+            $currentLat = $nextDestination->latitude;
+            $currentLng = $nextDestination->longitude;
+            
+            // Remove used destination
+            $destinations = $destinations->reject(fn($d) => $d->id === $nextDestination->id);
+
+            // Update counters
+            if ($nextDestination->type === 'restaurant') {
+                $foodStopsAdded++;
+                $landmarkCount = 0;
+            } else {
+                $landmarkCount++;
+            }
+
+            // Log for debugging
+            \Log::info('Added destination to itinerary', [
+                'name' => $nextDestination->name,
+                'type' => $nextDestination->type,
+                'timeSpent' => $timeSpent,
+                'foodStopsAdded' => $foodStopsAdded,
+                'landmarkCount' => $landmarkCount
+            ]);
+        }
+
+        // Cache the result
+        Cache::put($cacheKey, $itinerary, 3600);
+
+        return response()->json($itinerary);
+
+    } catch (\Exception $e) {
+        \Log::error('Error Generating Itinerary:', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'request_data' => $request->all()
+        ]);
+        return response()->json(['error' => 'An error occurred while generating the itinerary.'], 500);
     }
+}
     private function getTravelTimeFromGoogle($startLat, $startLng, $endLat, $endLng)
     {
         $cacheKey = "travel_time_{$startLat}_{$startLng}_{$endLat}_{$endLng}";
@@ -775,11 +744,44 @@ private function formatRouteResponse($routeInfo)
 private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxConnections = 3, $depth = 0, $visitedRoutes = [], $currentPath = [])
 {
     if ($depth >= $maxConnections) return null;
+    
+    // Add timeout check to prevent execution time limit issues
+    static $startTime;
+    if ($depth === 0) {
+        $startTime = microtime(true);
+    } elseif (microtime(true) - $startTime > 30) {
+        \Log::warning('Route finding timeout - terminating search');
+        return null;
+    }
+
+    // Early optimization: Check if we already have a workable path
+    if ($depth > 0 && count($currentPath) >= 2) {
+        $lastSegment = end($currentPath);
+        $endStopCoords = $nearbyEndStops->first();
+        $lastSegmentEndLat = $lastSegment['end_stop_coords']['latitude'];
+        $lastSegmentEndLng = $lastSegment['end_stop_coords']['longitude'];
+        
+        // If we're close enough to the destination, return the current path
+        $distanceToEnd = $this->calculateDistance(
+            $lastSegmentEndLat,
+            $lastSegmentEndLng,
+            $endStopCoords->latitude,
+            $endStopCoords->longitude
+        );
+        
+        if ($distanceToEnd < 0.5) {
+            return [
+                'type' => 'connecting',
+                'routes' => $currentPath
+            ];
+        }
+    }
 
     foreach ($nearbyStartStops as $startStop) {
         if (in_array($startStop->jeepney_route_id, $visitedRoutes)) continue;
 
         // If this is the first iteration (depth = 0), check if there are better routes nearby
+        // This preserves your existing logic for small distances
         if ($depth == 0) {
             // Look for nearby stops of routes that go directly to the destination
             foreach ($nearbyEndStops as $endStop) {
@@ -799,98 +801,213 @@ private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxCo
                 if ($nearbyBetterStops) {
                     if ($nearbyBetterStops->order_in_route < $endStop->order_in_route) {
                         $route = JeepneyRoute::find($nearbyBetterStops->jeepney_route_id);
-                    if ($route) {
-                        $distance = $this->calculateDistance(
-                            $nearbyBetterStops->latitude,
-                            $nearbyBetterStops->longitude,
-                            $endStop->latitude,
-                            $endStop->longitude
-                        );
-                        return [
-                            'type' => 'connecting',
-                            'routes' => [[
-                                'route_name' => $route->route_name,
-                                'route_color' => $route->route_color,
-                                'start_stop' => $nearbyBetterStops->stop_name,
-                                'end_stop' => $endStop->stop_name,
-                                'start_stop_coords' => [
-                                    'latitude' => $nearbyBetterStops->latitude,
-                                    'longitude' => $nearbyBetterStops->longitude
-                                ],
-                                'end_stop_coords' => [
-                                    'latitude' => $endStop->latitude,
-                                    'longitude' => $endStop->longitude
-                                ],
-                                'fare' => $this->calculateFare($distance)
-                            ]]
-                        ];
+                        if ($route) {
+                            $distance = $this->calculateDistance(
+                                $nearbyBetterStops->latitude,
+                                $nearbyBetterStops->longitude,
+                                $endStop->latitude,
+                                $endStop->longitude
+                            );
+                            return [
+                                'type' => 'connecting',
+                                'routes' => [[
+                                    'route_name' => $route->route_name,
+                                    'route_color' => $route->route_color,
+                                    'start_stop' => $nearbyBetterStops->stop_name,
+                                    'end_stop' => $endStop->stop_name,
+                                    'start_stop_coords' => [
+                                        'latitude' => $nearbyBetterStops->latitude,
+                                        'longitude' => $nearbyBetterStops->longitude
+                                    ],
+                                    'end_stop_coords' => [
+                                        'latitude' => $endStop->latitude,
+                                        'longitude' => $endStop->longitude
+                                    ],
+                                    'fare' => $this->calculateFare($distance)
+                                ]]
+                            ];
+                        }
                     }
                 }
             }
-            }
-            
         }
 
-        // Rest of your existing code remains exactly the same...
         \Log::info("Processing stop at depth $depth", [
             'stop' => $startStop->stop_name,
             'route_id' => $startStop->jeepney_route_id
         ]);
 
+        // 1. First check direct routes - this should take priority
         foreach ($nearbyEndStops as $endStop) {
             if ($endStop->jeepney_route_id === $startStop->jeepney_route_id) {
-                $route = JeepneyRoute::find($startStop->jeepney_route_id);
-                $distance = $this->calculateDistance(
-                    $startStop->latitude,
-                    $startStop->longitude,
-                    $endStop->latitude,
-                    $endStop->longitude
-                );
+                $totalStops = JeepneyStop::where('jeepney_route_id', $startStop->jeepney_route_id)
+                    ->count();
 
-                $currentSegment = [
-                    'route_name' => $route->route_name,
-                    'route_color' => $route->route_color,
-                    'start_stop' => $startStop->stop_name,
-                    'end_stop' => $endStop->stop_name,
-                    'start_stop_coords' => [
-                        'latitude' => $startStop->latitude,
-                        'longitude' => $startStop->longitude
-                    ],
-                    'end_stop_coords' => [
-                        'latitude' => $endStop->latitude,
-                        'longitude' => $endStop->longitude
-                    ],
-                    'fare' => $this->calculateFare($distance)
-                ];
+                // Check direction
+                if ($startStop->order_in_route < $endStop->order_in_route) {
+                    $route = JeepneyRoute::find($startStop->jeepney_route_id);
+                    $distance = $this->calculateDistance(
+                        $startStop->latitude,
+                        $startStop->longitude,
+                        $endStop->latitude,
+                        $endStop->longitude
+                    );
 
-                return [
-                    'type' => 'connecting',
-                    'routes' => array_merge($currentPath, [$currentSegment])
-                ];
+                    $currentSegment = [
+                        'route_name' => $route->route_name,
+                        'route_color' => $route->route_color,
+                        'start_stop' => $startStop->stop_name,
+                        'end_stop' => $endStop->stop_name,
+                        'start_stop_coords' => [
+                            'latitude' => $startStop->latitude,
+                            'longitude' => $startStop->longitude
+                        ],
+                        'end_stop_coords' => [
+                            'latitude' => $endStop->latitude,
+                            'longitude' => $endStop->longitude
+                        ],
+                        'fare' => $this->calculateFare($distance)
+                    ];
+
+                    return [
+                        'type' => 'connecting',
+                        'routes' => array_merge($currentPath, [$currentSegment])
+                    ];
+                }
             }
         }
 
-        // Continue with your existing transfer points code...
+        // 3. For transfer points - limit the number to consider
+        $endStopCoords = $nearbyEndStops->first();
+        
+        // Limit the number of transfers we consider to prevent execution timeouts
+        $maxTransfersToConsider = ($depth == 0) ? 5 : 3;
+        
+        // First try to find transfer points that connect directly to the end route
+        $directTransfers = [];
+        if ($depth == 0) { // Only search for direct transfers on first iteration
+            foreach ($nearbyEndStops as $endStop) {
+                // Find possible intersection points between the start route and the end route
+                $possibleTransfers = JeepneyStop::whereRaw('EXISTS (
+                    SELECT 1 FROM jeepney_stops AS js2 
+                    WHERE js2.jeepney_route_id = ?
+                    AND ABS(js2.latitude - jeepney_stops.latitude) < 0.001
+                    AND ABS(js2.longitude - jeepney_stops.longitude) < 0.001
+                )', [$endStop->jeepney_route_id])
+                ->where('jeepney_route_id', $startStop->jeepney_route_id)
+                ->where('order_in_route', '>', $startStop->order_in_route) // Ensure we're moving forward on the route
+                ->limit(2)
+                ->get();
+                
+                if ($possibleTransfers->isNotEmpty()) {
+                    $directTransfers = array_merge($directTransfers, $possibleTransfers->all());
+                }
+            }
+        }
+        
+        // If we found direct connection points, prioritize those
+        if (!empty($directTransfers)) {
+            foreach ($directTransfers as $transfer) {
+                // Find the corresponding stop on the end route
+                foreach ($nearbyEndStops as $endStop) {
+                    $transferPoint = JeepneyStop::where('jeepney_route_id', $endStop->jeepney_route_id)
+                        ->whereRaw('ABS(latitude - ?) < 0.001', [$transfer->latitude])
+                        ->whereRaw('ABS(longitude - ?) < 0.001', [$transfer->longitude])
+                        ->first();
+                    
+                    if ($transferPoint && $transferPoint->order_in_route < $endStop->order_in_route) {
+                        // We found a good direct transfer point
+                        $currentRoute = JeepneyRoute::find($startStop->jeepney_route_id);
+                        $nextRoute = JeepneyRoute::find($endStop->jeepney_route_id);
+                        
+                        $segment1 = [
+                            'route_name' => $currentRoute->route_name,
+                            'route_color' => $currentRoute->route_color,
+                            'start_stop' => $startStop->stop_name,
+                            'end_stop' => $transfer->stop_name,
+                            'start_stop_coords' => [
+                                'latitude' => $startStop->latitude,
+                                'longitude' => $startStop->longitude
+                            ],
+                            'end_stop_coords' => [
+                                'latitude' => $transfer->latitude,
+                                'longitude' => $transfer->longitude
+                            ],
+                            'fare' => $this->calculateFare($this->calculateDistance(
+                                $startStop->latitude,
+                                $startStop->longitude,
+                                $transfer->latitude,
+                                $transfer->longitude
+                            ))
+                        ];
+                        
+                        $segment2 = [
+                            'route_name' => $nextRoute->route_name,
+                            'route_color' => $nextRoute->route_color,
+                            'start_stop' => $transferPoint->stop_name,
+                            'end_stop' => $endStop->stop_name,
+                            'start_stop_coords' => [
+                                'latitude' => $transferPoint->latitude,
+                                'longitude' => $transferPoint->longitude
+                            ],
+                            'end_stop_coords' => [
+                                'latitude' => $endStop->latitude,
+                                'longitude' => $endStop->longitude
+                            ],
+                            'fare' => $this->calculateFare($this->calculateDistance(
+                                $transferPoint->latitude,
+                                $transferPoint->longitude,
+                                $endStop->latitude,
+                                $endStop->longitude
+                            ))
+                        ];
+                        
+                        return [
+                            'type' => 'connecting',
+                            'routes' => array_merge($currentPath, [$segment1, $segment2])
+                        ];
+                    }
+                }
+            }
+        }
+        
+        // If no direct transfer points found, look for general transfer points
         $transfers = JeepneyStop::select('*')
             ->whereNotIn('jeepney_route_id', array_merge($visitedRoutes, [$startStop->jeepney_route_id]))
             ->whereRaw('(6371 * acos(
                 cos(radians(?)) * cos(radians(latitude)) * 
                 cos(radians(longitude) - radians(?)) + 
                 sin(radians(?)) * sin(radians(latitude))
-            )) < 1.5', [$startStop->latitude, $startStop->longitude, $startStop->latitude])
-            ->orderByRaw('(6371 * acos(
-                cos(radians(?)) * cos(radians(latitude)) * 
-                cos(radians(longitude) - radians(?)) + 
-                sin(radians(?)) * sin(radians(latitude))
-            ))', [$nearbyEndStops->first()->latitude, $nearbyEndStops->first()->longitude, $nearbyEndStops->first()->latitude])
-            ->limit(5)
+            )) < 0.5', [$startStop->latitude, $startStop->longitude, $startStop->latitude])
+            ->orderByRaw('(
+                POW(latitude - ?, 2) + POW(longitude - ?, 2)
+            )', [$endStopCoords->latitude, $endStopCoords->longitude])
+            ->limit($maxTransfersToConsider)
             ->get();
 
+        // Analyze if the transfers make sense
+        // For each transfer, check if it actually gets us closer to the destination
         foreach ($transfers as $transfer) {
-            \Log::info("Found transfer point", [
-                'from' => $startStop->stop_name,
-                'to' => $transfer->stop_name
-            ]);
+            // Skip transfers that don't make progress toward destination
+            $currentDistanceToEnd = $this->calculateDistance(
+                $startStop->latitude,
+                $startStop->longitude,
+                $endStopCoords->latitude,
+                $endStopCoords->longitude
+            );
+            
+            $transferDistanceToEnd = $this->calculateDistance(
+                $transfer->latitude,
+                $transfer->longitude,
+                $endStopCoords->latitude,
+                $endStopCoords->longitude
+            );
+            
+            // Skip transfers that don't get us at least 25% closer to destination 
+            if ($transferDistanceToEnd > $currentDistanceToEnd * 0.75) {
+                continue;
+            }
+
             $currentRoute = JeepneyRoute::find($startStop->jeepney_route_id);
             $distance = $this->calculateDistance(
                 $startStop->latitude,
@@ -898,6 +1015,7 @@ private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxCo
                 $transfer->latitude,
                 $transfer->longitude
             );
+            
             $segment = [
                 'route_name' => $currentRoute->route_name,
                 'route_color' => $currentRoute->route_color,
@@ -929,6 +1047,7 @@ private function findConnectingRoutes($nearbyStartStops, $nearbyEndStops, $maxCo
 
     return null;
 }
+
 private function findDirectRoute($startStops, $endStops)
 {
     foreach ($startStops as $startStop) {
