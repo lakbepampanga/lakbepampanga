@@ -1,13 +1,11 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\CommutingReport;
 
+use App\Models\CommutingReport;
 use App\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\CommutingReportController; // Add this line
-
 
 class ReportController extends Controller
 {
@@ -16,15 +14,15 @@ class ReportController extends Controller
         // Get both types of reports
         $itineraryReports = Report::with('user')->get();
         $commutingReports = CommutingReport::with('user')->get();
-        
+
         // Merge the collections
         $allReports = $itineraryReports->concat($commutingReports)
             ->sortByDesc('created_at');
-        
+
         // Paginate the merged collection
         $page = request('page', 1);
         $perPage = 10;
-        
+
         $reports = new \Illuminate\Pagination\LengthAwarePaginator(
             $allReports->forPage($page, $perPage),
             $allReports->count(),
@@ -32,7 +30,7 @@ class ReportController extends Controller
             $page,
             ['path' => request()->url()]
         );
-            
+
         return view('admin.reports.index', compact('reports'));
     }
 
@@ -40,7 +38,7 @@ class ReportController extends Controller
     {
         // Try to find in both report types
         $report = Report::find($id) ?? CommutingReport::find($id);
-        
+
         if (!$report) {
             abort(404);
         }
@@ -96,5 +94,19 @@ class ReportController extends Controller
         }
 
         return redirect()->back()->with('success', 'Report updated successfully');
+    }
+
+    // Method to get user reports for the user home page
+    public function getUserReports()
+    {
+        $userId = Auth::id();
+
+        $itineraryReports = Report::where('user_id', $userId)->with('user')->get();
+        $commutingReports = CommutingReport::where('user_id', $userId)->with('user')->get();
+
+        $userReports = $itineraryReports->concat($commutingReports)
+            ->sortByDesc('created_at');
+
+        return $userReports;
     }
 }

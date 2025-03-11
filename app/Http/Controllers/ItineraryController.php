@@ -344,7 +344,9 @@ private function addToItineraryWithCommute($destination, $travelTime, $visitTime
             ]],
             'latitude' => $destination->latitude,
             'longitude' => $destination->longitude,
-            'description' => $destination->description ?? 'No description available.'
+            'description' => $destination->description ?? 'No description available.',
+            'opening_time' => $destination->opening_time,
+            'closing_time' => $destination->closing_time
         ];
     }
 

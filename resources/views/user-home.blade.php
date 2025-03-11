@@ -157,6 +157,112 @@
             </div>
         </div>
     </div>
+
+    
+</section>
+
+<section class="mb-5 bg-white p-4 rounded" id="user-reports">
+    <div class="row g-5">
+        <div class="col-md-12 d-flex flex-column">
+            <h3 class="fw-bold text-center mb-2">My Reports</h3>
+            <div class="user-reports-slider d-flex gap-3 overflow-auto p-3 rounded shadow-sm flex-grow-1">
+                @if($userReports->isEmpty())
+                    <div class="report-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
+                        <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                            <h4 class="card-title fw-bold">No Reports Submitted Yet</h4>
+                            <p class="card-text text-muted">Report an issue to help improve Lakbe Pampanga!</p>
+                        </div>
+                    </div>
+                @else
+                    @foreach($userReports as $report)
+                        <div class="report-card card rounded shadow-sm flex-shrink-0" style="min-width: 24rem; height: 15rem;">
+                            <div class="card-body d-flex flex-column justify-content-between align-items-start">
+                                <h5 class="card-title fw-bold">
+                                    @if($report instanceof \App\Models\CommutingReport)
+                                        Commuting Issue: {{ ucfirst(str_replace('_', ' ', $report->issue_type)) }}
+                                    @else
+                                        Itinerary Issue: {{ ucfirst(str_replace('_', ' ', $report->issue_type)) }}
+                                    @endif
+                                </h5>
+                                <p class="card-text text-muted">
+                                    Reported on: {{ $report->created_at->format('M d, Y H:i') }}
+                                </p>
+                                <span class="badge bg-{{ $report->status === 'pending' ? 'warning' : ($report->status === 'in_review' ? 'info' : 'success') }}">
+                                    {{ ucfirst(str_replace('_', ' ', $report->status)) }}
+                                </span>
+                                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill mt-2" data-bs-toggle="modal" data-bs-target="#reportModal{{ $report->id }}">
+                                    View Details
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Report Modal -->
+                        <div class="modal fade" id="reportModal{{ $report->id }}" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Report #{{ $report->id }} Details</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <p><strong>Reported At:</strong> {{ $report->created_at->format('M d, Y H:i') }}</p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <p><strong>Issue Type:</strong> {{ ucfirst(str_replace('_', ' ', $report->issue_type)) }}</p>
+                                                <p><strong>Status:</strong>
+                                                    <span class="badge bg-{{ $report->status === 'pending' ? 'warning' : ($report->status === 'in_review' ? 'info' : 'success') }}">
+                                                        {{ ucfirst(str_replace('_', ' ', $report->status)) }}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        @if($report instanceof \App\Models\CommutingReport)
+                                            <div class="mb-3">
+                                                <h6>Route Details:</h6>
+                                                <div class="border p-2 rounded bg-light">
+                                                    <p class="mb-1"><strong>From:</strong> {{ $report->start_location }}</p>
+                                                    <p class="mb-0"><strong>To:</strong> {{ $report->end_location }}</p>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <div class="mb-3">
+                                                <h6>Destination:</h6>
+                                                <p class="border p-2 rounded bg-light">{{ $report->destination_name }}</p>
+                                            </div>
+                                        @endif
+
+                                        <div class="mb-3">
+                                            <h6>Current Instructions:</h6>
+                                            <p class="border p-2 rounded bg-light">{{ $report->current_instructions }}</p>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <h6>Issue Description:</h6>
+                                            <p class="border p-2 rounded bg-light">{{ $report->description }}</p>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <h6>Admin Notes:</h6>
+                                            <div class="border p-2 rounded bg-light">
+                                                {{ $report->admin_notes ? $report->admin_notes : 'No admin notes available.' }}
+                                            </div>
+                                        </div>
+
+                                        <div class="text-end">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                @endif
+            </div>
+        </div>
+    </div>
 </section>
 
 

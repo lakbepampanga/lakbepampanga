@@ -31,6 +31,7 @@
   <!-- Bootstrap CSS and JS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
   
     <style>
      
@@ -50,16 +51,16 @@
     position: fixed;
     top: 20px;
     right: 20px;
-    z-index: 9999;
+    z-index: 1050;
 }
 
 .custom-toast {
-    min-width: 300px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     opacity: 0;
-    transition: opacity 0.3s ease-in-out;
+    transition: all 0.3s ease-in-out;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    position: relative;
 }
 
 .custom-toast.show {
@@ -72,6 +73,37 @@
 
 .toast-error {
     border-left: 4px solid #dc3545;
+}
+
+/* Enhanced button styles */
+.btn-close {
+    position: relative;
+    padding: 0.5rem !important;
+    margin: -0.5rem -0.5rem -0.5rem auto !important;
+    cursor: pointer !important;
+    background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat;
+    border: 0;
+    border-radius: 0.25rem;
+    opacity: 0.5;
+    width: 1rem;
+    height: 1rem;
+}
+
+.btn-close:hover {
+    opacity: 1 !important;
+    background-color: rgba(0,0,0,0.1);
+}
+
+/* Make sure the button is clickable */
+.btn-close {
+    pointer-events: auto !important;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Ensure the entire toast doesn't block button clicks */
+.custom-toast * {
+    pointer-events: auto;
 }
 
 
@@ -203,70 +235,55 @@
 <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-        <div class="d-flex justify-content-end p-1">
+            <div class="d-flex justify-content-end p-1">
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-header">
                 <h5 class="modal-title text-center" id="registerModalLabel">Register</h5>
             </div>
-            <div class="modal-body">  
-              <form id="registerForm" method="POST" action="{{ route('register') }}">
-                  @csrf
-                  <div class="mb-3">
-                      <label for="registerEmail" class="form-label">Email:</label>
-                      <input type="email" id="registerEmail" name="email" class="form-control" placeholder="Enter your email" required>
-                      @error('email')
-                          <small class="text-danger">{{ $message }}</small>
-                      @enderror
-                  </div>
-                  <div class="mb-3">
-                      <label for="registerUsername" class="form-label">Username:</label>
-                      <input type="text" id="registerUsername" name="name" class="form-control" placeholder="Enter your username" required>
-                      @error('name')
-                          <small class="text-danger">{{ $message }}</small>
-                      @enderror
-                  </div>
-                  <div class="mb-3">
-                      <label class="form-label">Gender:</label>
-                      <div class="btn-group w-100" role="group" aria-label="Gender selection">
-                          <input type="radio" class="btn-check" name="gender" id="male" value="male" autocomplete="off" required>
-                          <label class="btn btn-outline-primary" for="male">Male</label>
+            <div class="modal-body">
+                <form id="registerForm" method="POST" action="{{ route('register') }}">
+                    @csrf
+                    <div class="mb-3">
+                        <label for="registerEmail" class="form-label">Email:</label>
+                        <input type="email" id="registerEmail" name="email" class="form-control" placeholder="Enter your email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="registerUsername" class="form-label">Username:</label>
+                        <input type="text" id="registerUsername" name="name" class="form-control" placeholder="Enter your username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Gender:</label>
+                        <div class="btn-group w-100" role="group" aria-label="Gender selection">
+                            <input type="radio" class="btn-check" name="gender" id="male" value="male" autocomplete="off" required>
+                            <label class="btn btn-outline-primary" for="male">Male</label>
 
-                          <input type="radio" class="btn-check" name="gender" id="female" value="female" autocomplete="off" required>
-                          <label class="btn btn-outline-primary" for="female">Female</label>
-                      </div>
-                      @error('gender')
-                          <small class="text-danger">{{ $message }}</small>
-                      @enderror
-                  </div>
-                  <div class="mb-3">
-                      <label for="age" class="form-label">Age:</label>
-                      <input type="number" id="age" name="age" class="form-control" placeholder="Enter your age" min="1" max="120" required>
-                      @error('age')
-                          <small class="text-danger">{{ $message }}</small>
-                      @enderror
-                  </div>
-                  <div class="mb-3">
-                      <label for="registerPassword" class="form-label">Password:</label>
-                      <input type="password" id="registerPassword" name="password" class="form-control" placeholder="Enter your password" required>
-                      @error('password')
-                          <small class="text-danger">{{ $message }}</small>
-                      @enderror
-                  </div>
-                  <div class="mb-3">
-                      <label for="confirmPassword" class="form-label">Confirm Password:</label>
-                      <input type="password" id="confirmPassword" name="password_confirmation" class="form-control" placeholder="Confirm your password" required>
-                  </div>
-                  <div class="mb-3">
-                      <input type="checkbox" id="showPasswordReg" onclick="toggleRegisterPassword()"> Show Password
-                  </div>
-                  <button type="submit" class="btn btn-primary w-100">Register</button>
-              </form>
-              <p class="mt-3 text-center">
-                  Already have an account? <a href="#loginModal" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#loginModal">Login here</a>
-              </p>
-          </div>
+                            <input type="radio" class="btn-check" name="gender" id="female" value="female" autocomplete="off" required>
+                            <label class="btn btn-outline-primary" for="female">Female</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="age" class="form-label">Age:</label>
+                        <input type="number" id="age" name="age" class="form-control" placeholder="Enter your age" min="1" max="120" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="registerPassword" class="form-label">Password:</label>
+                        <input type="password" id="registerPassword" name="password" class="form-control" placeholder="Enter your password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm Password:</label>
+                        <input type="password" id="confirmPassword" name="password_confirmation" class="form-control" placeholder="Confirm your password" required>
+                    </div>
+                    <div class="mb-3">
+                        <input type="checkbox" id="showPasswordReg" onclick="toggleRegisterPassword()"> Show Password
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Register</button>
+                </form>
+                <p class="mt-3 text-center">
+                    Already have an account? <a href="#loginModal" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#loginModal">Login here</a>
+                </p>
+            </div>
         </div>
     </div>
 </div>
@@ -621,8 +638,7 @@ function togglePassword() {
         });
     });
 
-    // Toast notification function
-function showToast(message, type = 'success') {
+    function showToast(message, type = 'success') {
     let toastContainer = document.querySelector('.toast-container');
     if (!toastContainer) {
         toastContainer = document.createElement('div');
@@ -632,24 +648,35 @@ function showToast(message, type = 'success') {
 
     const toast = document.createElement('div');
     toast.className = `custom-toast toast-${type} p-3 mb-2`;
+    
+    // Create the toast content
     toast.innerHTML = `
         <div class="d-flex align-items-center">
             <div class="toast-body flex-grow-1">
                 <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
                 ${message}
             </div>
-            <button type="button" class="btn-close ms-2" onclick="this.parentElement.parentElement.remove()"></button>
+            <button type="button" class="btn-close ms-2" aria-label="Close" style="z-index: 2;"></button>
         </div>
     `;
 
     toastContainer.appendChild(toast);
+    
+    // Get the close button and add event listener
+    const closeButton = toast.querySelector('.btn-close');
+    if (closeButton) {
+        closeButton.style.cursor = 'pointer';
+        closeButton.onclick = function() {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        };
+    }
+
+    // Force reflow to ensure transition works
     toast.offsetHeight;
     toast.classList.add('show');
-
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -718,21 +745,6 @@ if (loginForm) {
     });
 }
 
-    // Registration form
-    const registerForm = document.getElementById('registerForm');
-    if (registerForm) {
-        registerForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            // Your registration form submission logic
-            if (this.checkValidity()) {
-                showToast('Registration successful!', 'success');
-                // Submit the form
-                this.submit();
-            } else {
-                showToast('Please fill in all required fields correctly.', 'error');
-            }
-        });
-    }
 
     // Forgot password form
     const forgotPasswordForm = document.getElementById('forgotPasswordForm');
@@ -776,6 +788,46 @@ if (loginForm) {
         });
     }
 });
+
+ // Registration form
+ const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(Object.fromEntries(new FormData(this)))
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Registration successful!', 'success');
+                    // Close modal only on success
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+                    // Redirect if needed
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    }
+                } else {
+                    // Show error message but keep modal open
+                    showToast(data.error || 'Registration failed. Please try again.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Registration failed. Please try again.', 'error');
+            });
+        });
+    }
 </script>
 
 

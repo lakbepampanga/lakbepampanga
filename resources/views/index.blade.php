@@ -552,6 +552,8 @@
                                 <p class="card-text"><strong>Travel Time:</strong> {{ $item->travel_time }}</p>
                                 <p class="card-text"><strong>Time to Spend:</strong> {{ $item->visit_time }}</p>
                                 <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->commute_instructions }}</p>
+                                <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->opening_time }}</p>
+        
                                 <button class="btn btn-sm btn-outline-primary edit-destination"
                                         data-index="{{ $index }}"
                                         data-lat="{{ $item->latitude }}"
@@ -1693,6 +1695,55 @@ document.addEventListener("click", function (event) {
         const mapModal = new bootstrap.Modal(document.getElementById("mapModal"));
         mapModal.show();
     }
+});
+
+// Add this JavaScript to your page
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the button and input elements
+    const useLocationBtn = document.getElementById('use-location');
+    const locationInput = document.getElementById('location');
+    
+    // Add click event listener to the "Use Current Location" button
+    useLocationBtn.addEventListener('click', function() {
+        // Check if geolocation is supported
+        if (navigator.geolocation) {
+            // Show loading message
+            locationInput.placeholder = "Getting your location...";
+            
+            // Get the current position
+            navigator.geolocation.getCurrentPosition(
+                // Success callback
+                function(position) {
+                    // Get latitude and longitude
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    
+                    // Use Google Maps Geocoding API (since you already have Google Maps loaded)
+                    const geocoder = new google.maps.Geocoder();
+                    const latlng = { lat: latitude, lng: longitude };
+                    
+                    geocoder.geocode({ location: latlng }, function(results, status) {
+                        if (status === 'OK' && results[0]) {
+                            // Display the formatted address in the input field
+                            locationInput.value = results[0].formatted_address;
+                        } else {
+                            // Fall back to coordinates if geocoding fails
+                            locationInput.value = `${latitude}, ${longitude}`;
+                        }
+                    });
+                },
+                // Error callback
+                function(error) {
+                    // Handle errors
+                    locationInput.placeholder = "Error getting location. Please try again.";
+                    console.error('Geolocation error:', error);
+                }
+            );
+        } else {
+            // Browser doesn't support geolocation
+            locationInput.placeholder = "Geolocation is not supported by your browser";
+        }
+    });
 });
     </script>
 

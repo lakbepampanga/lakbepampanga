@@ -10,7 +10,7 @@ use App\Models\JeepneyStop;
 use Illuminate\Support\Facades\Storage;
 use App\Models\DestinationVisit;
 use App\Models\ItineraryCompletion;  // Add this line
-
+use App\Models\City;
 
 
 
@@ -113,9 +113,9 @@ class AdminController extends Controller
     public function createDestination()
     {
         $routes = JeepneyRoute::all();
-        return view('admin.destinations.create', compact('routes'));
+        $cities = City::orderBy('name')->get();
+        return view('admin.destinations.create', compact('routes', 'cities'));
     }
-
 
     // Update the storeDestination method
     public function storeDestination(Request $request)
@@ -126,7 +126,7 @@ class AdminController extends Controller
             'longitude' => 'required|numeric',
             'description' => 'nullable|string',
             'travel_time' => 'required|integer|min:1',
-            'city' => 'required|in:Angeles,Mabalacat,Magalang',
+            'city' => 'required|exists:cities,name',
             'type' => 'required|in:' . implode(',', $this->getValidDestinationTypes()),
             'priority' => 'required|integer|min:1',
             'opening_time' => 'nullable|date_format:H:i',
