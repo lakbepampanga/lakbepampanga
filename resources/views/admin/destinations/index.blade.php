@@ -55,13 +55,13 @@
                         <tr>
                             <td>{{ $destination->name }}</td>
                             <td>
-                                <span class="badge bg-{{ $destination->type === 'landmark' ? 'primary' : 'success' }}">
+                                <span class="badge bg-primary">
                                     {{ ucfirst($destination->type) }}
                                 </span>
                             </td>
                             <td>{{ $destination->city }}</td>
                             <td>
-                                <span class="badge bg-{{ $destination->priority === 1 ? 'danger' : 'warning' }}">
+                                <span class="badge bg-primary">
                                     Priority {{ $destination->priority }}
                                 </span>
                             </td>

@@ -69,10 +69,10 @@
                                 <td>{{ $report->created_at->format('M d, Y H:i') }}</td>
                                 <td>
                                     <button type="button" 
-                                            class="btn btn-sm btn-primary"
+                                            class="btn btn-sm btn-{{ $report->status === 'resolved' ? 'secondary' : 'primary' }}"
                                             data-bs-toggle="modal"
                                             data-bs-target="#reportModal{{ $report->id }}">
-                                        Review
+                                        {{ $report->status === 'resolved' ? 'View' : 'Review' }}
                                     </button>
                                 </td>
                             </tr>
@@ -82,7 +82,7 @@
                                 <div class="modal-dialog modal-lg">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <h5 class="modal-title">Review Report #{{ $report->id }}</h5>
+                                            <h5 class="modal-title">{{ $report->status === 'resolved' ? 'View' : 'Review' }} Report #{{ $report->id }}</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
@@ -121,7 +121,15 @@
                                                 <h6>Issue Description:</h6>
                                                 <p class="border p-2 rounded bg-light">{{ $report->description }}</p>
                                             </div>
+                                            
+                                            <div class="mb-3">
+                                                <h6>Admin Notes:</h6>
+                                                <div class="border p-2 rounded bg-light">
+                                                    {{ $report->admin_notes ? $report->admin_notes : 'No admin notes available.' }}
+                                                </div>
+                                            </div>
 
+                                            @if($report->status !== 'resolved')
                                             <form action="{{ $report instanceof \App\Models\CommutingReport ? route('admin.commuting.reports.update', $report) : route('admin.reports.update', $report) }}" method="POST">
                                                 @csrf
                                                 @method('PUT')
@@ -129,14 +137,13 @@
                                                 <div class="mb-3">
                                                     <label class="form-label">Update Status</label>
                                                     <select name="status" class="form-select" required>
-                                                        <option value="pending" {{ $report->status === 'pending' ? 'selected' : '' }}>Pending</option>
                                                         <option value="in_review" {{ $report->status === 'in_review' ? 'selected' : '' }}>In Review</option>
                                                         <option value="resolved" {{ $report->status === 'resolved' ? 'selected' : '' }}>Resolved</option>
                                                     </select>
                                                 </div>
 
                                                 <div class="mb-3">
-                                                    <label class="form-label">Admin Notes</label>
+                                                    <label class="form-label">Update Admin Notes</label>
                                                     <textarea name="admin_notes" class="form-control" rows="3" 
                                                               placeholder="Add any notes about the resolution or current status...">{{ $report->admin_notes }}</textarea>
                                                 </div>
@@ -146,6 +153,15 @@
                                                     <button type="submit" class="btn btn-primary">Update Report</button>
                                                 </div>
                                             </form>
+                                            @else
+                                                <div class="alert alert-info">
+                                                    <i class="fas fa-info-circle me-2"></i>
+                                                    This report is marked as resolved and cannot be edited.
+                                                </div>
+                                                <div class="text-end">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
