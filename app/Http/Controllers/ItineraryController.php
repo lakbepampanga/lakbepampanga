@@ -1258,6 +1258,8 @@ public function updateItineraryItem(Request $request)
         $newDestObj->longitude = $validatedData['newDestination']['longitude'];
         $newDestObj->description = $validatedData['newDestination']['description'] ?? '';
         $newDestObj->image_url = $validatedData['newDestination']['image_url'] ?? null;
+        $newDestObj->opening_time = $validatedData['newDestination']['opening_time'] ?? null; // ADD THIS LINE
+        $newDestObj->closing_time = $validatedData['newDestination']['closing_time'] ?? null; // ADD THIS LINE
         $newDestObj->id = $validatedData['newDestination']['id'] ?? null;
 
         // First, update the changed destination
@@ -1304,6 +1306,8 @@ public function updateItineraryItem(Request $request)
             $destObj->longitude = $currentDest['longitude'];
             $destObj->description = $currentDest['description'] ?? '';
             $destObj->image_url = $currentDest['image_url'] ?? null;
+            $destObj->opening_time = $currentDest['opening_time'] ?? null; // ADD THIS LINE
+            $destObj->closing_time = $currentDest['closing_time'] ?? null; // ADD THIS LINE
             $destObj->id = $currentDest['id'] ?? null;
 
             // Calculate new travel times and commute instructions
@@ -1330,7 +1334,9 @@ public function updateItineraryItem(Request $request)
                 [
                     'travel_time' => $updatedItem['travel_time'],
                     'visit_time' => $updatedItem['visit_time'],
-                    'commute_instructions' => $updatedItem['commute_instructions']
+                    'commute_instructions' => $updatedItem['commute_instructions'],
+                    'opening_time' => $newDestObj->opening_time, // ADD THIS LINE
+                    'closing_time' => $newDestObj->closing_time  // ADD THIS LINE
                 ]
             );
 

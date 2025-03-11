@@ -553,6 +553,8 @@
                                 <p class="card-text"><strong>Time to Spend:</strong> {{ $item->visit_time }}</p>
                                 <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->commute_instructions }}</p>
                                 <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->opening_time }}</p>
+                                <p class="card-text"><strong>Opening Time:</strong> {{ $item->opening_time ? \Carbon\Carbon::parse($item->opening_time)->format('h:i A') : 'Not Available' }}</p>
+                                <p class="card-text"><strong>Closing Time:</strong> {{ $item->closing_time ? \Carbon\Carbon::parse($item->closing_time)->format('h:i A') : 'Not Available' }}</p>
         
                                 <button class="btn btn-sm btn-outline-primary edit-destination"
                                         data-index="{{ $index }}"
@@ -945,70 +947,77 @@ function initAutocomplete() {
 
                 const type = typeConfig[destination.type] || { color: 'bg-primary', icon: 'bi-geo-alt' };
 
-                itineraryHTML += `
-                    <div class="card mb-3 shadow-sm border-0 position-relative" data-destination-id="${index}">
-                        <!-- Image on Top -->
-                        <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
-                             class="card-img-top img-fluid rounded"
-                             alt="${destination.name}"
-                             onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'"
-                             style="width: 100%; height: 250px; object-fit: cover;">
+itineraryHTML += `
+    <div class="card mb-3 shadow-sm border-0 position-relative" data-destination-id="${index}">
+        <!-- Image on Top -->
+        <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+             class="card-img-top img-fluid rounded"
+             alt="${destination.name}"
+             onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'"
+             style="width: 100%; height: 250px; object-fit: cover;">
 
-                        <!-- Badge (Type Indicator) -->
-                        <div class="position-absolute top-0 start-0 m-2">
-                            <span class="badge ${type.color} rounded-pill">
-                                <i class="bi ${type.icon}"></i>
-                                ${destination.type.charAt(0).toUpperCase() + destination.type.slice(1)}
-                            </span>
-                        </div>
+        <!-- Badge (Type Indicator) -->
+        <div class="position-absolute top-0 start-0 m-2">
+            <span class="badge ${type.color} rounded-pill">
+                <i class="bi ${type.icon}"></i>
+                ${destination.type.charAt(0).toUpperCase() + destination.type.slice(1)}
+            </span>
+        </div>
 
-                        <!-- Details Below -->
-                        <div class="card-body text-center">
-                            <h5 class="card-title fw-bold">${destination.name}</h5>
-                            <p class="card-text text-muted">${destination.description}</p>
+        <!-- Details Below -->
+        <div class="card-body text-center">
+            <h5 class="card-title fw-bold">${destination.name}</h5>
+            <p class="card-text text-muted">${destination.description}</p>
 
-                            <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mt-2">
-                                <p class="card-text">
-                                    <i class="bi bi-clock-fill text-primary"></i> 
-                                    <strong>Travel Time:</strong> ${destination.travel_time} minutes
-                                </p>
-                                <p class="card-text">
-                                    <i class="bi bi-hourglass-split text-warning"></i> 
-                                    <strong>Time to Spend:</strong> ${destination.visit_time} minutes
-                                </p>
-                            </div>
+            <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mt-2">
+                <p class="card-text">
+                    <i class="bi bi-clock-fill text-primary"></i> 
+                    <strong>Travel Time:</strong> ${destination.travel_time} minutes
+                </p>
+                <p class="card-text">
+                    <i class="bi bi-hourglass-split text-warning"></i> 
+                    <strong>Time to Spend:</strong> ${destination.visit_time} minutes
+                </p>
+            </div>
 
-                            ${destination.average_price ? `
-                                <p class="card-text">
-                                    <i class="bi bi-currency-dollar text-success"></i>
-                                    <strong>Average Price:</strong> ₱${destination.average_price}
-                                </p>
-                            ` : ''}
+            ${destination.average_price ? `
+                <p class="card-text">
+                    <i class="bi bi-currency-dollar text-success"></i>
+                    <strong>Average Price:</strong> ₱${destination.average_price}
+                </p>
+            ` : ''}
 
-                            ${destination.family_friendly ? `
-                                <p class="card-text">
-                                    <i class="bi bi-people-fill text-info"></i>
-                                    Family Friendly
-                                </p>
-                            ` : ''}
+            ${destination.family_friendly ? `
+                <p class="card-text">
+                    <i class="bi bi-people-fill text-info"></i>
+                    Family Friendly
+                </p>
+            ` : ''}
 
-                            <div class="card-text commute-instructions-container mt-2">
-                                <i class="bi bi-geo-alt-fill text-danger"></i> 
-                                <strong>Commute Instructions:</strong>
-                                <div class="commute-instructions mt-2">
-                                    ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}
-                                </div>
-                            </div>
+            <div class="card-text commute-instructions-container mt-2">
+                <i class="bi bi-geo-alt-fill text-danger"></i> 
+                <strong>Commute Instructions:</strong>
+                <div class="commute-instructions mt-2">
+                    ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}
+                </div>
+            </div>
 
-                            <button class="btn btn-sm btn-custom edit-destination mt-3" 
-                                    data-index="${index}"
-                                    data-lat="${destination.latitude}"
-                                    data-lng="${destination.longitude}">
-                                <i class="bi bi-pencil"></i> Change
-                            </button>
-                        </div>
-                    </div>
-                `;
+        <p class="card-text">
+            <strong>Opening Time:</strong> ${formatTime(destination.opening_time)}
+        </p>
+        <p class="card-text">
+            <strong>Closing Time:</strong> ${formatTime(destination.closing_time)}
+        </p>
+
+            <button class="btn btn-sm btn-custom edit-destination mt-3" 
+                    data-index="${index}"
+                    data-lat="${destination.latitude}"
+                    data-lng="${destination.longitude}">
+                <i class="bi bi-pencil"></i> Change
+            </button>
+        </div>
+    </div>
+`;
 
                 const lat = parseFloat(destination.latitude);
                 const lng = parseFloat(destination.longitude);
@@ -1102,6 +1111,8 @@ async function handleDestinationSelect(newDestination) {
             latitude: newDestination.latitude,
             longitude: newDestination.longitude,
             image_url: newDestination.image_url, // Make sure to include image_url
+            opening_time: newDestination.opening_time, // Get opening_time from newDestination
+            closing_time: newDestination.closing_time,
             travel_time: updatedItem.travel_time,
             visit_time: updatedItem.visit_time,
             commute_instructions: updatedItem.commute_instructions
@@ -1124,38 +1135,43 @@ async function handleDestinationSelect(newDestination) {
         currentItineraryData.forEach((destination, index) => {
     console.log('Destination commute instructions:', destination.commute_instructions);
     console.log('Full destination data:', destination);
-            itineraryHTML += `
-                <div class="card mb-3 shadow-sm border-0 text-center" data-destination-id="${index}">
-    <!-- Image on Top -->
-    <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
-         class="card-img-top img-fluid rounded"
-         alt="${destination.name}"
-         style="width: 100%; height: 250px; object-fit: cover;"
-         onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'">
+    itineraryHTML += `
+    <div class="card mb-3 shadow-sm border-0 text-center" data-destination-id="${index}">
+        <!-- Image on Top -->
+        <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+             class="card-img-top img-fluid rounded"
+             alt="${destination.name}"
+             style="width: 100%; height: 250px; object-fit: cover;">
 
-    <!-- Details Below -->
-    <div class="card-body">
-        <h5 class="card-title fw-bold">${destination.name} (${destination.type})</h5>
-        <p class="card-text text-muted">${destination.description}</p>
-        
-        <div class="d-flex justify-content-center gap-3">
-            <p class="card-text"><i class="bi bi-clock-fill text-primary"></i> <strong>Travel Time:</strong> ${destination.travel_time}</p>
-            <p class="card-text"><i class="bi bi-hourglass-split text-warning"></i> <strong>Time to Spend:</strong> ${destination.visit_time}</p>
+        <!-- Details Below -->
+        <div class="card-body">
+            <h5 class="card-title fw-bold">${destination.name} (${destination.type})</h5>
+            <p class="card-text text-muted">${destination.description}</p>
+            
+            <div class="d-flex justify-content-center gap-3">
+                <p class="card-text"><i class="bi bi-clock-fill text-primary"></i> <strong>Travel Time:</strong> ${destination.travel_time}</p>
+                <p class="card-text"><i class="bi bi-hourglass-split text-warning"></i> <strong>Time to Spend:</strong> ${destination.visit_time}</p>
+            </div>
+            
+            <p class="card-text"><i class="bi bi-geo-alt-fill text-danger"></i> <strong>Commute Instructions:</strong> 
+                ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}
+            </p>
+
+            <p class="card-text">
+                <strong>Opening Time:</strong> ${destination.opening_time ? formatTime(destination.opening_time) : 'Not Available'}
+            </p>
+            <p class="card-text">
+                <strong>Closing Time:</strong> ${destination.closing_time ? formatTime(destination.closing_time) : 'Not Available'}
+            </p>
+
+            <button class="btn btn-sm btn-custom edit-destination mt-2" 
+                    data-index="${index}"
+                    data-lat="${destination.latitude}"
+                    data-lng="${destination.longitude}">
+                <i class="bi bi-pencil"></i> Change
+            </button>
         </div>
-        
-        <p class="card-text"><i class="bi bi-geo-alt-fill text-danger"></i> <strong>Commute Instructions:</strong> 
-            ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}
-        </p>
-
-        <button class="btn btn-sm btn-custom edit-destination mt-2" 
-                data-index="${index}"
-                data-lat="${destination.latitude}"
-                data-lng="${destination.longitude}">
-            <i class="bi bi-pencil"></i> Change
-        </button>
     </div>
-</div>
-
 `;
 
             const lat = parseFloat(destination.latitude);
@@ -1235,6 +1251,13 @@ function updateItineraryUI() {
             ${destination.commute_instructions.map(instruction => instruction.instruction).join(' ')}
         </p>
 
+        <p class="card-text">
+            <strong>Opening Time:</strong> ${destination.opening_time ? destination.opening_time : 'Not Available'}
+        </p>
+        <p class="card-text">
+            <strong>Closing Time:</strong> ${destination.closing_time ? destination.closing_time : 'Not Available'}
+        </p>
+
         <button class="btn btn-sm btn-custom edit-destination mt-2" 
                 data-index="${index}"
                 data-lat="${destination.latitude}"
@@ -1245,6 +1268,7 @@ function updateItineraryUI() {
 </div>
 
 `;
+
     });
 
     document.getElementById('itinerary-content').innerHTML = itineraryHTML;
@@ -1323,7 +1347,8 @@ window.onload = function() {
 let editingIndex = null;
 const alternativesModal = new bootstrap.Modal(document.getElementById('alternativeDestinationsModal'));
 // Function to fetch alternative destinations
-async function fetchAlternativeDestinations(lat, lng) {
+async function fetchAlternativeDestinations(lat, lng, index) {
+    editingIndex = index; // Store the index of the destination being edited
     try {
         const response = await fetch('/api/alternative-destinations', {
             method: 'POST',
@@ -1345,32 +1370,34 @@ async function fetchAlternativeDestinations(lat, lng) {
         
         // Function to render destinations
         const renderDestinations = (destinationsToShow) => {
-            container.innerHTML = destinationsToShow.map(dest => `
-                <button class="list-group-item list-group-item-action" 
-                        onclick="selectNewDestination(${JSON.stringify(dest).replace(/"/g, '&quot;')})"
-                        data-type="${dest.type}">
-                    <div class="d-flex w-100">
-                        <div class="flex-shrink-0" style="width: 100px; height: 100px;">
-                            <img src="${dest.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
-                                 class="img-fluid rounded"
-                                 alt="${dest.name}"
-                                 style="width: 100px; height: 100px; object-fit: cover;"
-                                 onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'">
-                        </div>
-                        <div class="ms-3 flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <h6 class="mb-1">${dest.name}</h6>
-                                <span class="badge ${dest.type === 'restaurant' ? 'bg-success' : 'bg-primary'} rounded-pill">
-                                    <i class="bi ${dest.type === 'restaurant' ? 'bi-shop' : 'bi-geo-alt'}"></i>
-                                    ${dest.type.charAt(0).toUpperCase() + dest.type.slice(1)}
-                                </span>
-                            </div>
-                            <p class="mb-1 text-muted small">${dest.description || 'No description available.'}</p>
-                        </div>
+    container.innerHTML = destinationsToShow.map(dest => `
+        <button class="list-group-item list-group-item-action" 
+                onclick="selectNewDestination(${JSON.stringify(dest).replace(/"/g, '&quot;')})"
+                data-type="${dest.type}">
+            <div class="d-flex w-100">
+                <div class="flex-shrink-0" style="width: 100px; height: 100px;">
+                    <img src="${dest.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+                         class="img-fluid rounded"
+                         alt="${dest.name}"
+                         style="width: 100px; height: 100px; object-fit: cover;"
+                         onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'">
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h6 class="mb-1">${dest.name}</h6>
+                        <span class="badge ${dest.type === 'restaurant' ? 'bg-success' : 'bg-primary'} rounded-pill">
+                            <i class="bi ${dest.type === 'restaurant' ? 'bi-shop' : 'bi-geo-alt'}"></i>
+                            ${dest.type.charAt(0).toUpperCase() + dest.type.slice(1)}
+                        </span>
                     </div>
-                </button>
-            `).join('');
-        };
+                    <p class="mb-1 text-muted small">${dest.description || 'No description available.'}</p>
+                    <p class="mb-1 small"><strong>Opening Time:</strong> ${dest.opening_time ? dest.opening_time : 'Not Available'}</p>
+                    <p class="mb-1 small"><strong>Closing Time:</strong> ${dest.closing_time ? dest.closing_time : 'Not Available'}</p>
+                </div>
+            </div>
+        </button>
+    `).join('');
+};
 
         // Initial render
         renderDestinations(destinations);
@@ -1427,7 +1454,8 @@ async function selectNewDestination(newDestination) {
         if (!response.ok) throw new Error('Failed to update itinerary');
         
         const result = await response.json();
-        
+        console.log("Result from server:", result); // ADD THIS LINE
+
         if (result.success) {
             // Update the itinerary data starting from the changed destination
             for (let i = 0; i < result.updatedDestinations.length; i++) {
@@ -1436,6 +1464,7 @@ async function selectNewDestination(newDestination) {
                     currentItineraryData[targetIndex] = result.updatedDestinations[i];
                 }
             }
+            console.log("Updated currentItineraryData:", currentItineraryData); // ADD THIS LINE
 
             // Clear previous markers and routes
             clearMap();
@@ -1454,6 +1483,7 @@ async function selectNewDestination(newDestination) {
                 </div>`;
 
             currentItineraryData.forEach((destination, index) => {
+                console.log("Destination data in loop:", destination); // ADD THIS LINE
                 // Add marker and coordinates for the map
                 const lat = parseFloat(destination.latitude);
                 const lng = parseFloat(destination.longitude);
@@ -1465,60 +1495,68 @@ async function selectNewDestination(newDestination) {
 
                 // Generate HTML for each destination card
                 itineraryHTML += `
-                    <div class="card mb-3 shadow-sm border-0 position-relative" data-destination-id="${index}">
-                        <!-- Image -->
-                        <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
-                             class="card-img-top img-fluid rounded"
-                             alt="${destination.name}"
-                             onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'"
-                             style="width: 100%; height: 250px; object-fit: cover;">
+    <div class="card mb-3 shadow-sm border-0 position-relative" data-destination-id="${index}">
+        <!-- Image -->
+        <img src="${destination.image_url || 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}" 
+             class="card-img-top img-fluid rounded"
+             alt="${destination.name}"
+             onerror="this.src='https://www.svgrepo.com/show/508699/landscape-placeholder.svg'"
+             style="width: 100%; height: 250px; object-fit: cover;">
 
-                        <!-- Type Badge -->
-                        <div class="position-absolute top-0 start-0 m-2">
-                            <span class="badge ${destination.type === 'restaurant' ? 'bg-success' : 'bg-primary'} rounded-pill">
-                                <i class="bi ${destination.type === 'restaurant' ? 'bi-shop' : 'bi-geo-alt'}"></i>
-                                ${destination.type.charAt(0).toUpperCase() + destination.type.slice(1)}
-                            </span>
-                        </div>
+        <!-- Type Badge -->
+        <div class="position-absolute top-0 start-0 m-2">
+            <span class="badge ${destination.type === 'restaurant' ? 'bg-success' : 'bg-primary'} rounded-pill">
+                <i class="bi ${destination.type === 'restaurant' ? 'bi-shop' : 'bi-geo-alt'}"></i>
+                ${destination.type.charAt(0).toUpperCase() + destination.type.slice(1)}
+            </span>
+        </div>
 
-                        <!-- Details -->
-                        <div class="card-body text-center">
-                            <h5 class="card-title fw-bold">${destination.name}</h5>
-                            <p class="card-text text-muted">${destination.description}</p>
+        <!-- Details -->
+        <div class="card-body text-center">
+            <h5 class="card-title fw-bold">${destination.name}</h5>
+            <p class="card-text text-muted">${destination.description}</p>
 
-                            <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mt-2">
-                                <p class="card-text">
-                                    <i class="bi bi-clock-fill text-primary"></i> 
-                                    <strong>Travel Time:</strong> ${destination.travel_time} minutes
-                                </p>
-                                <p class="card-text">
-                                    <i class="bi bi-hourglass-split text-warning"></i> 
-                                    <strong>Time to Spend:</strong> ${destination.visit_time} minutes
-                                </p>
-                            </div>
+            <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mt-2">
+                <p class="card-text">
+                    <i class="bi bi-clock-fill text-primary"></i> 
+                    <strong>Travel Time:</strong> ${destination.travel_time} minutes
+                </p>
+                <p class="card-text">
+                    <i class="bi bi-hourglass-split text-warning"></i> 
+                    <strong>Time to Spend:</strong> ${destination.visit_time} minutes
+                </p>
+            </div>
 
-                            <div class="card-text commute-instructions-container mt-2">
-                                <i class="bi bi-geo-alt-fill text-danger"></i> 
-                                <strong>Commute Instructions:</strong>
-                                <div class="commute-instructions mt-2">
-                                    ${Array.isArray(destination.commute_instructions) 
-                                        ? destination.commute_instructions.map(instruction => 
-                                            typeof instruction === 'string' 
-                                                ? instruction 
-                                                : instruction.instruction
-                                          ).join(' ')
-                                        : ''}
-                                </div>
-                            </div>
+            <div class="card-text commute-instructions-container mt-2">
+                <i class="bi bi-geo-alt-fill text-danger"></i> 
+                <strong>Commute Instructions:</strong>
+                <div class="commute-instructions mt-2">
+                    ${Array.isArray(destination.commute_instructions) 
+                        ? destination.commute_instructions.map(instruction => 
+                            typeof instruction === 'string' 
+                                ? instruction 
+                                : instruction.instruction
+                          ).join(' ')
+                        : ''}
+                </div>
+            </div>
 
-                            <button class="btn btn-sm btn-custom edit-destination mt-3" 
-                                    data-index="${index}"
-                                    data-lat="${destination.latitude}"
-                                    data-lng="${destination.longitude}">
-                                <i class="bi bi-pencil"></i> Change
-                            </button>
-                        </div>
-                    </div>`;
+            <p class="card-text">
+                <strong>Opening Time:</strong> ${destination.opening_time ? formatTime(destination.opening_time) : 'Not Available'}
+            </p>
+            <p class="card-text">
+                <strong>Closing Time:</strong> ${destination.closing_time ? formatTime(destination.closing_time) : 'Not Available'}
+            </p>
+
+            <button class="btn btn-sm btn-custom edit-destination mt-3" 
+                    data-index="${index}"
+                    data-lat="${destination.latitude}"
+                    data-lng="${destination.longitude}">
+                <i class="bi bi-pencil"></i> Change
+            </button>
+        </div>
+    </div>
+`;;
             });
 
             // Update the DOM
@@ -1552,7 +1590,7 @@ async function selectNewDestination(newDestination) {
 
     } catch (error) {
         console.error('Error:', error);
-        alert('Failed to update itinerary');
+        alert('Failed to update itinerary1');
     }
 }
 // Function to update a single itinerary item in the UI
@@ -1596,6 +1634,8 @@ function updateItineraryItem(index, updatedItem, newDestination) {
                 ${updatedItem.commute_instructions}
             </div>
         </div>
+        <p class="card-text"><strong>Opening Time:</strong> ${formatTime(newDestination.opening_time)}</p>
+        <p class="card-text"><strong>Closing Time:</strong> ${formatTime(newDestination.closing_time)}</p>
 
         <button class="btn btn-sm btn-custom edit-destination mt-3" 
                 data-index="${index}"
@@ -1605,16 +1645,12 @@ function updateItineraryItem(index, updatedItem, newDestination) {
         </button>
     </div>
 </div>
-
-
-
         `;
 
         // Replace the old card with the new card
         itemElement.replaceWith(newCard);
     }
 }
-
 
 // Event delegation for edit buttons
 document.addEventListener('click', function(e) {
@@ -1623,7 +1659,8 @@ document.addEventListener('click', function(e) {
         editingIndex = parseInt(btn.dataset.index);
         fetchAlternativeDestinations(
             parseFloat(btn.dataset.lat),
-            parseFloat(btn.dataset.lng)
+            parseFloat(btn.dataset.lng),
+            editingIndex // Pass the index here
         );
     }
 });
@@ -1745,6 +1782,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+function formatTime(timeString) {
+    if (!timeString) {
+        return 'Not Available';
+    }
+
+    // Split the time string into hours and minutes
+    const [hours, minutes] = timeString.split(':');
+
+    // Convert hours to 12-hour format
+    let period = 'AM';
+    let hour = parseInt(hours);
+    if (hour >= 12) {
+        period = 'PM';
+        if (hour > 12) {
+            hour -= 12;
+        }
+    }
+    if (hour === 0) {
+        hour = 12; // Midnight
+    }
+
+    // Pad minutes with leading zero if necessary
+    const minute = minutes.padStart(2, '0');
+
+    return `${hour}:${minute} ${period}`;
+}
     </script>
 
 </body>
