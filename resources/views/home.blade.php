@@ -123,6 +123,7 @@
         <a href="/" class="logo d-flex align-items-center">
             <img src="{{ asset('img/lakbe-logo1.png') }}" alt="Lakbe Pampanga Logo" class="img-fluid">
         </a>
+        
 
 
         <nav id="navmenu" class="navmenu">
@@ -185,7 +186,7 @@
         @csrf
         <div class="mb-3">
             <label for="email" class="form-label">Email:</label>
-            <input type="text" id="email" name="email" class="form-control" placeholder="Enter your email or phone" required>
+            <input type="text" id="email" name="email" class="form-control" placeholder="Enter your email" required>
             @error('email')
                 <small class="text-danger">{{ $message }}</small>
             @enderror
@@ -980,6 +981,20 @@ function toggleConfirmPassword() {
         button.classList.replace('bi-eye-slash', 'bi-eye');
     }
 }
+
+document.getElementById('registerEmail').addEventListener('input', function() {
+    let emailField = this;
+    let emailError = document.getElementById('emailError');
+    let emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/;
+
+    if (!emailPattern.test(emailField.value)) {
+        emailField.classList.add('is-invalid');
+        emailError.textContent = 'Email must end with .com';
+    } else {
+        emailField.classList.remove('is-invalid');
+        emailError.textContent = '';
+    }
+});
 </script>
 
 </body>
