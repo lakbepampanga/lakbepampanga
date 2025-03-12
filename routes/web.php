@@ -13,7 +13,8 @@ use App\Http\Controllers\DestinationVisitController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CommutingReportController;
 use App\Http\Controllers\HomeController;
-
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 
 // Public routes
 Route::get('/admin/cities/list', [App\Http\Controllers\CityController::class, 'list'])->name('admin.cities.list');
@@ -27,21 +28,76 @@ Route::post('/login', [LoginController::class, 'login'])->name('login');
 Route::post('/register', [RegisterController::class, 'register'])->name('register');
 Route::post('/logout', [LogoutController::class, 'logout'])->name('logout');
 
+// Email Verification Routes
+Route::get('/email/verify', function () {
+    if (auth()->user()->hasVerifiedEmail()) {
+        return redirect('/')->with('success', 'Email already verified!');
+    }
+    return view('auth.verify-email');
+})->middleware('auth')->name('verification.notice');
+
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    try {
+        \Log::info('Email verification attempt for user: ' . auth()->id());
+        
+        $request->fulfill();
+        
+        // Explicitly update the user's email_verified_at timestamp
+        $user = auth()->user();
+        $user->email_verified_at = now();
+        $user->save();
+        
+        \Log::info('Email verified successfully for user: ' . $user->id);
+        
+        // Redirect to home page with success message
+        return redirect('/')->with('success', 'Email verified successfully! You can now log in.');
+        
+    } catch (\Exception $e) {
+        \Log::error('Email verification error: ' . $e->getMessage());
+        return redirect('/')->with('error', 'Email verification failed: ' . $e->getMessage());
+    }
+})->middleware(['auth', 'signed'])->name('verification.verify');
+
+Route::post('/email/verification-notification', function (Request $request) {
+    try {
+        $request->user()->sendEmailVerificationNotification();
+        return back()->with('success', 'Verification link sent! Please check your email.');
+    } catch (\Exception $e) {
+        \Log::error('Error sending verification notification: ' . $e->getMessage());
+        return back()->with('error', 'Failed to send verification email. Please try again.');
+    }
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+
+// Add a resend verification email route
+Route::get('/email/resend', function (Request $request) {
+    try {
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect('/')->with('success', 'Email already verified!');
+        }
+
+        $request->user()->sendEmailVerificationNotification();
+        return back()->with('success', 'Verification link sent! Please check your email.');
+    } catch (\Exception $e) {
+        \Log::error('Error resending verification email: ' . $e->getMessage());
+        return back()->with('error', 'Failed to resend verification email. Please try again.');
+    }
+})->middleware(['auth', 'throttle:6,1'])->name('verification.resend');
+
 // Password Reset Routes
 Route::get('/password/reset', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
 Route::post('/password/email', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
 Route::get('/password/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('/password/reset', [ResetPasswordController::class, 'reset'])->name('password.update');
 
-// Protected routes (require authentication)
-Route::middleware(['auth'])->group(function () {
+// Protected routes (require authentication and email verification)
+Route::middleware(['auth', 'verified'])->group(function () {
     // Itinerary-Gen
     Route::get('/index', function () {
         return view('index');
     })->name('index');
 
     // User-Homepage
-        Route::get('/user-home', [HomeController::class, 'index'])->name('user-home');
+    Route::get('/user-home', [HomeController::class, 'index'])->name('user-home');
 
     // Commuting Guide
     Route::get('/commuting-guide', function () {
@@ -71,8 +127,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('commuting.reports.store');
 });
 
-// Admin routes
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+// Admin routes (require authentication, verification, and admin role)
+Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
     

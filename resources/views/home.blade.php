@@ -235,53 +235,129 @@
 <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
+            <!-- Close button -->
             <div class="d-flex justify-content-end p-1">
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <div class="modal-header">
-                <h5 class="modal-title text-center" id="registerModalLabel">Register</h5>
+            <!-- Modal Header with Logo -->
+            <div class="modal-header d-flex flex-column align-items-center">
+                <!-- Logo -->
+                <img src="{{ asset('img/lakbe-logo1.png') }}" alt="Lakbe Pampanga Logo" class="img-fluid" style="max-height: 80px;">
+                <!-- Title -->
+                <h5 class="modal-title mt-2" id="registerModalLabel">Create Your Account</h5>
+                <p class="text-muted small">Join us and start exploring Pampanga!</p>
             </div>
-            <div class="modal-body">
-                <form id="registerForm" method="POST" action="{{ route('register') }}">
-                    @csrf
-                    <div class="mb-3">
-                        <label for="registerEmail" class="form-label">Email:</label>
-                        <input type="email" id="registerEmail" name="email" class="form-control" placeholder="Enter your email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="registerUsername" class="form-label">Username:</label>
-                        <input type="text" id="registerUsername" name="name" class="form-control" placeholder="Enter your username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Gender:</label>
-                        <div class="btn-group w-100" role="group" aria-label="Gender selection">
-                            <input type="radio" class="btn-check" name="gender" id="male" value="male" autocomplete="off" required>
-                            <label class="btn btn-outline-primary" for="male">Male</label>
 
-                            <input type="radio" class="btn-check" name="gender" id="female" value="female" autocomplete="off" required>
-                            <label class="btn btn-outline-primary" for="female">Female</label>
+            <div class="modal-body">
+                <form id="registerForm" method="POST" action="{{ route('register') }}" novalidate>
+                    @csrf
+                    <!-- Email -->
+                    <div class="mb-3">
+                        <label for="registerEmail" class="form-label">Email Address</label>
+                        <input type="email" 
+                               id="registerEmail" 
+                               name="email" 
+                               class="form-control @error('email') is-invalid @enderror" 
+                               placeholder="Enter your email"
+                               required>
+                        <div class="invalid-feedback" id="emailError"></div>
+                    </div>
+
+                    <!-- Username -->
+                    <div class="mb-3">
+                        <label for="registerUsername" class="form-label">Username</label>
+                        <input type="text" 
+                               id="registerUsername" 
+                               name="name" 
+                               class="form-control @error('name') is-invalid @enderror" 
+                               placeholder="Choose a username"
+                               required>
+                        <div class="invalid-feedback" id="nameError"></div>
+                    </div>
+
+                    <!-- Gender -->
+                    <div class="mb-3">
+                        <label class="form-label d-block">Gender</label>
+                        <div class="btn-group w-100" role="group" aria-label="Gender selection">
+                            <input type="radio" class="btn-check" name="gender" id="male" value="male" required>
+                            <label class="btn btn-outline-primary" for="male">
+                                <i class="bi bi-gender-male me-1"></i>Male
+                            </label>
+
+                            <input type="radio" class="btn-check" name="gender" id="female" value="female" required>
+                            <label class="btn btn-outline-primary" for="female">
+                                <i class="bi bi-gender-female me-1"></i>Female
+                            </label>
                         </div>
+                        <div class="invalid-feedback" id="genderError"></div>
                     </div>
+
+                    <!-- Age -->
                     <div class="mb-3">
-                        <label for="age" class="form-label">Age:</label>
-                        <input type="number" id="age" name="age" class="form-control" placeholder="Enter your age" min="1" max="120" required>
+                        <label for="age" class="form-label">Age</label>
+                        <input type="number" 
+                               id="age" 
+                               name="age" 
+                               class="form-control @error('age') is-invalid @enderror" 
+                               placeholder="Enter your age"
+                               min="1" 
+                               max="120" 
+                               required>
+                        <div class="invalid-feedback" id="ageError"></div>
                     </div>
+
+                    <!-- Password -->
                     <div class="mb-3">
-                        <label for="registerPassword" class="form-label">Password:</label>
-                        <input type="password" id="registerPassword" name="password" class="form-control" placeholder="Enter your password" required>
+                        <label for="registerPassword" class="form-label">Password</label>
+                        <div class="input-group">
+                            <input type="password" 
+                                   id="registerPassword" 
+                                   name="password" 
+                                   class="form-control @error('password') is-invalid @enderror" 
+                                   placeholder="Create a password"
+                                   required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleRegisterPassword()">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback" id="passwordError"></div>
+                        <small class="text-muted">Must be at least 8 characters long</small>
                     </div>
+
+                    <!-- Confirm Password -->
                     <div class="mb-3">
-                        <label for="confirmPassword" class="form-label">Confirm Password:</label>
-                        <input type="password" id="confirmPassword" name="password_confirmation" class="form-control" placeholder="Confirm your password" required>
+                        <label for="confirmPassword" class="form-label">Confirm Password</label>
+                        <div class="input-group">
+                            <input type="password" 
+                                   id="confirmPassword" 
+                                   name="password_confirmation" 
+                                   class="form-control" 
+                                   placeholder="Confirm your password"
+                                   required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleConfirmPassword()">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback" id="passwordConfirmationError"></div>
                     </div>
-                    <div class="mb-3">
-                        <input type="checkbox" id="showPasswordReg" onclick="toggleRegisterPassword()"> Show Password
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Register</button>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary w-100 py-2 mt-3">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        Create Account
+                    </button>
                 </form>
+
+                <!-- Login Link -->
                 <p class="mt-3 text-center">
-                    Already have an account? <a href="#loginModal" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#loginModal">Login here</a>
+                    Already have an account? 
+                    <a href="#loginModal" 
+                       data-bs-dismiss="modal" 
+                       data-bs-toggle="modal" 
+                       data-bs-target="#loginModal">
+                        Sign in
+                    </a>
                 </p>
             </div>
         </div>
@@ -789,47 +865,122 @@ if (loginForm) {
     }
 });
 
- // Registration form
- const registerForm = document.getElementById('registerForm');
+// Function to clear error messages
+function clearErrors() {
+    document.querySelectorAll('.invalid-feedback').forEach(element => {
+        element.textContent = '';
+    });
+    document.querySelectorAll('.is-invalid').forEach(element => {
+        element.classList.remove('is-invalid');
+    });
+}
+
+// Function to display error messages
+function displayErrors(errors) {
+    Object.keys(errors).forEach(field => {
+        const element = document.querySelector(`[name="${field}"]`);
+        const errorDisplay = document.getElementById(`${field}Error`);
+        if (element && errorDisplay) {
+            element.classList.add('is-invalid');
+            errorDisplay.textContent = errors[field][0];
+        }
+    });
+}
+
+// Registration form handling
+document.addEventListener('DOMContentLoaded', function() {
+    const registerForm = document.getElementById('registerForm');
     if (registerForm) {
         registerForm.addEventListener('submit', function(e) {
             e.preventDefault();
 
+            // Clear previous errors
+            clearErrors();
+
+            // Create FormData object
+            const formData = new FormData(this);
+
+            // Show loading state
+            const submitButton = this.querySelector('button[type="submit"]');
+            const spinner = submitButton.querySelector('.spinner-border');
+            submitButton.disabled = true;
+            if (spinner) spinner.classList.remove('d-none');
+
+            // Send the request
             fetch(this.action, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(Object.fromEntries(new FormData(this)))
+                body: formData
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showToast('Registration successful!', 'success');
-                    // Close modal only on success
+                    showToast('Registration successful! Please check your email for verification.', 'success');
+                    
+                    // Close the registration modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
                     if (modal) {
                         modal.hide();
                     }
+
                     // Redirect if needed
                     if (data.redirect) {
                         window.location.href = data.redirect;
                     }
                 } else {
-                    // Show error message but keep modal open
-                    showToast(data.error || 'Registration failed. Please try again.', 'error');
+                    // Handle validation errors
+                    if (data.errors) {
+                        displayErrors(data.errors);
+                        // Show first error in toast
+                        const firstError = Object.values(data.errors)[0][0];
+                        showToast(firstError, 'error');
+                    } else {
+                        showToast(data.message || 'Registration failed. Please try again.', 'error');
+                    }
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showToast('Registration failed. Please try again.', 'error');
+                showToast('An error occurred during registration. Please try again.', 'error');
+            })
+            .finally(() => {
+                // Reset button state
+                submitButton.disabled = false;
+                if (spinner) spinner.classList.add('d-none');
             });
         });
     }
-</script>
+});
 
+// Password toggle functions
+function toggleRegisterPassword() {
+    const passwordField = document.getElementById('registerPassword');
+    const button = passwordField.nextElementSibling.querySelector('i');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        button.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        passwordField.type = 'password';
+        button.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+
+function toggleConfirmPassword() {
+    const passwordField = document.getElementById('confirmPassword');
+    const button = passwordField.nextElementSibling.querySelector('i');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        button.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        passwordField.type = 'password';
+        button.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+</script>
 
 </body>
 </html>

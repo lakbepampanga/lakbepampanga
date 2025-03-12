@@ -21,6 +21,23 @@ class LoginController extends Controller
     
             // Attempt login
             if (Auth::attempt($request->only('email', 'password'))) {
+                // Check if email is verified
+                if (!Auth::user()->hasVerifiedEmail()) {
+                    Auth::logout();
+                    
+                    // For AJAX requests
+                    if ($request->wantsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'error' => 'Please verify your email address first.',
+                            'redirect' => route('verification.notice')
+                        ], 403);
+                    }
+                    
+                    return redirect()->route('verification.notice')
+                        ->with('error', 'Please verify your email address first.');
+                }
+
                 // Log the successful login for debugging
                 logger('User logged in: ' . Auth::user()->email);
     
@@ -82,6 +99,13 @@ class LoginController extends Controller
      */
     protected function authenticated(Request $request, $user)
     {
+        // Check if email is verified
+        if (!$user->hasVerifiedEmail()) {
+            Auth::logout();
+            return redirect()->route('verification.notice')
+                ->with('error', 'Please verify your email address first.');
+        }
+
         if ($user->role === 'admin') {
             return redirect()->route('admin.dashboard');
         }
