@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\SavedItinerary;
 use App\Models\ItineraryCompletion;  // Add this line
 use App\Models\DestinationVisit;  // Add this line
+use Carbon\Carbon;
 
 
 class ItineraryController extends Controller
@@ -345,8 +346,8 @@ private function addToItineraryWithCommute($destination, $travelTime, $visitTime
             'latitude' => $destination->latitude,
             'longitude' => $destination->longitude,
             'description' => $destination->description ?? 'No description available.',
-            'opening_time' => $destination->opening_time,
-            'closing_time' => $destination->closing_time
+            'opening_time' => $destination->opening_time ? Carbon::parse($destination->opening_time)->format('h:i A') : null,
+            'closing_time' => $destination->closing_time ? Carbon::parse($destination->closing_time)->format('h:i A') : null,
         ];
     }
 

@@ -553,8 +553,8 @@
                                 <p class="card-text"><strong>Time to Spend:</strong> {{ $item->visit_time }}</p>
                                 <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->commute_instructions }}</p>
                                 <p class="card-text"><strong>Commute Instructions:</strong> {{ $item->opening_time }}</p>
-                                <p class="card-text"><strong>Opening Time:</strong> {{ $item->opening_time ? \Carbon\Carbon::parse($item->opening_time)->format('h:i A') : 'Not Available' }}</p>
-                                <p class="card-text"><strong>Closing Time:</strong> {{ $item->closing_time ? \Carbon\Carbon::parse($item->closing_time)->format('h:i A') : 'Not Available' }}</p>
+                                <p class="card-text"><strong>Opening Time:</strong> {{ $item->opening_time ?: 'Not Available' }}</p>
+                                <p class="card-text"><strong>Closing Time:</strong> {{ $item->closing_time ?: 'Not Available' }}</p>
         
                                 <button class="btn btn-sm btn-outline-primary edit-destination"
                                         data-index="{{ $index }}"
@@ -1002,12 +1002,12 @@ itineraryHTML += `
                 </div>
             </div>
 
-        <p class="card-text">
-            <strong>Opening Time:</strong> ${formatTime(destination.opening_time)}
-        </p>
-        <p class="card-text">
-            <strong>Closing Time:</strong> ${formatTime(destination.closing_time)}
-        </p>
+<p class="card-text">
+    <strong>Opening Time:</strong> ${destination.opening_time ? destination.opening_time : 'Not Available'}
+</p>
+<p class="card-text">
+    <strong>Closing Time:</strong> ${destination.closing_time ? destination.closing_time : 'Not Available'}
+</p>
 
             <button class="btn btn-sm btn-custom edit-destination mt-3" 
                     data-index="${index}"
